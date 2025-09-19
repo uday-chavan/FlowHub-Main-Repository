@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { taskNotificationScheduler } from "./notificationScheduler";
+import path from "path";
 
 const app = express();
 app.use(express.json());
@@ -49,6 +50,11 @@ app.use((req, res, next) => {
   // Start the task notification scheduler
   taskNotificationScheduler.start();
 
+  // Add health endpoint BEFORE static file serving
+  app.get("/health", (req, res) => {
+    res.status(200).send("OK");
+  });
+
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
@@ -57,11 +63,6 @@ app.use((req, res, next) => {
   } else {
     serveStatic(app);
   }
-
-  // Add health endpoint
-  app.get("/health", (req, res) => {
-    res.status(200).send("OK");
-  });
 
   // ALWAYS serve the app on the port specified in the environment variable PORT
   // Railway automatically sets the PORT environment variable
