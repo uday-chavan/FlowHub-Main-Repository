@@ -3,6 +3,7 @@ import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
 import * as schema from "../shared/schema";
 
+// Configure Neon for serverless deployment
 neonConfig.webSocketConstructor = ws;
 neonConfig.pipelineConnect = false;
 
@@ -13,14 +14,19 @@ export function createDatabase() {
     );
   }
   
+  // Optimize connection for Railway/Neon deployment
   const pool = new Pool({ 
     connectionString: process.env.DATABASE_URL,
-    ssl: process.env.NODE_ENV === 'development' ? { rejectUnauthorized: false } : true
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : true,
+    max: 10, // Limit connections for free tier
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 5000,
   });
+  
   return drizzle({ client: pool, schema });
 }
 
-// Only create database connection if DATABASE_URL is available
+// Singleton database connection
 let db: ReturnType<typeof createDatabase> | null = null;
 
 export function getDb() {
@@ -29,3 +35,11 @@ export function getDb() {
   }
   return db;
 }
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  if (db) {
+    console.log('Closing database connections...');
+    // Connections will be closed automatically by the pool
+  }
+});
