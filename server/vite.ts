@@ -43,7 +43,6 @@ export async function setupVite(app: Express, server: Server) {
 
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
-
     try {
       const clientTemplate = path.resolve(
         import.meta.dirname,
@@ -51,14 +50,12 @@ export async function setupVite(app: Express, server: Server) {
         "client",
         "index.html",
       );
-
       // always reload the index.html file from disk incase it changes
       let template = await fs.promises.readFile(clientTemplate, "utf-8");
       template = template.replace(
         `src="/src/main.tsx"`,
         `src="/src/main.tsx?v=${nanoid()}"`,
       );
-
       const page = await vite.transformIndexHtml(url, template);
       res.status(200).set({ "Content-Type": "text/html" }).end(page);
     } catch (e) {
@@ -72,7 +69,6 @@ export function serveStatic(app: Express) {
   // Try multiple possible paths for the client build directory
   const possiblePaths = [
     path.resolve(process.cwd(), "dist", "client"),
-    path.resolve(__dirname, "..", "client"),
     path.resolve(import.meta.dirname, "..", "client"),
     "/app/dist/client"
   ];
