@@ -1,0 +1,1066 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&family=Sohne:wght@400;500;600;700&family=GT+America:wght@400;500;600;700;800;900&display=swap');
+@tailwind base;
+@tailwind components;
+
+
+/* Enhanced Light Theme Styles */
+:root.light {
+  /* Glass effect for light theme */
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(0, 0, 0, 0.15);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+
+  /* Enhanced gradient backgrounds */
+  --gradient-primary: linear-gradient(135deg, hsl(221, 83%, 53%) 0%, hsl(221, 83%, 60%) 100%);
+  --gradient-secondary: linear-gradient(135deg, hsl(210, 40%, 94%) 0%, hsl(210, 40%, 98%) 100%);
+
+  /* Button hover effects */
+  --hover-overlay: rgba(0, 0, 0, 0.05);
+}
+
+:root.dark {
+  /* Glass effect for dark theme */
+  --glass-bg: rgba(0, 0, 0, 0.3);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+
+  /* Enhanced gradient backgrounds */
+  --gradient-primary: linear-gradient(135deg, hsl(212, 100%, 47%) 0%, hsl(212, 100%, 54%) 100%);
+  --gradient-secondary: linear-gradient(135deg, hsl(217, 32%, 17%) 0%, hsl(217, 32%, 20%) 100%);
+
+  /* Button hover effects */
+  --hover-overlay: rgba(255, 255, 255, 0.05);
+}
+
+/* Enhanced Glass Card Effect */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+/* Enhanced Button Styles for Light Theme */
+.light .glass-effect,
+.light .glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px) saturate(120%);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+.light .glass-effect:hover,
+.light .glass-card:hover {
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  transform: translateY(-1px);
+  transition: all 0.2s ease;
+}
+
+/* Light Theme Icon Colors */
+.light svg {
+  color: rgba(0, 0, 0, 0.8) !important;
+}
+
+.light .text-primary svg,
+.light .text-blue-500,
+.light .text-red-500,
+.light .text-purple-500,
+.light .text-green-500,
+.light .text-green-600 {
+  color: inherit !important;
+}
+
+/* Profile Avatar Enhancement */
+.light .premium-logo-glow {
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.1));
+}
+
+/* Enhanced Cards for Light Theme */
+.light [data-testid="card-notifications"],
+.light [data-testid="card-tasks"],
+.light [data-testid="card-app-launcher"] {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* Better contrast for text in light mode */
+.light .text-muted-foreground {
+  color: hsl(215, 16%, 38%) !important;
+}
+
+/* Enhanced navigation buttons */
+.light button[variant="ghost"] {
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.light button[variant="ghost"]:hover {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Global Styles */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Open Sans', 'Helvetica Neue', sans-serif;
+  font-display: swap;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Ensure all pages are scrollable */
+html, body {
+  height: 100%;
+  overflow-y: auto;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Page scroll fixes */
+.min-h-screen {
+  min-height: 100vh;
+  max-height: 100vh;
+  overflow-y: auto;
+}
+
+/* Main content scroll fixes */
+main {
+  overflow-y: auto !important;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Prevent duplicate content and fix scrolling */
+/* The previous rules for main, dashboard-container, and root are now handled by the new global styles.
+   Keeping these commented out for reference but they are effectively superseded. */
+/*
+main {
+  min-height: 100vh;
+  position: relative;
+  overflow-y: auto;
+  padding-top: 80px;
+}
+
+.dashboard-container {
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
+
+#root {
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
+*/
+
+/* Mobile Responsive Layout */
+@media (max-width: 768px) {
+  /* Hide app launcher on mobile */
+  [data-testid="card-app-launcher"] {
+    display: none !important;
+  }
+
+  /* Mobile dashboard layout adjustments */
+  .dashboard-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+
+  /* Desktop dashboard layout - allow sections to grow naturally */
+  .dashboard-grid {
+    display: flex;
+    align-items: start;
+    gap: 1.5rem;
+    min-height: calc(100vh - 120px);
+  }
+
+  /* Ensure mobile content fits properly */
+  main {
+    min-height: auto;
+    height: auto;
+    overflow-y: visible;
+    padding-bottom: 1rem !important;
+  }
+
+  /* Mobile task button container - force side by side layout */
+  .mobile-task-buttons-container {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 8px;
+    align-items: center;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: 2px;
+  }
+
+  /* Stack tasks and notifications vertically on mobile */
+  .mobile-task-notification-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  /* Adjust button spacing for mobile - force horizontal layout */
+  .mobile-button-group {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    gap: 0.5rem;
+    justify-content: flex-start;
+    align-items: center;
+  }
+
+  .mobile-button-group .button {
+    flex-shrink: 0;
+    min-width: 80px;
+  }
+
+  /* Force task section buttons to display horizontally */
+  [data-testid="card-tasks"] .space-y-3,
+  [data-testid="card-tasks"] .flex-col {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 8px !important;
+    align-items: center !important;
+  }
+
+  /* Ensure task buttons container stays horizontal */
+  .tasks-header-buttons {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 8px !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+  }
+
+  /* Force horizontal layout for task buttons - strongest possible selectors */
+  @media (max-width: 768px) {
+    /* Target the specific task buttons container */
+    [data-testid="card-tasks"] div[class*="space-y"],
+    [data-testid="card-tasks"] div[class*="flex-col"],
+    [data-testid="card-tasks"] .space-y-3,
+    [data-testid="card-tasks"] .flex-col {
+      display: flex !important;
+      flex-direction: row !important;
+      gap: 8px !important;
+      align-items: center !important;
+      justify-content: flex-start !important;
+      flex-wrap: nowrap !important;
+    }
+
+    /* Target any parent containers that might be forcing column layout */
+    [data-testid="card-tasks"] > div > div,
+    [data-testid="card-tasks"] [role="group"],
+    [data-testid="card-tasks"] .tasks-header,
+    [data-testid="card-tasks"] .task-buttons-container {
+      display: flex !important;
+      flex-direction: row !important;
+      gap: 8px !important;
+      align-items: center !important;
+      flex-wrap: nowrap !important;
+    }
+
+    /* Override any Tailwind classes that might be forcing vertical layout */
+    [data-testid="card-tasks"] * {
+      flex-direction: row !important;
+    }
+
+    [data-testid="card-tasks"] .space-y-1,
+    [data-testid="card-tasks"] .space-y-2,
+    [data-testid="card-tasks"] .space-y-3,
+    [data-testid="card-tasks"] .space-y-4 {
+      display: flex !important;
+      flex-direction: row !important;
+      gap: 8px !important;
+      margin-top: 0 !important;
+      margin-bottom: 0 !important;
+    }
+
+    [data-testid="card-tasks"] .space-y-1 > *,
+    [data-testid="card-tasks"] .space-y-2 > *,
+    [data-testid="card-tasks"] .space-y-3 > *,
+    [data-testid="card-tasks"] .space-y-4 > * {
+      margin-top: 0 !important;
+      margin-bottom: 0 !important;
+    }
+  }
+
+  /* Mobile header optimizations */
+  [data-testid="header-main"] .container {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  /* Compact mobile buttons */
+  @media (max-width: 640px) {
+    .mobile-compact-btn {
+      padding: 0.25rem !important;
+      min-width: auto !important;
+    }
+
+    .mobile-compact-btn span {
+      display: none !important;
+    }
+  }
+
+  /* Task section button improvements for mobile */
+  @media (max-width: 768px) {
+    [data-testid="button-add-ai-task"],
+    [data-testid="button-add-manual-task-plus"],
+    [data-testid="button-auto-reschedule"] {
+      height: 36px !important;
+      min-height: 36px !important;
+      max-height: 36px !important;
+      font-size: 14px !important;
+      white-space: nowrap;
+      flex-shrink: 0;
+      border-radius: 8px !important;
+    }
+
+    /* AI task button - minimal width with "AI" text and icon */
+    [data-testid="button-add-ai-task"] {
+      min-width: 50px !important;
+      width: auto !important;
+      padding: 0 8px !important;
+    }
+
+    /* Manual task button - minimal width with just plus icon */
+    [data-testid="button-add-manual-task-plus"] {
+      min-width: 36px !important;
+      width: 36px !important;
+      padding: 0 !important;
+    }
+
+    /* Auto reschedule button */
+    [data-testid="button-auto-reschedule"] {
+      min-width: 36px !important;
+      width: 36px !important;
+      padding: 0 !important;
+    }
+  }
+
+  /* Extra small screens (iPhone SE and similar) */
+  @media (max-width: 375px) {
+    [data-testid="button-add-ai-task"],
+    [data-testid="button-add-manual-task-plus"],
+    [data-testid="button-auto-reschedule"] {
+      height: 34px !important;
+      min-height: 34px !important;
+      max-height: 34px !important;
+      font-size: 13px !important;
+    }
+
+    [data-testid="button-auto-reschedule"] {
+      min-width: 34px !important;
+      width: 34px !important;
+    }
+
+    [data-testid="button-add-ai-task"],
+    [data-testid="button-add-manual-task-plus"] {
+      min-width: 75px !important;
+      padding: 0 10px !important;
+    }
+  }
+
+  /* Upgrade modal mobile optimization */
+  .upgrade-modal-content {
+    margin: 0.5rem !important;
+    max-height: calc(100vh - 1rem) !important;
+    width: calc(100vw - 1rem) !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    z-index: 9999 !important;
+  }
+
+  /* Ensure modal content is scrollable on very small screens */
+  @media (max-height: 600px) {
+    .upgrade-modal-content {
+      max-height: 95vh !important;
+      overflow-y: scroll !important;
+    }
+  }
+
+  /* Fix modal body scrolling */
+  .upgrade-modal-content > * {
+    flex-shrink: 0;
+  }
+}
+
+
+@tailwind utilities;
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes shimmerInner {
+  0% {
+    transform: translateX(-100%) scale(0.8);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+    transform: translateX(0%) scale(1);
+  }
+  100% {
+    transform: translateX(100%) scale(0.8);
+    opacity: 0;
+  }
+}
+
+@keyframes shimmerOuter {
+  0% {
+    transform: translateX(-150%);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(150%);
+    opacity: 0;
+  }
+}
+
+.shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  animation: shimmer 2s infinite;
+}
+
+.animate-shimmer {
+  animation: shimmer 3s linear infinite;
+}
+
+.animate-shimmer-inner {
+  animation: shimmerInner 3s ease-in-out infinite;
+}
+
+.animate-shimmer-outer {
+  animation: shimmerOuter 4s ease-in-out infinite 1s;
+}
+
+:root {
+  --background: hsl(222, 84%, 4%);
+  --foreground: hsl(210, 40%, 98%);
+  --card: hsl(222, 84%, 6%);
+  --card-foreground: hsl(210, 40%, 98%);
+  --popover: hsl(222, 84%, 6%);
+  --popover-foreground: hsl(210, 40%, 98%);
+  --primary: hsl(212, 100%, 47%);
+  --primary-foreground: hsl(210, 40%, 98%);
+  --secondary: hsl(217, 32%, 17%);
+  --secondary-foreground: hsl(210, 40%, 98%);
+  --muted: hsl(217, 32%, 12%);
+  --muted-foreground: hsl(215, 20%, 65%);
+  --accent: hsl(220, 14%, 96%);
+  --accent-foreground: hsl(222, 84%, 4%);
+  --destructive: hsl(0, 62%, 30%);
+  --destructive-foreground: hsl(210, 40%, 98%);
+  --border: hsl(217, 32%, 17%);
+  --input: hsl(217, 32%, 17%);
+  --ring: hsl(212, 100%, 47%);
+  --chart-1: hsl(212, 100%, 47%);
+  --chart-2: hsl(173, 58%, 39%);
+  --chart-3: hsl(197, 37%, 24%);
+  --chart-4: hsl(43, 74%, 66%);
+  --chart-5: hsl(27, 87%, 67%);
+  --sidebar: hsl(222, 84%, 6%);
+  --sidebar-foreground: hsl(210, 40%, 98%);
+  --sidebar-primary: hsl(212, 100%, 47%);
+  --sidebar-primary-foreground: hsl(210, 40%, 98%);
+  --sidebar-accent: hsl(217, 32%, 17%);
+  --sidebar-accent-foreground: hsl(212, 100%, 47%);
+  --sidebar-border: hsl(217, 32%, 17%);
+  --sidebar-ring: hsl(212, 100%, 47%);
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-serif: 'Playfair Display', 'Times New Roman', serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+  --font-display: 'Inter', 'GT America', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-heading: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --radius: 8px;
+  --shadow-2xs: 0px 2px 0px 0px hsl(212, 100%, 47% / 0.00);
+  --shadow-xs: 0px 2px 0px 0px hsl(195, 100%, 55% / 0.00);
+  --shadow-sm: 0px 2px 0px 0px hsl(195, 100%, 55% / 0.00), 0px 1px 2px -1px hsl(195, 100%, 55% / 0.00);
+  --shadow: 0px 2px 0px 0px hsl(195, 100%, 55% / 0.00), 0px 1px 2px -1px hsl(195, 100%, 55% / 0.00);
+  --shadow-md: 0px 2px 0px 0px hsl(195, 100%, 55% / 0.00), 0px 2px 4px -1px hsl(195, 100%, 55% / 0.00);
+  --shadow-lg: 0px 2px 0px 0px hsl(195, 100%, 55% / 0.00), 0px 4px 6px -1px hsl(195, 100%, 55% / 0.00);
+  --shadow-xl: 0px 2px 0px 0px hsl(195, 100%, 55% / 0.00), 0px 8px 10px -1px hsl(195, 100%, 55% / 0.00);
+  --shadow-2xl: 0px 2px 0px 0px hsl(195, 100%, 55% / 0.00);
+  --tracking-normal: 0em;
+  --spacing: 0.25rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+    background: linear-gradient(135deg, hsl(240, 5%, 4%) 0%, hsl(245, 8%, 6%) 100%);
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  .glass-card {
+    background: rgba(26, 26, 27, 0.8);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+
+  .holographic-glow {
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+
+  .workflow-river {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .pulse-urgent {
+    animation: pulse-urgent 1s infinite;
+  }
+
+  .floating-metric {
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+
+  .app-launcher-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 1rem;
+  }
+
+  /* App icons - white in dark mode */
+  .app-launcher-grid img,
+  .glass-card img[src*="simple-icons"],
+  .app-icon {
+    filter: brightness(0) saturate(100%) invert(1);
+  }
+
+  /* App icons - black in light mode */
+  .light .app-launcher-grid img,
+  .light .glass-card img[src*="simple-icons"],
+  .light .app-icon {
+    filter: brightness(0) saturate(100%) invert(0);
+  }
+}
+
+@layer utilities {
+  @keyframes pulse-urgent {
+    0%, 100% {
+      box-shadow: inset 0 0 0 1px rgba(239, 68, 68, 0.4);
+    }
+    50% {
+      box-shadow: inset 0 0 0 2px rgba(239, 68, 68, 0.8);
+    }
+  }
+
+  @keyframes holographicShimmer {
+    0% {
+      background-position: -200% center;
+    }
+    100% {
+      background-position: 200% center;
+    }
+  }
+
+  .holographic-text {
+    background: linear-gradient(
+      90deg,
+      hsl(195, 100%, 55%),
+      hsl(263, 70%, 65%),
+      hsl(195, 100%, 55%)
+    );
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: holographicShimmer 3s linear infinite;
+    font-family: var(--font-heading);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+  }
+
+  .premium-text-gradient {
+    background: linear-gradient(
+      135deg,
+      hsl(210, 40%, 20%) 0%,
+      hsl(195, 100%, 55%) 30%,
+      hsl(263, 70%, 65%) 60%,
+      hsl(210, 40%, 25%) 100%
+    );
+    background-size: 300% 300%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: premiumGradientShift 8s ease-in-out infinite;
+    font-family: var(--font-heading);
+    font-weight: 800;
+    letter-spacing: -0.04em;
+  }
+
+  .premium-subtitle {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: hsl(195, 100%, 65%);
+    text-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+  }
+
+  .futuristic-logo {
+    background: linear-gradient(135deg,
+      rgba(0, 212, 255, 0.1) 0%,
+      rgba(147, 51, 234, 0.15) 50%,
+      rgba(0, 212, 255, 0.1) 100%);
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .futuristic-logo::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg,
+      hsl(195, 100%, 55%),
+      hsl(263, 70%, 65%),
+      hsl(195, 100%, 55%));
+    background-size: 200% 200%;
+    animation: holographicShimmer 4s linear infinite;
+    z-index: -1;
+    margin: -2px;
+    border-radius: inherit;
+  }
+
+  .logo-glow {
+    filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.3))
+            drop-shadow(0 0 16px rgba(0, 212, 255, 0.2));
+    transition: all 0.3s ease;
+  }
+
+  .logo-glow:hover {
+    filter: drop-shadow(0 0 12px rgba(0, 212, 255, 0.5))
+            drop-shadow(0 0 24px rgba(0, 212, 255, 0.3));
+    transform: scale(1.02);
+  }
+
+  .premium-logo-container {
+    background: linear-gradient(135deg,
+      rgba(33, 150, 243, 0.05) 0%,
+      rgba(63, 81, 181, 0.08) 50%,
+      rgba(33, 150, 243, 0.05) 100%);
+    border: 1px solid rgba(33, 150, 243, 0.2);
+    backdrop-filter: blur(20px);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .glass-card {
+    background: rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(30, 41, 59, 0.5);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  }
+
+  .professional-header {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    line-height: 1.1;
+  }
+
+  .professional-text {
+    font-family: var(--font-sans);
+    font-weight: 450;
+    line-height: 1.5;
+    letter-spacing: -0.01em;
+  }
+
+  .bold-heading {
+    font-family: var(--font-heading);
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1.05;
+  }
+
+  .medium-heading {
+    font-family: var(--font-heading);
+    font-weight: 650;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+
+  .systematic-text {
+    font-family: var(--font-sans);
+    font-weight: 500;
+    letter-spacing: -0.005em;
+    line-height: 1.4;
+  }
+
+  .caption-text {
+    font-family: var(--font-sans);
+    font-weight: 500;
+    font-size: 0.875rem;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+  }
+
+  .premium-logo-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg,
+      transparent 30%,
+      rgba(0, 212, 255, 0.1) 50%,
+      transparent 70%);
+    animation: premiumShimmer 6s linear infinite;
+    z-index: 0;
+  }
+
+  .premium-logo-glow {
+    filter: drop-shadow(0 0 20px rgba(0, 212, 255, 0.2));
+    transition: all 0.4s ease;
+  }
+
+  .premium-cta-button {
+    background: linear-gradient(135deg,
+      hsl(195, 100%, 45%) 0%,
+      hsl(263, 70%, 55%) 100%);
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-family: var(--font-sans);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    box-shadow: 0 8px 32px rgba(0, 212, 255, 0.3);
+  }
+
+  .premium-cta-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg,
+      transparent,
+      rgba(255, 255, 255, 0.2),
+      transparent);
+    transition: left 0.6s ease;
+  }
+
+  .premium-cta-button:hover::before {
+    left: 100%;
+  }
+
+  .premium-cta-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(0, 212, 255, 0.4);
+  }
+
+  .floating-particle {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  @keyframes premiumGradientShift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+
+  @keyframes premiumShimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(200%); }
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px) translateX(0px); opacity: 0.3; }
+    25% { transform: translateY(-20px) translateX(10px); opacity: 0.7; }
+    50% { transform: translateY(-40px) translateX(-5px); opacity: 1; }
+    75% { transform: translateY(-20px) translateX(-10px); opacity: 0.7; }
+  }
+
+  @keyframes goldenShine {
+    0% {
+      background-position: -200% center;
+    }
+    100% {
+      background-position: 200% center;
+    }
+  }
+
+  .golden-shine-text {
+    background: linear-gradient(
+      90deg,
+      #f59e0b 25%,
+      #fbbf24 50%,
+      #fde047 75%,
+      #f59e0b 100%
+    );
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: goldenShine 4s linear infinite;
+  }
+
+  /* Custom animations for the dashboard */
+  .task-complete-celebration {
+    animation: taskComplete 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  }
+
+  @keyframes taskComplete {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+  }
+
+  .gentle-hover {
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .gentle-hover:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .gentle-press {
+    transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .gentle-press:active {
+    transform: scale(0.98);
+  }
+
+  /* Keep only urgent pulse animation */
+  .pulse-urgent {
+    animation: pulse-urgent 1s infinite;
+  }
+
+  /* Mobile button consistency utilities */
+  .mobile-consistent-btn {
+    height: 36px !important;
+    min-height: 36px !important;
+    max-height: 36px !important;
+    font-size: 14px !important;
+    border-radius: 8px !important;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  .mobile-consistent-btn-text {
+    padding: 0 12px !important;
+    min-width: 80px !important;
+  }
+
+  .mobile-consistent-btn-icon {
+    min-width: 36px !important;
+    width: 36px !important;
+    padding: 0 !important;
+  }
+
+  @media (max-width: 375px) {
+    .mobile-consistent-btn {
+      height: 34px !important;
+      min-height: 34px !important;
+      max-height: 34px !important;
+      font-size: 13px !important;
+    }
+
+    .mobile-consistent-btn-text {
+      min-width: 75px !important;
+      padding: 0 10px !important;
+    }
+
+    .mobile-consistent-btn-icon {
+      min-width: 34px !important;
+      width: 34px !important;
+    }
+  }
+
+  @keyframes pulse-urgent {
+    0%, 100% {
+      box-shadow: inset 0 0 0 1px rgba(239, 68, 68, 0.4);
+    }
+    50% {
+      box-shadow: inset 0 0 0 2px rgba(239, 68, 68, 0.8);
+    }
+  }
+
+/* Vertical taskbar hover animations */
+.app-icon-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.app-icon-hover:hover {
+  transform: scale(1.25);
+  filter: brightness(1.2);
+}
+
+/* Prevent text wrapping in time displays */
+.workflow-river .whitespace-nowrap {
+  white-space: nowrap !important;
+}
+
+/* Custom scrollbar for dark theme compatibility */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* App icon theme-aware styling */
+.app-icon-light {
+  filter: brightness(0) saturate(100%) invert(0.2) sepia(1) saturate(1.5) hue-rotate(0deg) contrast(1.1);
+}
+
+.dark .app-icon-light {
+  filter: brightness(0) saturate(100%) invert(0.8) sepia(1) saturate(1.5) hue-rotate(0deg) contrast(1.1);
+}
+}
+
+/* Enhanced animations for intro page */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px) translateX(0px);
+    opacity: 0.3;
+  }
+  25% {
+    transform: translateY(-15px) translateX(8px);
+    opacity: 0.8;
+  }
+  50% {
+    transform: translateY(-30px) translateX(0px);
+    opacity: 1;
+  }
+  75% {
+    transform: translateY(-15px) translateX(-8px);
+    opacity: 0.8;
+  }
+}
+
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes flowingLight {
+  0% {
+    transform: translateX(-100%) scale(0.8);
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.9;
+    transform: translateX(-10%) scale(1.1);
+  }
+  70% {
+    opacity: 0.9;
+    transform: translateX(10%) scale(1.1);
+  }
+  100% {
+    transform: translateX(100%) scale(0.8);
+    opacity: 0;
+  }
+}
+
+@keyframes outerGlow {
+  0% {
+    transform: translateX(-200%);
+    opacity: 0;
+  }
+  25% {
+    opacity: 0.7;
+  }
+  75% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: translateX(200%);
+    opacity: 0;
+  }
+}
+
+.animate-float {
+  animation: float 8s ease-in-out infinite;
+}
+
+.animate-spin-slow {
+  animation: spin-slow 20s linear infinite;
+}
+
+.animate-flowing-light {
+  animation: flowingLight 3s ease-in-out infinite;
+}
+
+.animate-outer-glow {
+  animation: outerGlow 5s ease-in-out infinite 0.5s;
+}
+
+/* Enhanced glassmorphism effects */
+.backdrop-blur-lg {
+  backdrop-filter: blur(20px);
+}
+
+/* Gradient text improvements */
+.bg-clip-text {
+  -webkit-background-clip: text;
+  background-clip: text;
+}

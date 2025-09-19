@@ -1,0 +1,31 @@
+ Functionalities - 
+✅ 1. Gmail notifications fetching
+✅ 2. Add "Extract Tasks" button near notification icon on notification section
+✅ 3. Add Functionality - Detect & Convert task emails to arranged task pallets in task section
+✅ 4. Add Auto Functionality - smartly sort the tasks according to the deadlines and system time and arrange them in 3 priority sections (urgent, high, low, distractive/unimportant)
+✅ Also add unlimited manual task creation for both Free and paid users
+✅ 1. notify user in last 1 hour, 30 min, 15 min, 10 min, 5 min directly in windows notification section
+✅ 2. Automatically Shift the tasks from Imp section to urgent section when countdown time becomes less than 2 hour else it'll stay in imp section 
+✅3. Add reply option to each task converted from mail
+✅ 4. It should only fetch mails only from primary inbox
+✅ 5. Auto schedule sorting According to time remaining 
+✅ 6. transfer the emails with pushed tasks removing them from unread notifications sections and sending to other navigation page named 'Emails Converted to tasks'
+✅ 7. One more navigation page named Estimated Time Saved Till now - 
+    ✓  i. Big, Bold, Central Number (dynamic counter/animation that counts up from zero to the current value.)
+    ✓  ii. n Emails to Task Conversions done
+    ✓  iii. n Tasks conversions Using Natural Language
+✅ 8. Batching - only in case of multiple tasks at a time ex. 8 mails to task in one batch instead of separate calls
+
+✨Final MVP Checklist (with Automated Google Pay)✨
+✅ Landing page simple “Sign up free” button + domain
+✅ Signup & Login – implement Google OAuth and optional email/password signup.
+✅ Gmail connect flow – allow users to connect/disconnect Gmail from account settings.
+✅ Backend extraction pipeline – server job that reads emails, extracts tasks, batches API calls.
+✅ DB schema – tables for users, credentials, tasks, plans, payments.
+✅ Refresh token logic – auto-refresh Gmail access tokens when expired.
+✅ Persist tasks & statuses – save tasks, priorities, start/done timestamps in DB.
+✅ Enforce plan limits server-side – block creation when over 50 ai generated/converted tasks where gemini interaction takes place, number will increase when each tasks is created with ai api interation
+✅ add Join Waitlist Button in Upgrade to professional section which will directly send the mail to my email id - chavanuday407@gmail.com that user needs an upgrade with his email id
+✅ Sessions / tokens – secure session management (HTTP-only cookies or JWTs).
+✅ Encrypt & store Gmail tokens – server-side only, encrypted at rest. 
+

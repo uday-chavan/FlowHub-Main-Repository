@@ -1,0 +1,73 @@
+import { Header } from "@/components/dashboard/Header";
+import { AppLauncher } from "@/components/dashboard/AppLauncher";
+import { WorkflowRiver } from "@/components/dashboard/WorkflowRiver";
+import { NotificationFeed } from "@/components/dashboard/NotificationFeed";
+
+import { GmailConnect } from "@/components/dashboard/GmailConnect";
+import { WindowsNotificationManager } from "@/components/BrowserNotificationManager";
+import { BrowserNotificationManager } from "@/components/BrowserNotificationManager";
+
+// Assuming RealTimeMetrics, WellnessPanel, AIInsights, UserProfile, and useNotifications are imported elsewhere
+// and are available in this scope. For the purpose of this edit, we'll assume their existence.
+// import { RealTimeMetrics } from "@/components/dashboard/RealTimeMetrics";
+// import { WellnessPanel } from "@/components/dashboard/WellnessPanel";
+// import { AIInsights } from "@/components/dashboard/AIInsights";
+// import { UserProfile } from "@/components/dashboard/UserProfile";
+// import { useNotifications } from "@/hooks/useNotifications";
+
+// TaskList functionality is handled by WorkflowRiver component
+import { useMetrics } from "@/hooks/useMetrics"; // Added useMetrics import
+import { useIsMobile } from "@/hooks/use-mobile"; // Added useIsMobile hook
+
+export default function Dashboard() {
+  const { data: metrics } = useMetrics();
+  const isMobile = useIsMobile();
+  // const { data: notifications } = useNotifications();
+  // const activeNotifications = notifications?.filter(n => !n.isRead) || [];
+  const userId = "user123"; // Placeholder for actual user ID
+
+  return (
+    <div className="min-h-screen bg-background text-foreground dashboard-container flex flex-col">
+      <Header />
+      <main className="flex-1 overflow-y-auto">
+        <div className="max-w-none mx-0 px-4 pt-4 pb-8 h-full">
+        {isMobile ? (
+          /* Mobile Layout */
+          <div className="flex flex-col gap-6 h-full overflow-y-auto">
+            {/* Main Content - Tasks */}
+            <WorkflowRiver />
+
+            {/* Mobile Notifications */}
+            <NotificationFeed />
+
+            {/* Secondary Content */}
+            <WindowsNotificationManager userId={userId} />
+
+          </div>
+        ) : (
+          /* Desktop Layout */
+          <div className="flex gap-4 h-[calc(100vh-120px)]">
+            {/* Left Column - App Launcher with Fixed Height */}
+            <div className="w-20 flex-shrink-0 h-full">
+              <AppLauncher />
+            </div>
+
+            {/* Middle Column - Tasks with Fixed Height */}
+            <div className="flex-[2.5] px-2 h-full">
+              <WorkflowRiver />
+            </div>
+
+            {/* Right Column - Notifications with Fixed Height */}
+            <div className="w-80 flex-shrink-0 px-2 h-full">
+              <NotificationFeed />
+            </div>
+          </div>
+        )}
+        </div>
+      </main>
+
+      {/* Windows Notification Manager */}
+      <BrowserNotificationManager userId="demo-user" />
+    </div>
+  );
+}
