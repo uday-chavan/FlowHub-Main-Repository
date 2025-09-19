@@ -69,8 +69,9 @@ export function serveStatic(app: Express) {
   // Try multiple possible paths for the client build directory
   const possiblePaths = [
     path.resolve(process.cwd(), "dist", "client"),
-    path.resolve(import.meta.dirname, "..", "client"),
-    "/app/dist/client"
+    path.resolve(import.meta.dirname, "..", "..", "dist", "client"),
+    "/app/dist/client",
+    "./dist/client"
   ];
   
   let distPath: string | null = null;
