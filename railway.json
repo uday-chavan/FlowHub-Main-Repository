@@ -1,9 +1,9 @@
 {
   "build": {
-    "builder": "nixpacks"
+    "builder": "nixpacks"  
   },
   "deploy": {
-    "startCommand": "npm run build && npm run start",
+    "startCommand": "npm run start",
     "restartPolicyType": "on_failure",
     "restartPolicyMaxRetries": 3
   }
