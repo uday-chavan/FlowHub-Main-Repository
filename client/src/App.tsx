@@ -12,16 +12,7 @@ import PriorityEmails from "@/pages/PriorityEmails";
 import Feedback from "@/pages/Feedback";
 import { useCurrentUser } from "@/hooks/useAuth";
 
-// Get the queryClient instance for clearing cache on user switches
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes
-      retry: 1,
-    },
-  },
-});
-
+// Create a single queryClient instance
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
