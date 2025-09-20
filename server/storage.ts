@@ -146,8 +146,11 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  // Task operations
+  // Task operations with strict user isolation
   async getUserTasks(userId: string): Promise<Task[]> {
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
     return await requireDb()
       .select()
       .from(tasks)
