@@ -22,7 +22,7 @@ export function useAuth() {
         const response = await fetch("/api/auth/me", {
           credentials: "include",
         });
-        
+
         if (!response.ok) {
           // Clear any stale auth state on failed requests
           localStorage.removeItem('user_auth');
@@ -30,16 +30,16 @@ export function useAuth() {
           localStorage.removeItem('userEmail');
           return { user: undefined };
         }
-        
+
         const data = await response.json();
-        
+
         // Always store fresh user data in localStorage
         if (data.user) {
           localStorage.setItem('user_auth', JSON.stringify(data.user));
         } else {
           localStorage.removeItem('user_auth');
         }
-        
+
         return data;
       } catch (error) {
         console.error('Auth check failed:', error);
@@ -50,14 +50,15 @@ export function useAuth() {
     retry: false,
     staleTime: 0, // No cache - always fetch fresh data
     refetchOnWindowFocus: true,
-    refetchInterval: 1000 * 10, // Check auth every 10 seconds for immediate updates
+    refetchInterval: 1000 * 5, // Check auth every 5 seconds for immediate updates
     gcTime: 0, // Don't cache in garbage collection
+    refetchOnMount: true, // Always refetch on component mount
   });
 }
 
 export function useCurrentUser() {
   const { data, isLoading, error } = useAuth();
-  
+
   return {
     user: data?.user,
     isLoading,
