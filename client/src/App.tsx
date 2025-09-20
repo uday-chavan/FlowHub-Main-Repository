@@ -36,13 +36,14 @@ function AppRouter() {
     }
   }, [isLoading, isAuthenticated, initialAuthState]);
 
-  // Handle authentication state changes
+  // Handle authentication state changes and user switching
   useEffect(() => {
     if (authChecked && initialAuthState !== null) {
       // If user was logged in and is now logged out, go to landing
       if (initialAuthState && !isAuthenticated) {
         // Clear any remaining auth data
-        localStorage.removeItem('user_auth');
+        localStorage.clear();
+        sessionStorage.clear();
         setLocation("/");
         setInitialAuthState(false);
       }
@@ -56,16 +57,27 @@ function AppRouter() {
         const previousUserId = localStorage.getItem('currentUserId');
         const previousUserEmail = localStorage.getItem('currentUserEmail');
         
-        if ((previousUserId && previousUserId !== user.id) || 
-            (previousUserEmail && previousUserEmail !== user.email)) {
+        // Check for user change more robustly
+        const userChanged = (previousUserId && previousUserId !== user.id) || 
+                           (previousUserEmail && previousUserEmail !== user.email);
+        
+        if (userChanged) {
           // User changed - force complete refresh to clear all state
-          console.log(`User changed from ${previousUserEmail} to ${user.email}`);
+          console.log(`User changed from ${previousUserEmail || 'unknown'} to ${user.email}`);
+          
+          // Complete state reset
           localStorage.clear();
           sessionStorage.clear();
+          
+          // Set new user state
           localStorage.setItem('currentUserId', user.id);
           localStorage.setItem('currentUserEmail', user.email);
-          window.location.reload();
+          localStorage.setItem('user_auth', JSON.stringify(user));
+          
+          // Force complete page refresh to clear all React state
+          window.location.href = '/dashboard';
         } else if (!previousUserId || !previousUserEmail) {
+          // First time setting user data
           localStorage.setItem('currentUserId', user.id);
           localStorage.setItem('currentUserEmail', user.email);
         }
