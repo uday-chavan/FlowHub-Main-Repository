@@ -1106,10 +1106,10 @@ export function WorkflowRiver() {
 
                           {/* Action buttons row */}
                           <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center space-x-2">
+                            <div className="task-badge-container flex items-center space-x-2">
                               {/* Show Priority Person badge in place of urgent priority */}
                               {task.metadata?.isPriorityPerson ? (
-                                <Badge className="text-xs bg-red-500 text-white border-red-500 hover:bg-red-600">
+                                <Badge className="priority-person-badge text-xs bg-red-500 text-white border-red-500 hover:bg-red-600">
                                   Priority Person
                                 </Badge>
                               ) : (
@@ -1125,7 +1125,7 @@ export function WorkflowRiver() {
                               {task.sourceApp === 'gmail' && task.metadata?.emailFrom ? (
                                 <Badge 
                                   variant="outline" 
-                                  className="text-xs cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-colors"
+                                  className="email-reply-badge text-xs cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-colors"
                                   onClick={() => {
                                     const emailFrom = task.metadata?.emailFrom || '';
                                     const emailSubject = task.metadata?.emailSubject || '';
@@ -1142,7 +1142,7 @@ export function WorkflowRiver() {
                                 </Badge>
                               )}
                             </div>
-                            <div className="flex items-center gap-1 flex-shrink-0">
+                            <div className="task-action-buttons flex items-center gap-1 flex-shrink-0">
                               {task.status === 'pending' && (
                                 <Button
                                   onClick={() => handleStartTask(task.id)}
