@@ -48,39 +48,24 @@ export function Landing() {
         window.addEventListener('message', (event) => {
           if (event.origin !== window.location.origin) return;
 
-          if (event.data.success && event.data.authenticated) {
-            // Authentication successful, completely clear all previous user data
+          if (event.data.success) {
             const newUserEmail = event.data.email;
+            const newUserId = event.data.userId;
             const previousUserEmail = localStorage.getItem('currentUserEmail');
             
-            // Only clear and refresh if switching users
-            if (previousUserEmail && previousUserEmail !== newUserEmail) {
-              console.log(`User switching from ${previousUserEmail} to ${newUserEmail}`);
-              localStorage.clear();
-              sessionStorage.clear();
-            }
-
-            // Store the new user info
-            if (newUserEmail) {
-              localStorage.setItem('currentUserEmail', newUserEmail);
-              localStorage.setItem('gmailConnected', 'true');
-            }
-
-            popup?.close();
-
-            // Force complete page refresh to ensure clean state
-            setTimeout(() => {
-              window.location.href = '/dashboard';
-            }, 100);
-          }
-
-          if (event.data.success) {
-            // Close popup and redirect to dashboard
-            popup?.close();
-
-            // Clear any previous user data
+            // Always clear everything for clean slate
             localStorage.clear();
             sessionStorage.clear();
+
+            // Set new user state if provided
+            if (newUserEmail && newUserId) {
+              localStorage.setItem('currentUserEmail', newUserEmail);
+              localStorage.setItem('currentUserId', newUserId);
+              localStorage.setItem('gmailConnected', 'true');
+              localStorage.setItem('userEmail', newUserEmail);
+            }
+
+            popup?.close();
 
             // Force complete page refresh to ensure clean state
             setTimeout(() => {
