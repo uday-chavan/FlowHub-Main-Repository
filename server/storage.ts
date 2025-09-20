@@ -678,10 +678,13 @@ export class MemoryStorage implements IStorage {
   }
 
   async createUser(userData: InsertUser): Promise<User> {
+    // Generate a proper unique ID for the user
+    const userId = userData.id || `user-${Math.random().toString(36).substr(2, 9)}`;
+    
     // Using memory storage instead of db
     const user: User = {
       ...userData,
-      id: Math.random().toString(36).substr(2, 9),
+      id: userId,
       password: userData.password || null,
       createdAt: new Date(),
       updatedAt: new Date(),
