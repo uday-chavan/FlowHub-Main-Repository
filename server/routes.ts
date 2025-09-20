@@ -1415,13 +1415,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
   // Priority Emails routes
-  app.get("/api/priority-emails", async (req, res) => {
+  app.get("/api/priority-emails", optionalAuth, async (req: AuthenticatedRequest, res) => {
     try {
-      const userId = req.query.userId as string;
-      if (!userId) {
-        return res.status(400).json({ message: "userId is required" });
-      }
-
+      const userId = req.user?.id || "demo-user";
       const priorityEmails = await storage.getUserPriorityEmails(userId);
       res.json(priorityEmails);
     } catch (error) {
@@ -1430,12 +1426,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/priority-emails", async (req, res) => {
+  app.post("/api/priority-emails", optionalAuth, async (req: AuthenticatedRequest, res) => {
     try {
-      const { userId, email } = req.body;
+      const { email } = req.body;
+      const userId = req.user?.id || "demo-user";
 
-      if (!userId || !email) {
-        return res.status(400).json({ message: "userId and email are required" });
+      if (!email) {
+        return res.status(400).json({ message: "email is required" });
       }
 
       // Basic email validation
