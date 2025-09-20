@@ -46,23 +46,38 @@ export function GmailConnect({ onConnectionChange }: GmailConnectProps) {
           description: `Successfully connected ${event.data.email || 'your Gmail account'}. You'll start receiving real-time notifications!`,
         });
 
-        // If user was authenticated through OAuth, clear old state and refresh
+        // If user was authenticated through OAuth, handle user switching properly
         if (event.data.authenticated) {
-          // Clear ALL previous user state, not just Gmail
-          const currentUserEmail = localStorage.getItem('currentUserEmail');
-          localStorage.clear();
-          sessionStorage.clear();
-          
-          // Restore only the current user email and set new Gmail state
-          if (event.data.email) {
-            localStorage.setItem('currentUserEmail', event.data.email);
-            localStorage.setItem('gmailConnected', 'true');
-            localStorage.setItem('userEmail', event.data.email);
+          const previousUserEmail = localStorage.getItem('currentUserEmail');
+          const newUserEmail = event.data.email;
+          const newUserId = event.data.userId;
+
+          // If this is a different user, force complete refresh
+          if (previousUserEmail && previousUserEmail !== newUserEmail) {
+            console.log(`User switching from ${previousUserEmail} to ${newUserEmail}`);
+            
+            // Complete state reset for user switching
+            localStorage.clear();
+            sessionStorage.clear();
+            
+            // Set new user state
+            if (newUserEmail && newUserId) {
+              localStorage.setItem('currentUserEmail', newUserEmail);
+              localStorage.setItem('currentUserId', newUserId);
+              localStorage.setItem('gmailConnected', 'true');
+              localStorage.setItem('userEmail', newUserEmail);
+            }
+            
+            // Force complete page refresh to clear React state
+            setTimeout(() => {
+              window.location.href = '/dashboard';
+            }, 500);
+          } else {
+            // Same user re-authenticating, just refresh
+            setTimeout(() => {
+              window.location.reload();
+            }, 1000);
           }
-          
-          setTimeout(() => {
-            window.location.reload();
-          }, 1000);
         }
       } else if (!event.data.success) {
         setIsConnecting(false);
