@@ -8,7 +8,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 export default defineConfig({
   plugins: [react()],
   build: {
-    outDir: 'dist/client'
+    outDir: '../dist/client'
   },
   root: './client',
   resolve: {
