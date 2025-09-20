@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Router, Route, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -44,8 +43,6 @@ function AppRouter() {
       if (initialAuthState && !isAuthenticated) {
         // Clear any remaining auth data
         localStorage.removeItem('user_auth');
-        localStorage.removeItem('gmailConnected');
-        localStorage.removeItem('userEmail');
         setLocation("/");
         setInitialAuthState(false);
       }
@@ -54,8 +51,19 @@ function AppRouter() {
         setLocation("/dashboard");
         setInitialAuthState(true);
       }
+      // If user changed (different email), force complete page refresh
+      else if (initialAuthState && isAuthenticated && user) {
+        const previousUserEmail = localStorage.getItem('currentUserEmail');
+        if (previousUserEmail && previousUserEmail !== user.email) {
+          // User changed - force complete refresh to clear all state
+          localStorage.setItem('currentUserEmail', user.email);
+          window.location.reload();
+        } else if (!previousUserEmail) {
+          localStorage.setItem('currentUserEmail', user.email);
+        }
+      }
     }
-  }, [authChecked, isAuthenticated, initialAuthState, setLocation]);
+  }, [authChecked, isAuthenticated, initialAuthState, setLocation, user]);
 
   // Listen for storage changes (when user logs out in another tab)
   useEffect(() => {
