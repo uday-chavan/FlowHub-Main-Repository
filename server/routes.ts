@@ -122,28 +122,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Special demo login
       if (email === 'demo@flowhub.com' && !password) {
-        const demoUser = await storage.getUser('demo-user');
-        if (demoUser) {
-          const { accessToken, refreshToken } = generateTokens({
-            id: demoUser.id,
-            email: demoUser.email,
-            name: demoUser.name
-          });
-
-          setAuthCookies(res, accessToken, refreshToken);
-
-          return res.json({
-            success: true,
-            message: 'Demo login successful',
-            user: {
-              id: demoUser.id,
-              name: demoUser.name,
-              email: demoUser.email,
-              role: demoUser.role,
-              profileImageUrl: demoUser.profileImageUrl
-            }
+        let demoUser = await storage.getUserByEmail('demo@flowhub.com');
+        if (!demoUser) {
+          // Create demo user if it doesn't exist
+          demoUser = await storage.createUser({
+            id: 'demo-user',
+            name: 'Demo User',
+            email: 'demo@flowhub.com',
+            role: 'user'
           });
         }
+        
+        const { accessToken, refreshToken } = generateTokens({
+          id: demoUser.id,
+          email: demoUser.email,
+          name: demoUser.name
+        });
+
+        setAuthCookies(res, accessToken, refreshToken);
+
+        return res.json({
+          success: true,
+          message: 'Demo login successful',
+          user: {
+            id: demoUser.id,
+            name: demoUser.name,
+            email: demoUser.email,
+            role: demoUser.role,
+            profileImageUrl: demoUser.profileImageUrl
+          }
+        });
       }
 
       // Regular login
@@ -366,7 +374,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { userEmail, plan } = req.body;
 
       // Get real connected email if available, fallback to provided userEmail
-      const realUserEmail = userEmails.get("demo-user") || userEmail;
+      const userId = req.user?.id || "demo-user";
+      const realUserEmail = userEmails.get(userId) || userEmail;
 
       // Send email notification about waitlist signup
       const emailContent = `
@@ -416,21 +425,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Also create a notification in the system for tracking
         // REMOVED: This notification should not be created as per the requirement.
-        // await storage.createNotification({
-        //   userId: "demo-user",
-        //   title: `Waitlist Signup Confirmed`,
-        //   description: `Your request for ${plan} plan has been received. We'll contact you soon at ${userEmail}.`,
-        //   type: "important",
-        //   sourceApp: "system",
-        //   aiSummary: `Waitlist signup confirmation for ${userEmail}`,
-        //   actionableInsights: ["Check email", "Prepare for upgrade"],
-        //   metadata: {
-        //     userEmail,
-        //     plan,
-        //     signupTime: new Date().toISOString(),
-        //     emailSent: true
-        //   }
-        // });
 
       } catch (emailError) {
         console.error('Failed to send email notification:', emailError);
@@ -445,7 +439,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Create a fallback notification if email fails
         await storage.createNotification({
-          userId: "demo-user",
+          userId: userId,
           title: `Waitlist Signup Recorded`,
           description: `Your ${plan} plan request has been recorded. Email notification failed but your request is saved.`,
           type: "informational",
@@ -1450,8 +1444,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Feedback must be at least 10 characters long" });
       }
 
-      // Get real connected email if available, fallback to demo email
-      const userEmail = userEmails.get(userId) || 'demo@flowhub.com';
+      // Get real connected email if available, fallback to user email from auth or demo email
+      const authUserId = req.user?.id;
+      const userEmail = (authUserId && userEmails.get(authUserId)) || req.user?.email || 'demo@flowhub.com';
 
       // Send feedback email using Nodemailer
       const emailContent = `
@@ -1523,16 +1518,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       let links = await storage.getUserAppLinks(userId);
 
-      // If no links exist for demo-user, create default ones
-      if (userId === "demo-user" && links.length === 0) {
+      // If no links exist for any user, create default ones
+      if (links.length === 0) {
         const defaultAppLinks = [
-          { userId: "demo-user", name: 'GitHub', url: 'https://github.com', logo: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/github.svg' },
-          { userId: "demo-user", name: 'Zoom', url: 'https://zoom.us', logo: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/zoom.svg' },
-          { userId: "demo-user", name: 'Google', url: 'https://google.com', logo: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/google.svg' },
-          { userId: "demo-user", name: 'Slack', url: 'https://slack.com', logo: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/slack.svg' },
-          { userId: "demo-user", name: 'Jira', url: 'https://atlassian.com/software/jira', logo: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/jira.svg' },
-          { userId: "demo-user", name: 'Trello', url: 'https://trello.com', logo: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/trello.svg' },
-          { userId: "demo-user", name: 'LinkedIn', url: 'https://linkedin.com', logo: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/linkedin.svg' },
+          { userId: userId, name: 'GitHub', url: 'https://github.com', logo: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/github.svg' },
+          { userId: userId, name: 'Zoom', url: 'https://zoom.us', logo: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/zoom.svg' },
+          { userId: userId, name: 'Google', url: 'https://google.com', logo: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/google.svg' },
+          { userId: userId, name: 'Slack', url: 'https://slack.com', logo: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/slack.svg' },
+          { userId: userId, name: 'Jira', url: 'https://atlassian.com/software/jira', logo: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/jira.svg' },
+          { userId: userId, name: 'Trello', url: 'https://trello.com', logo: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/trello.svg' },
+          { userId: userId, name: 'LinkedIn', url: 'https://linkedin.com', logo: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/linkedin.svg' },
         ];
 
         // Create all default app links
@@ -1581,9 +1576,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const userGmailIntervals = new Map();
 
   // Gmail Integration routes
-  app.post("/api/gmail/connect", async (req, res) => {
+  app.post("/api/gmail/connect", optionalAuth, async (req: AuthenticatedRequest, res) => {
     try {
-      const userId = "demo-user"; // Use consistent demo user ID
+      const userId = req.user?.id || "guest-user"; // Use authenticated user ID or guest
 
       // Generate OAuth URL for real Gmail API
       const scopes = [
@@ -1656,10 +1651,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
       userClient.setCredentials(tokens);
       const userEmail = profile.email || 'unknown@user.com';
-      const demoUserId = "demo-user"; // Use consistent demo user ID to match frontend
 
-      userGmailClients.set(demoUserId, userClient);
-      userEmails.set(demoUserId, userEmail); // Store the real connected email
+      userGmailClients.set(user.id, userClient);
+      userEmails.set(user.id, userEmail); // Store the real connected email
 
       // Extract a proper name from the email
       const extractNameFromEmail = (email: string) => {
@@ -1672,38 +1666,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .join(' ');
       };
 
-      // Create or get the demo user and set authentication cookies
-      let demoUser = await storage.getUser(demoUserId);
+      // Create unique user ID based on email to ensure each Google account gets its own user
+      const uniqueUserId = `user-${Buffer.from(userEmail).toString('base64').replace(/[^a-zA-Z0-9]/g, '').substring(0, 16)}`;
+      
+      // Create or get the user based on their unique email and set authentication cookies
+      let user = await storage.getUserByEmail(userEmail);
       const extractedName = profile.name || extractNameFromEmail(userEmail);
 
-      if (!demoUser) {
-        demoUser = await storage.createUser({
-          id: demoUserId,
+      if (!user) {
+        user = await storage.createUser({
+          id: uniqueUserId,
           name: extractedName,
           email: userEmail,
           role: 'user'
         });
       } else {
         // Always update user info on each login to keep it fresh
-        demoUser = await storage.updateUser(demoUserId, {
-          email: userEmail,
+        user = await storage.updateUser(user.id, {
           name: extractedName
         });
       }
 
-      // Generate authentication tokens for the demo user
+      // Generate authentication tokens for the authenticated user
       const { accessToken, refreshToken } = generateTokens({
-        id: demoUser.id,
-        email: demoUser.email,
-        name: demoUser.name
+        id: user.id,
+        email: user.email,
+        name: user.name
       });
 
       // Set HTTP-only cookies for authentication
       setAuthCookies(res, accessToken, refreshToken);
 
-      console.log(`[Gmail] Starting email fetching for user: ${demoUserId}, email: ${userEmail}`);
-      // Start fetching emails directly with demo user info
-      startRealGmailFetching(demoUserId, userClient, userEmail);
+      console.log(`[Gmail] Starting email fetching for user: ${user.id}, email: ${userEmail}`);
+      // Start fetching emails directly with authenticated user info
+      startRealGmailFetching(user.id, userClient, userEmail);
 
       res.send(`
         <script>
