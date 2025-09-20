@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import type { Task, InsertTask } from "@shared/schema";
-import { useCurrentUser } from "./useCurrentUser"; // Assuming useCurrentUser is in './useCurrentUser'
+import { useCurrentUser } from "./useAuth";
 
 // Removed MOCK_USER_ID as it's no longer used
 // const MOCK_USER_ID = "demo-user";
