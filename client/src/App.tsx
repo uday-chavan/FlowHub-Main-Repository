@@ -51,14 +51,22 @@ function AppRouter() {
         setLocation("/dashboard");
         setInitialAuthState(true);
       }
-      // If user changed (different email), force complete page refresh
+      // If user changed (different email/ID), force complete page refresh
       else if (initialAuthState && isAuthenticated && user) {
+        const previousUserId = localStorage.getItem('currentUserId');
         const previousUserEmail = localStorage.getItem('currentUserEmail');
-        if (previousUserEmail && previousUserEmail !== user.email) {
+        
+        if ((previousUserId && previousUserId !== user.id) || 
+            (previousUserEmail && previousUserEmail !== user.email)) {
           // User changed - force complete refresh to clear all state
+          console.log(`User changed from ${previousUserEmail} to ${user.email}`);
+          localStorage.clear();
+          sessionStorage.clear();
+          localStorage.setItem('currentUserId', user.id);
           localStorage.setItem('currentUserEmail', user.email);
           window.location.reload();
-        } else if (!previousUserEmail) {
+        } else if (!previousUserId || !previousUserEmail) {
+          localStorage.setItem('currentUserId', user.id);
           localStorage.setItem('currentUserEmail', user.email);
         }
       }
