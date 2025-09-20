@@ -1481,11 +1481,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const mailOptions = {
             from: 'chavanuday407@gmail.com',
             to: 'chavanuday407@gmail.com',
-            subject: 'New FlowHub Feedback',
+            replyTo: userEmail, // Allow direct reply to user
+            subject: `New FlowHub Feedback from ${userEmail}`,
             html: `
               <h2>New Feedback from FlowHub User</h2>
+              <p><strong>From:</strong> ${userEmail}</p>
               <p><strong>User ID:</strong> ${submittingUserId}</p>
-              <p><strong>User Email:</strong> ${userEmail}</p>
               <p><strong>Timestamp:</strong> ${timestamp}</p>
               <br>
               <h3>Feedback:</h3>
@@ -1493,14 +1494,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 ${feedback.replace(/\n/g, '<br>')}
               </div>
               <br>
+              <p><em>Reply to this email to respond directly to ${userEmail}</em></p>
               <p><em>This feedback was submitted through the FlowHub feedback system.</em></p>
             `,
             text: `
               New Feedback from FlowHub User
+              From: ${userEmail}
               User ID: ${submittingUserId}
-              User Email: ${userEmail}
               Timestamp: ${timestamp}
               Feedback: ${feedback}
+              
+              Reply to this email to respond directly to ${userEmail}
             `
           };
 
