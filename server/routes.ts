@@ -36,11 +36,24 @@ import {
   type AuthenticatedRequest
 } from "./auth";
 
-// Store connected user email addresses per session
-const userEmails = new Map();
+// Store connected user email addresses per session - with proper user isolation
+const userEmails = new Map<string, string>();
 
-// Store processed email IDs per user to prevent duplicates
+// Store processed email IDs per user to prevent duplicates - with proper user isolation
 const processedEmailIds = new Map<string, Set<string>>();
+
+// Helper function to clear user-specific data
+function clearUserData(userId: string) {
+  userEmails.delete(userId);
+  processedEmailIds.delete(userId);
+  if (userGmailClients.has(userId)) {
+    userGmailClients.delete(userId);
+  }
+  if (userGmailIntervals.has(userId)) {
+    clearInterval(userGmailIntervals.get(userId));
+    userGmailIntervals.delete(userId);
+  }
+}
 
 // Define the redirect URI for Google OAuth
 const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || 'https://flowhub-production-409c.up.railway.app/auth/gmail/callback';
@@ -276,12 +289,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Add API version of auth endpoints for frontend
   app.get('/api/auth/me', authenticateToken, async (req: AuthenticatedRequest, res) => {
     if (!req.user) {
+      // Clear any stale data for unauthorized requests
       return res.status(401).json({ message: 'Not authenticated' });
     }
 
-    // Get fresh user data from database
+    // Get fresh user data from database with strict user ID matching
     const freshUser = await storage.getUser(req.user.id);
     if (!freshUser) {
+      // Clear user data if user not found
+      clearUserData(req.user.id);
       return res.status(401).json({ message: 'User not found' });
     }
 
@@ -498,14 +514,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Task routes
-  app.get("/api/tasks", async (req, res) => {
+  // Task routes with authentication
+  app.get("/api/tasks", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
-      const userId = req.query.userId as string;
-      if (!userId) {
-        return res.status(400).json({ message: "userId is required" });
+      const requestedUserId = req.query.userId as string;
+      const authenticatedUserId = req.user?.id;
+
+      // Ensure user can only access their own tasks
+      if (!authenticatedUserId) {
+        return res.status(401).json({ message: "Authentication required" });
       }
 
+      // If userId provided in query, verify it matches authenticated user
+      if (requestedUserId && requestedUserId !== authenticatedUserId) {
+        return res.status(403).json({ message: "Access denied: can only access your own tasks" });
+      }
+
+      const userId = authenticatedUserId; // Always use authenticated user ID
       const tasks = await storage.getUserTasks(userId);
       res.json(tasks);
     } catch (error) {
@@ -967,10 +992,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Notification routes
-  app.get("/api/notifications", async (req, res) => {
+  // Notification routes with authentication
+  app.get("/api/notifications", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
-      const userId = req.user?.id || (req.query.userId as string) || "demo-user";
+      const requestedUserId = req.query.userId as string;
+      const authenticatedUserId = req.user?.id;
+
+      // Ensure user can only access their own notifications
+      if (!authenticatedUserId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      // If userId provided in query, verify it matches authenticated user
+      if (requestedUserId && requestedUserId !== authenticatedUserId) {
+        return res.status(403).json({ message: "Access denied: can only access your own notifications" });
+      }
+
+      const userId = authenticatedUserId; // Always use authenticated user ID
       const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
       const type = req.query.type as string;
 
@@ -1109,14 +1147,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Connected Apps routes
-  app.get("/api/connected-apps", async (req, res) => {
+  // Connected Apps routes with authentication
+  app.get("/api/connected-apps", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
-      const userId = req.query.userId as string;
-      if (!userId) {
-        return res.status(400).json({ message: "userId is required" });
+      const requestedUserId = req.query.userId as string;
+      const authenticatedUserId = req.user?.id;
+
+      // Ensure user can only access their own connected apps
+      if (!authenticatedUserId) {
+        return res.status(401).json({ message: "Authentication required" });
       }
 
+      // If userId provided in query, verify it matches authenticated user
+      if (requestedUserId && requestedUserId !== authenticatedUserId) {
+        return res.status(403).json({ message: "Access denied: can only access your own connected apps" });
+      }
+
+      const userId = authenticatedUserId; // Always use authenticated user ID
       const apps = await storage.getUserConnectedApps(userId);
       res.json(apps);
     } catch (error) {
@@ -1670,6 +1717,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Clear all Gmail clients and intervals for ALL users
       for (const [existingUserId, interval] of userGmailIntervals) {
         clearInterval(interval);
+        clearUserData(existingUserId);
       }
       userGmailClients.clear();
       userEmails.clear();
