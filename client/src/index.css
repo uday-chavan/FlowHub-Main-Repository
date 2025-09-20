@@ -226,6 +226,58 @@ main {
     min-width: 80px;
   }
 
+  /* Priority Person badge mobile responsiveness */
+  @media (max-width: 768px) {
+    .priority-person-badge {
+      font-size: 10px !important;
+      padding: 2px 6px !important;
+      border-radius: 4px !important;
+      white-space: nowrap !important;
+      flex-shrink: 0 !important;
+    }
+
+    /* Compact task badges on mobile */
+    .task-badge-container {
+      display: flex !important;
+      gap: 4px !important;
+      align-items: center !important;
+      flex-wrap: nowrap !important;
+      overflow-x: auto !important;
+    }
+
+    .task-badge-container .badge {
+      font-size: 10px !important;
+      padding: 2px 4px !important;
+      flex-shrink: 0 !important;
+      white-space: nowrap !important;
+    }
+
+    /* Mobile task action buttons - more compact */
+    .task-action-buttons {
+      display: flex !important;
+      gap: 4px !important;
+      align-items: center !important;
+      flex-wrap: nowrap !important;
+    }
+
+    .task-action-buttons .button {
+      height: 32px !important;
+      min-height: 32px !important;
+      font-size: 12px !important;
+      padding: 0 8px !important;
+      flex-shrink: 0 !important;
+    }
+
+    /* Email reply badges on mobile */
+    .email-reply-badge {
+      font-size: 9px !important;
+      padding: 1px 4px !important;
+      max-width: 120px !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+    }
+  }
+
   /* Force task section buttons to display horizontally */
   [data-testid="card-tasks"] .space-y-3,
   [data-testid="card-tasks"] .flex-col {
