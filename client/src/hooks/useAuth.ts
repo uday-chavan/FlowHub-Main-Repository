@@ -35,15 +35,29 @@ export function useAuth() {
 
         const data = await response.json();
 
-        // Always store fresh user data in localStorage with user isolation
+        // Handle user data with proper isolation
         if (data.user) {
+          const previousUserId = localStorage.getItem('currentUserId');
+          const currentUserId = data.user.id;
+          
+          // If user changed, clear everything first
+          if (previousUserId && previousUserId !== currentUserId) {
+            console.log(`Auth hook detected user change: ${previousUserId} -> ${currentUserId}`);
+            localStorage.clear();
+            sessionStorage.clear();
+          }
+          
+          // Store fresh user data
           localStorage.setItem('user_auth', JSON.stringify(data.user));
           localStorage.setItem('currentUserId', data.user.id);
           localStorage.setItem('currentUserEmail', data.user.email);
         } else {
+          // Clear all auth-related data on logout
           localStorage.removeItem('user_auth');
           localStorage.removeItem('currentUserId');
           localStorage.removeItem('currentUserEmail');
+          localStorage.removeItem('gmailConnected');
+          localStorage.removeItem('userEmail');
         }
 
         return data;
