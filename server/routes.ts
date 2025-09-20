@@ -1748,32 +1748,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.send(`
         <script>
-          // If user was authenticated through OAuth, update user state
-          if (event.data.authenticated) {
-            const newUserEmail = event.data.email;
-            const newUserId = event.data.userId;
+          // Set authentication state and notify parent window
+          localStorage.setItem('gmailConnected', 'true');
+          localStorage.setItem('userEmail', '${userEmail}');
+          localStorage.setItem('currentUserId', '${user.id}');
+          localStorage.setItem('currentUserEmail', '${userEmail}');
 
-            console.log(\`Gmail OAuth completed for user: ${newUserEmail}\`);
+          // Notify the parent window about successful authentication
+          window.opener.postMessage({
+            success: true,
+            email: '${userEmail}',
+            userId: '${user.id}',
+            name: '${extractedName}',
+            message: 'Gmail connected successfully!',
+            authenticated: true,
+            redirect: '/dashboard'
+          }, '*');
 
-            // Set new user state without clearing everything (allows multiple users)
-            if (newUserEmail && newUserId) {
-              localStorage.setItem('currentUserEmail', newUserEmail);
-              localStorage.setItem('currentUserId', newUserId);
-              localStorage.setItem('gmailConnected', 'true');
-              localStorage.setItem('userEmail', newUserEmail);
-              localStorage.setItem('user_auth', JSON.stringify({
-                id: newUserId,
-                email: newUserEmail,
-                name: event.data.name || newUserEmail.split('@')[0]
-              }));
-            }
-
-            // Refresh to update UI with new user data
-            setTimeout(() => {
-              window.opener.location.reload();
-              window.close();
-            }, 1000);
-          }
+          // Close popup and redirect parent to dashboard
+          setTimeout(() => {
+            window.opener.location.href = '/dashboard';
+            window.close();
+          }, 1000);
         </script>
       `);
     } catch (error) {
