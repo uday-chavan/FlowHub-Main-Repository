@@ -12,6 +12,16 @@ import PriorityEmails from "@/pages/PriorityEmails";
 import Feedback from "@/pages/Feedback";
 import { useCurrentUser } from "@/hooks/useAuth";
 
+// Get the queryClient instance for clearing cache on user switches
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      retry: 1,
+    },
+  },
+});
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -23,6 +33,7 @@ const queryClient = new QueryClient({
 
 function AppRouter() {
   const { user, isLoading, isAuthenticated } = useCurrentUser();
+  const qc = queryClient; // Use the queryClient for cache clearing
   const [location, setLocation] = useLocation();
   const [authChecked, setAuthChecked] = useState(false);
   const [initialAuthState, setInitialAuthState] = useState<boolean | null>(null);
@@ -38,52 +49,69 @@ function AppRouter() {
 
   // Handle authentication state changes and user switching
   useEffect(() => {
-    if (authChecked && initialAuthState !== null) {
-      // If user was logged in and is now logged out, go to landing
-      if (initialAuthState && !isAuthenticated) {
-        // Clear any remaining auth data
+    if (authChecked && initialAuthState !== null && user) {
+      const previousUserId = localStorage.getItem('currentUserId');
+      const previousUserEmail = localStorage.getItem('currentUserEmail');
+      
+      // Check for user change - be very strict about user isolation
+      const userChanged = (previousUserId && previousUserId !== user.id) || 
+                         (previousUserEmail && previousUserEmail !== user.email);
+      
+      if (userChanged) {
+        // User changed - force complete refresh to clear all state
+        console.log(`User switching detected: ${previousUserEmail || 'unknown'} -> ${user.email}`);
+        
+        // Complete state reset to prevent data bleeding
         localStorage.clear();
         sessionStorage.clear();
+        
+        // Clear React Query cache to prevent old data
+        qc.clear();
+        
+        // Set new user state
+        localStorage.setItem('currentUserId', user.id);
+        localStorage.setItem('currentUserEmail', user.email);
+        localStorage.setItem('user_auth', JSON.stringify(user));
+        
+        // Force complete page refresh to ensure clean state
+        setTimeout(() => {
+          window.location.href = '/dashboard';
+        }, 100);
+        
+        return; // Exit early to prevent further processing
+      }
+      
+      // Set initial user data if not present
+      if (!previousUserId || !previousUserEmail) {
+        localStorage.setItem('currentUserId', user.id);
+        localStorage.setItem('currentUserEmail', user.email);
+        localStorage.setItem('user_auth', JSON.stringify(user));
+      }
+      
+      // Handle auth state transitions
+      if (initialAuthState && !isAuthenticated) {
+        // User logged out - clear everything and go to landing
+        localStorage.clear();
+        sessionStorage.clear();
+        qc.clear();
         setLocation("/");
         setInitialAuthState(false);
-      }
-      // If user was logged out and is now logged in, force refresh to dashboard
-      else if (!initialAuthState && isAuthenticated) {
+      } else if (!initialAuthState && isAuthenticated) {
+        // User just logged in - go to dashboard
         setLocation("/dashboard");
         setInitialAuthState(true);
       }
-      // If user changed (different email/ID), force complete page refresh
-      else if (initialAuthState && isAuthenticated && user) {
-        const previousUserId = localStorage.getItem('currentUserId');
-        const previousUserEmail = localStorage.getItem('currentUserEmail');
-        
-        // Check for user change more robustly
-        const userChanged = (previousUserId && previousUserId !== user.id) || 
-                           (previousUserEmail && previousUserEmail !== user.email);
-        
-        if (userChanged) {
-          // User changed - force complete refresh to clear all state
-          console.log(`User changed from ${previousUserEmail || 'unknown'} to ${user.email}`);
-          
-          // Complete state reset
-          localStorage.clear();
-          sessionStorage.clear();
-          
-          // Set new user state
-          localStorage.setItem('currentUserId', user.id);
-          localStorage.setItem('currentUserEmail', user.email);
-          localStorage.setItem('user_auth', JSON.stringify(user));
-          
-          // Force complete page refresh to clear all React state
-          window.location.href = '/dashboard';
-        } else if (!previousUserId || !previousUserEmail) {
-          // First time setting user data
-          localStorage.setItem('currentUserId', user.id);
-          localStorage.setItem('currentUserEmail', user.email);
-        }
+    } else if (authChecked && !isAuthenticated) {
+      // No user authenticated - ensure clean state
+      const hadPreviousUser = localStorage.getItem('currentUserId');
+      if (hadPreviousUser) {
+        localStorage.clear();
+        sessionStorage.clear();
+        qc.clear();
       }
+      setLocation("/");
     }
-  }, [authChecked, isAuthenticated, initialAuthState, setLocation, user]);
+  }, [authChecked, isAuthenticated, initialAuthState, setLocation, user, qc]);
 
   // Listen for storage changes (when user logs out in another tab)
   useEffect(() => {
