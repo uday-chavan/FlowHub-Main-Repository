@@ -391,28 +391,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         Please follow up with this user for premium upgrade.
       `;
 
-      // Send email notification using Nodemailer
+      // Try to send feedback email if configured
+      let emailSent = false;
+
       try {
-        // Configure email transporter (using Gmail SMTP)
-        const transporter = nodemailer.createTransport({
-          service: 'gmail',
-          auth: {
-            user: 'chavanuday407@gmail.com',
-            pass: process.env.GMAIL_APP_PASSWORD
-          }
-        });
-
         // Check if Gmail app password is configured
-        if (!process.env.GMAIL_APP_PASSWORD) {
-          throw new Error('GMAIL_APP_PASSWORD environment variable is not set');
-        }
+        if (process.env.GMAIL_APP_PASSWORD) {
+          // Configure email transporter (using Gmail SMTP)
+          const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+              user: 'chavanuday407@gmail.com',
+              pass: process.env.GMAIL_APP_PASSWORD
+            }
+          });
 
-        // Send email to your mailbox
-        const mailOptions = {
-          from: 'chavanuday407@gmail.com',
-          to: 'chavanuday407@gmail.com',
-          subject: 'FlowHub Premium Upgrade Request',
-          html: `
+          // Send email to your mailbox
+          const mailOptions = {
+            from: 'chavanuday407@gmail.com',
+            to: 'chavanuday407@gmail.com',
+            subject: 'FlowHub Premium Upgrade Request',
+            html: `
             <h2>New Premium Upgrade Request</h2>
             <p><strong>User Email:</strong> ${realUserEmail}</p>
             <p><strong>Requested Plan:</strong> ${plan}</p>
@@ -420,17 +419,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             <br>
             <p>Please follow up with this user for premium upgrade.</p>
           `,
-          text: emailContent
-        };
+            text: emailContent
+          };
 
-        await transporter.sendMail(mailOptions);
-        console.log('Waitlist email sent successfully to chavanuday407@gmail.com');
-
-        // Also create a notification in the system for tracking
-        // REMOVED: This notification should not be created as per the requirement.
-
+          await transporter.sendMail(mailOptions);
+          console.log('Waitlist email sent successfully to chavanuday407@gmail.com');
+          emailSent = true;
+        } else {
+          console.log('GMAIL_APP_PASSWORD not configured, logging waitlist request instead');
+        }
       } catch (emailError) {
-        console.error('Failed to send email notification:', emailError);
+        console.error('Failed to send waitlist email notification:', emailError);
 
         // Log specific error details for debugging
         if (emailError instanceof Error) {
@@ -1201,9 +1200,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const completedTasks = tasks.filter(t => t.status === "completed").length;
 
       // Calculate estimated time saved (conservative estimates)
-      const emailTimeSaved = emailConversions * 5; // 5 minutes per email conversion
-      const nlTimeSaved = naturalLanguageTasks * 3; // 3 minutes per NL task
-      const priorityTimeSaved = urgentTasksHandled * 10; // 10 minutes per urgent task handled
+      // These calculations are based on assumptions and can be refined.
+      // For example, time saved from AI tasks could be based on average manual task completion time.
+      const emailTimeSaved = emailConversions * 5; // Estimated 5 minutes saved per email conversion
+      const nlTimeSaved = naturalLanguageTasks * 3; // Estimated 3 minutes saved per natural language task creation
+      const priorityTimeSaved = urgentTasksHandled * 10; // Estimated 10 minutes saved per urgent task handled proactively
 
       const totalTimeSavedMinutes = emailTimeSaved + nlTimeSaved + priorityTimeSaved;
 
@@ -1478,7 +1479,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get real connected email if available, fallback to user email from auth or demo email
       const authUserId = req.user?.id || userId;
       const userEmail = (authUserId && userEmails.get(authUserId)) || req.user?.email || 'demo@flowhub.com';
-      
+
       console.log(`[Feedback] Submitting feedback from user: ${authUserId}, email: ${userEmail}`);
 
       // Send feedback email using Nodemailer
@@ -1496,45 +1497,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
         This feedback was submitted through the FlowHub feedback system.
       `;
 
-      // Configure email transporter (using Gmail SMTP)
-      const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-          user: 'chavanuday407@gmail.com',
-          pass: process.env.GMAIL_APP_PASSWORD
-        }
-      });
+      // Try to send feedback email if configured
+      let emailSent = false;
 
-      // Check if Gmail app password is configured
-      if (!process.env.GMAIL_APP_PASSWORD) {
-        throw new Error('GMAIL_APP_PASSWORD environment variable is not set');
+      try {
+        // Check if Gmail app password is configured
+        if (process.env.GMAIL_APP_PASSWORD) {
+          // Configure email transporter (using Gmail SMTP)
+          const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+              user: 'chavanuday407@gmail.com',
+              pass: process.env.GMAIL_APP_PASSWORD
+            }
+          });
+
+          // Send feedback email
+          const mailOptions = {
+            from: 'chavanuday407@gmail.com',
+            to: 'chavanuday407@gmail.com',
+            subject: 'New FlowHub Feedback',
+            html: `
+              <h2>New Feedback from FlowHub User</h2>
+              <p><strong>User ID:</strong> ${userId}</p>
+              <p><strong>User Email:</strong> ${userEmail}</p>
+              <p><strong>Timestamp:</strong> ${timestamp}</p>
+              <br>
+              <h3>Feedback:</h3>
+              <div style="background-color: #f5f5f5; padding: 15px; border-left: 4px solid #007bff; margin: 10px 0;">
+                ${feedback.replace(/\n/g, '<br>')}
+              </div>
+              <br>
+              <p><em>This feedback was submitted through the FlowHub feedback system.</em></p>
+            `,
+            text: emailContent
+          };
+
+          await transporter.sendMail(mailOptions);
+          console.log('Feedback email sent successfully to chavanuday407@gmail.com');
+          emailSent = true;
+        } else {
+          console.log('GMAIL_APP_PASSWORD not configured, logging feedback instead');
+        }
+      } catch (emailError) {
+        console.error('Failed to send feedback email:', emailError);
+        emailSent = false;
       }
 
-      // Send feedback email
-      const mailOptions = {
-        from: 'chavanuday407@gmail.com',
-        to: 'chavanuday407@gmail.com',
-        subject: 'New FlowHub Feedback',
-        html: `
-          <h2>New Feedback from FlowHub User</h2>
-          <p><strong>User ID:</strong> ${userId}</p>
-          <p><strong>User Email:</strong> ${userEmail}</p>
-          <p><strong>Timestamp:</strong> ${timestamp}</p>
-          <br>
-          <h3>Feedback:</h3>
-          <div style="background-color: #f5f5f5; padding: 15px; border-left: 4px solid #007bff; margin: 10px 0;">
-            ${feedback.replace(/\n/g, '<br>')}
-          </div>
-          <br>
-          <p><em>This feedback was submitted through the FlowHub feedback system.</em></p>
-        `,
-        text: emailContent
-      };
+      // Always log feedback to console as fallback
+      console.log('=== NEW FEEDBACK RECEIVED ===');
+      console.log(`User ID: ${userId}`);
+      console.log(`User Email: ${userEmail}`);
+      console.log(`Timestamp: ${timestamp}`);
+      console.log(`Feedback: ${feedback}`);
+      console.log('==========================');
 
-      await transporter.sendMail(mailOptions);
-      console.log('Feedback email sent successfully to chavanuday407@gmail.com');
-
-      res.json({ success: true, message: 'Feedback sent successfully' });
+      res.json({
+        success: true,
+        message: emailSent
+          ? 'Feedback sent successfully'
+          : 'Feedback received and logged successfully'
+      });
     } catch (error) {
       console.error('Failed to send feedback email:', error);
       res.status(500).json({ error: 'Failed to send feedback' });
@@ -2146,7 +2169,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                         priority = "informational";  // Use informational for casual messages (maps to normal in UI)
                       } else if (urgentKeywords.some(keyword => fullText.includes(keyword))) {
                         priority = "urgent";
-                      } else if (importantKeywords.some(keyword => fullText.includes(keyword))) {
+                      } else if(importantKeywords.some(keyword => fullText.includes(keyword))) {
                         priority = "important";
                       }
                       console.log(`[Gmail] Fallback analysis result (retry): ${priority} for email from ${fromEmail}`);
