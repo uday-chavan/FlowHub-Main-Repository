@@ -28,6 +28,8 @@ export function useAuth() {
           localStorage.removeItem('user_auth');
           localStorage.removeItem('gmailConnected');
           localStorage.removeItem('userEmail');
+          localStorage.removeItem('currentUserId');
+          localStorage.removeItem('currentUserEmail');
           return { user: undefined };
         }
 
