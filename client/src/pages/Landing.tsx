@@ -47,19 +47,37 @@ export function Landing() {
         // Listen for OAuth callback message
         window.addEventListener('message', (event) => {
           if (event.origin !== window.location.origin) return;
-          
+
           if (event.data.success && event.data.authenticated) {
-            // Authentication successful, force page refresh to clear old state
+            // Authentication successful, completely clear all previous user data
+            localStorage.clear(); // Clear ALL localStorage data
+            sessionStorage.clear(); // Clear session storage too
+
+            // Store the new user email
+            if (event.data.email) {
+              localStorage.setItem('currentUserEmail', event.data.email);
+            }
+
             popup?.close();
-            window.location.href = '/dashboard';
+
+            // Force complete page refresh to ensure clean state
+            setTimeout(() => {
+              window.location.href = '/dashboard';
+            }, 100);
           }
 
           if (event.data.success) {
             // Close popup and redirect to dashboard
             popup?.close();
-            
-            // Force page refresh to ensure clean state
-            window.location.href = '/dashboard';
+
+            // Clear any previous user data
+            localStorage.clear();
+            sessionStorage.clear();
+
+            // Force complete page refresh to ensure clean state
+            setTimeout(() => {
+              window.location.href = '/dashboard';
+            }, 100);
           }
         }, { once: true });
       }
@@ -75,7 +93,7 @@ export function Landing() {
         {/* Soft gradient orbs */}
         <div className="absolute top-1/4 -left-32 w-64 h-64 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
         <div className="absolute bottom-1/4 -right-32 w-80 h-80 bg-gradient-to-br from-blue-500/8 to-cyan-500/8 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '2s' }} />
-        
+
         {/* Premium noise texture overlay */}
         <div className="absolute inset-0 opacity-[0.015]" style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`
@@ -87,7 +105,7 @@ export function Landing() {
         <div className={`transition-all duration-1000 transform ${
           isVisible ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'
         }`}>
-          
+
           {/* Optional subtle wordmark */}
           <div className="mb-4">
             <h1 className="text-2xl font-light text-white/60 tracking-[0.2em] uppercase mb-2">
@@ -122,7 +140,7 @@ export function Landing() {
             <span className="relative z-10">Sign in with Google</span>
             <ArrowRight className="ml-3 w-5 h-5 transition-transform group-hover:translate-x-1" />
           </button>
-          
+
           {/* Glass reflection effect */}
           <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full h-96 bg-gradient-to-b from-white/[0.02] to-transparent rounded-full blur-3xl pointer-events-none" />
         </div>
