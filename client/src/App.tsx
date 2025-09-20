@@ -64,10 +64,9 @@ function AppRouter() {
         localStorage.setItem('currentUserEmail', user.email);
         localStorage.setItem('user_auth', JSON.stringify(user));
         
-        // Force complete page refresh to ensure clean state
-        setTimeout(() => {
-          window.location.href = '/dashboard';
-        }, 100);
+        // Force navigation to dashboard for the new user
+        setLocation("/dashboard");
+        setInitialAuthState(true);
         
         return; // Exit early to prevent further processing
       }
