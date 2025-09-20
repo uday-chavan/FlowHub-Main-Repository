@@ -7,20 +7,25 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MessageCircle, Send, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useCurrentUser } from "@/hooks/useAuth";
 
 export default function Feedback() {
   const [feedback, setFeedback] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const { toast } = useToast();
+  const { user } = useCurrentUser();
 
   // Submit feedback mutation
   const submitFeedbackMutation = useMutation({
     mutationFn: async (feedbackText: string) => {
       const response = await fetch('/api/feedback/submit', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
         body: JSON.stringify({ 
-          userId: 'demo-user',
+          userId: user?.id || 'demo-user',
           feedback: feedbackText,
           timestamp: new Date().toISOString()
         })
