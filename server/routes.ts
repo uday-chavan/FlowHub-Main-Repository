@@ -1710,19 +1710,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create unique user ID based on email to ensure each Google account gets its own user
       const uniqueUserId = `user-${Buffer.from(userEmail).toString('base64').replace(/[^a-zA-Z0-9]/g, '').substring(0, 16)}`;
 
-      // CRITICAL: Clear ALL existing connections and intervals to prevent data bleeding between users
-      // Clear all Gmail clients and intervals for ALL users
-      for (const [existingUserId, interval] of userGmailIntervals) {
-        clearInterval(interval);
-        clearUserData(existingUserId);
-      }
-      userGmailClients.clear();
-      userEmails.clear();
-      userGmailIntervals.clear();
-
-      // Also clear processed email IDs to prevent cross-user contamination
-      processedEmailIds.clear();
-
       // Create or get the user based on their unique email and set authentication cookies
       let user = await storage.getUserByEmail(userEmail);
       const extractedName = profile.name || extractNameFromEmail(userEmail);
@@ -1761,32 +1748,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.send(`
         <script>
-          // Clear ALL previous storage to prevent user data mixing
-          localStorage.clear();
-          sessionStorage.clear();
-          
-          // Set fresh authentication state
-          localStorage.setItem('gmailConnected', 'true');
-          localStorage.setItem('userEmail', '${userEmail}');
-          localStorage.setItem('currentUserId', '${user.id}');
-          localStorage.setItem('currentUserEmail', '${userEmail}');
+          // If user was authenticated through OAuth, update user state
+          if (event.data.authenticated) {
+            const newUserEmail = event.data.email;
+            const newUserId = event.data.userId;
 
-          // Notify the parent window and redirect to dashboard
-          window.opener.postMessage({
-            success: true,
-            email: '${userEmail}',
-            userId: '${user.id}',
-            message: 'Gmail connected successfully!',
-            authenticated: true,
-            redirect: '/dashboard',
-            clearPreviousUser: true
-          }, '*');
+            console.log(\`Gmail OAuth completed for user: ${newUserEmail}\`);
 
-          // Close popup and redirect parent to dashboard
-          setTimeout(() => {
-            window.opener.location.href = '/dashboard';
-            window.close();
-          }, 1000);
+            // Set new user state without clearing everything (allows multiple users)
+            if (newUserEmail && newUserId) {
+              localStorage.setItem('currentUserEmail', newUserEmail);
+              localStorage.setItem('currentUserId', newUserId);
+              localStorage.setItem('gmailConnected', 'true');
+              localStorage.setItem('userEmail', newUserEmail);
+              localStorage.setItem('user_auth', JSON.stringify({
+                id: newUserId,
+                email: newUserEmail,
+                name: event.data.name || newUserEmail.split('@')[0]
+              }));
+            }
+
+            // Refresh to update UI with new user data
+            setTimeout(() => {
+              window.opener.location.reload();
+              window.close();
+            }, 1000);
+          }
         </script>
       `);
     } catch (error) {
