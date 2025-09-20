@@ -33,11 +33,15 @@ export function useAuth() {
 
         const data = await response.json();
 
-        // Always store fresh user data in localStorage
+        // Always store fresh user data in localStorage with user isolation
         if (data.user) {
           localStorage.setItem('user_auth', JSON.stringify(data.user));
+          localStorage.setItem('currentUserId', data.user.id);
+          localStorage.setItem('currentUserEmail', data.user.email);
         } else {
           localStorage.removeItem('user_auth');
+          localStorage.removeItem('currentUserId');
+          localStorage.removeItem('currentUserEmail');
         }
 
         return data;
