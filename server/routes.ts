@@ -1467,7 +1467,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Feedback route
-  app.post("/api/feedback/submit", async (req, res) => {
+  app.post("/api/feedback/submit", optionalAuth, async (req: AuthenticatedRequest, res) => {
     try {
       const { userId, feedback, timestamp } = req.body;
 
@@ -1476,8 +1476,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get real connected email if available, fallback to user email from auth or demo email
-      const authUserId = req.user?.id;
+      const authUserId = req.user?.id || userId;
       const userEmail = (authUserId && userEmails.get(authUserId)) || req.user?.email || 'demo@flowhub.com';
+      
+      console.log(`[Feedback] Submitting feedback from user: ${authUserId}, email: ${userEmail}`);
 
       // Send feedback email using Nodemailer
       const emailContent = `
