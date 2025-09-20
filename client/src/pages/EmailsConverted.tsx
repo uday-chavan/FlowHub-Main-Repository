@@ -32,10 +32,18 @@ export default function EmailsConverted() {
 
   // Fetch converted emails (notifications with email-to-task conversions) with userId for security
   const { data: convertedEmails = [], isLoading } = useQuery({
-    queryKey: ['convertedEmails', 'demo-user'],
+    queryKey: ['convertedEmails'],
     queryFn: async () => {
-      const response = await fetch('/api/notifications?type=email_converted&userId=demo-user');
-      if (!response.ok) throw new Error('Failed to fetch converted emails');
+      const response = await fetch('/api/notifications?type=email_converted', {
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        if (response.status === 401) {
+          window.location.href = '/';
+          throw new Error('Authentication failed');
+        }
+        throw new Error('Failed to fetch converted emails');
+      }
       return response.json();
     }
   });
