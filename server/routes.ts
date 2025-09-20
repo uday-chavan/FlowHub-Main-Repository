@@ -43,7 +43,7 @@ const userEmails = new Map();
 const processedEmailIds = new Set();
 
 // Define the redirect URI for Google OAuth
-const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || `https://${process.env.REPLIT_DEV_DOMAIN || 'df70036d-05e8-4417-8c01-8758b3cd0e4a-00-1pnlziilqjzlp.pike.replit.dev'}/auth/gmail/callback`;
+const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || `https://${process.env.REPLIT_DEV_DOMAIN || 'https://abc-production-409c.up.railway.app/`;
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Add cookie parser middleware
