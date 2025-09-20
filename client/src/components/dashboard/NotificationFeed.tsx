@@ -229,7 +229,7 @@ export function NotificationFeed() {
                       </Badge>
                       {notification.metadata?.isPriorityPerson && (
                         <Badge 
-                          className="text-xs bg-red-500 text-white border-red-500 hover:bg-red-600"
+                          className="priority-person-badge text-xs bg-red-500 text-white border-red-500 hover:bg-red-600"
                         >
                           Priority Person
                         </Badge>
