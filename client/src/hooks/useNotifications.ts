@@ -23,10 +23,9 @@ export function useNotifications(limit?: number, type?: string) {
       });
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
-          // Authentication/authorization failed - clear local state
-          localStorage.clear();
-          sessionStorage.clear();
-          window.location.reload();
+          // Authentication/authorization failed - redirect to login
+          window.location.href = '/';
+          throw new Error('Authentication failed');
         }
         throw new Error('Failed to fetch notifications');
       }
@@ -64,6 +63,7 @@ export function useDismissNotification() {
 
 export function useAnalyzeNotification() {
   const queryClient = useQueryClient();
+  const { user } = useCurrentUser();
 
   return useMutation({
     mutationFn: async ({
@@ -75,7 +75,6 @@ export function useAnalyzeNotification() {
       content: string;
       sourceApp: string;
     }) => {
-      const { user } = useCurrentUser(); // Get current user ID
       const userId = user?.id;
       if (!userId) throw new Error('User not authenticated');
 
@@ -83,7 +82,7 @@ export function useAnalyzeNotification() {
         title,
         content,
         sourceApp,
-        userId: userId, // Use the authenticated user's ID
+        userId: userId,
       });
     },
     onSuccess: () => {
