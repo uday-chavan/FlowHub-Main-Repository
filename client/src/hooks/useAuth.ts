@@ -51,9 +51,13 @@ export function useAuth() {
             // Complete data isolation - clear everything
             localStorage.clear();
             sessionStorage.clear();
-            // Force page reload to ensure clean state
-            window.location.reload();
-            return { user: undefined };
+            // Set new user data
+            localStorage.setItem('user_auth', JSON.stringify(data.user));
+            localStorage.setItem('currentUserId', data.user.id);
+            localStorage.setItem('currentUserEmail', data.user.email);
+            // Force navigation to dashboard instead of reload
+            window.location.href = '/dashboard';
+            return { user: data.user };
           }
           
           // Store fresh user data only after validation
@@ -92,3 +96,4 @@ export function useCurrentUser() {
     error
   };
 }
+
