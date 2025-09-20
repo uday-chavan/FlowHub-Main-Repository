@@ -48,9 +48,10 @@ export function useAuth() {
       }
     },
     retry: false,
-    staleTime: 1000 * 10, // Very short cache for immediate updates
+    staleTime: 0, // No cache - always fetch fresh data
     refetchOnWindowFocus: true,
-    refetchInterval: 1000 * 30, // Check auth every 30 seconds for better reactivity
+    refetchInterval: 1000 * 10, // Check auth every 10 seconds for immediate updates
+    gcTime: 0, // Don't cache in garbage collection
   });
 }
 
