@@ -26,6 +26,8 @@ export function useAuth() {
         if (!response.ok) {
           // Clear any stale auth state on failed requests
           localStorage.removeItem('user_auth');
+          localStorage.removeItem('gmailConnected');
+          localStorage.removeItem('userEmail');
           return { user: undefined };
         }
         
