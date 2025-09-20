@@ -44,8 +44,15 @@ function AppRouter() {
       if (initialAuthState && !isAuthenticated) {
         // Clear any remaining auth data
         localStorage.removeItem('user_auth');
+        localStorage.removeItem('gmailConnected');
+        localStorage.removeItem('userEmail');
         setLocation("/");
         setInitialAuthState(false);
+      }
+      // If user was logged out and is now logged in, force refresh to dashboard
+      else if (!initialAuthState && isAuthenticated) {
+        setLocation("/dashboard");
+        setInitialAuthState(true);
       }
     }
   }, [authChecked, isAuthenticated, initialAuthState, setLocation]);
