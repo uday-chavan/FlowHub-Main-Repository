@@ -48,10 +48,9 @@ class AuthService {
       credentials: 'include',
     });
 
-    // Clear all user data from localStorage
-    localStorage.removeItem('user_auth');
-    localStorage.removeItem('gmailConnected');
-    localStorage.removeItem('userEmail');
+    // Clear ALL user data from localStorage and sessionStorage to prevent data leakage
+    localStorage.clear();
+    sessionStorage.clear();
 
     return response.json();
   }
