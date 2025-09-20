@@ -42,19 +42,6 @@ const userEmails = new Map<string, string>();
 // Store processed email IDs per user to prevent duplicates - with proper user isolation
 const processedEmailIds = new Map<string, Set<string>>();
 
-// Helper function to clear user-specific data
-function clearUserData(userId: string) {
-  userEmails.delete(userId);
-  processedEmailIds.delete(userId);
-  if (userGmailClients.has(userId)) {
-    userGmailClients.delete(userId);
-  }
-  if (userGmailIntervals.has(userId)) {
-    clearInterval(userGmailIntervals.get(userId));
-    userGmailIntervals.delete(userId);
-  }
-}
-
 // Define the redirect URI for Google OAuth
 const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || 'https://flowhub-production-409c.up.railway.app/auth/gmail/callback';
 
@@ -1621,6 +1608,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Store user OAuth clients and intervals
   const userGmailClients = new Map<string, OAuth2Client>();
   const userGmailIntervals = new Map<string, NodeJS.Timeout>();
+
+  // Helper function to clear user-specific data
+  function clearUserData(userId: string) {
+    userEmails.delete(userId);
+    processedEmailIds.delete(userId);
+    if (userGmailClients.has(userId)) {
+      userGmailClients.delete(userId);
+    }
+    if (userGmailIntervals.has(userId)) {
+      clearInterval(userGmailIntervals.get(userId));
+      userGmailIntervals.delete(userId);
+    }
+  }
 
   // Gmail Integration routes
   app.post("/api/gmail/connect", optionalAuth, async (req: AuthenticatedRequest, res) => {
