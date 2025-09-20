@@ -132,7 +132,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             role: 'user'
           });
         }
-        
+
         const { accessToken, refreshToken } = generateTokens({
           id: demoUser.id,
           email: demoUser.email,
@@ -484,12 +484,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/users/:id/ai-tasks-limit", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
       const userId = req.params.id;
-      
+
       // Ensure user can only access their own data or is admin
       if (req.user?.id !== userId && req.user?.role !== 'admin') {
         return res.status(403).json({ message: "Access denied" });
       }
-      
+
       const limitData = await storage.checkAiTaskLimit(userId);
       res.json(limitData);
     } catch (error) {
@@ -1378,7 +1378,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  
+
 
   // Priority Emails routes
   app.get("/api/priority-emails", async (req, res) => {
@@ -1665,7 +1665,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create unique user ID based on email to ensure each Google account gets its own user
       const uniqueUserId = `user-${Buffer.from(userEmail).toString('base64').replace(/[^a-zA-Z0-9]/g, '').substring(0, 16)}`;
-      
+
+      // IMPORTANT: Always clear any existing Gmail connections for previous users
+      // This ensures proper user isolation when switching accounts
+      userGmailClients.clear();
+      userEmails.clear();
+
+      // Stop any existing Gmail intervals
+      userGmailIntervals.forEach((interval) => {
+        clearInterval(interval);
+      });
+      userGmailIntervals.clear();
+
       // Create or get the user based on their unique email and set authentication cookies
       let user = await storage.getUserByEmail(userEmail);
       const extractedName = profile.name || extractNameFromEmail(userEmail);
@@ -1684,7 +1695,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Store user client and email mappings
+      // Store user client and email mappings ONLY for the current user
       userGmailClients.set(user.id, userClient);
       userEmails.set(user.id, userEmail); // Store the real connected email
 
