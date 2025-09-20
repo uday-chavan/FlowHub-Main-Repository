@@ -46,8 +46,11 @@ export function GmailConnect({ onConnectionChange }: GmailConnectProps) {
           description: `Successfully connected ${event.data.email || 'your Gmail account'}. You'll start receiving real-time notifications!`,
         });
 
-        // If user was authenticated through OAuth, refresh the page to update auth state
+        // If user was authenticated through OAuth, clear old state and refresh
         if (event.data.authenticated) {
+          // Clear any previous user's Gmail connection state
+          localStorage.removeItem('gmailConnected');
+          localStorage.removeItem('userEmail');
           setTimeout(() => {
             window.location.reload();
           }, 1000);
