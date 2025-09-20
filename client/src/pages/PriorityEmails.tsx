@@ -23,8 +23,16 @@ export default function PriorityEmails() {
   const { data: priorityEmails = [], isLoading } = useQuery({
     queryKey: ['priorityEmails'],
     queryFn: async () => {
-      const response = await fetch('/api/priority-emails?userId=demo-user');
-      if (!response.ok) throw new Error('Failed to fetch priority emails');
+      const response = await fetch('/api/priority-emails', {
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        if (response.status === 401) {
+          window.location.href = '/';
+          throw new Error('Authentication failed');
+        }
+        throw new Error('Failed to fetch priority emails');
+      }
       return response.json();
     }
   });
@@ -35,7 +43,8 @@ export default function PriorityEmails() {
       const response = await fetch('/api/priority-emails', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: 'demo-user', email })
+        credentials: 'include',
+        body: JSON.stringify({ email })
       });
       if (!response.ok) throw new Error('Failed to add priority email');
       return response.json();
