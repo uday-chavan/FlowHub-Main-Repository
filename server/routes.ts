@@ -1666,16 +1666,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create unique user ID based on email to ensure each Google account gets its own user
       const uniqueUserId = `user-${Buffer.from(userEmail).toString('base64').replace(/[^a-zA-Z0-9]/g, '').substring(0, 16)}`;
 
-      // IMPORTANT: Always clear any existing Gmail connections for previous users
-      // This ensures proper user isolation when switching accounts
+      // CRITICAL: Clear ALL existing connections and intervals to prevent data bleeding between users
+      // Clear all Gmail clients and intervals for ALL users
+      for (const [existingUserId, interval] of userGmailIntervals) {
+        clearInterval(interval);
+      }
       userGmailClients.clear();
       userEmails.clear();
-
-      // Stop any existing Gmail intervals
-      userGmailIntervals.forEach((interval) => {
-        clearInterval(interval);
-      });
       userGmailIntervals.clear();
+
+      // Also clear processed email IDs to prevent cross-user contamination
+      processedEmailIds.clear();
 
       // Create or get the user based on their unique email and set authentication cookies
       let user = await storage.getUserByEmail(userEmail);
@@ -1715,17 +1716,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.send(`
         <script>
-          // Set a flag to indicate successful authentication
+          // Clear ALL previous storage to prevent user data mixing
+          localStorage.clear();
+          sessionStorage.clear();
+          
+          // Set fresh authentication state
           localStorage.setItem('gmailConnected', 'true');
           localStorage.setItem('userEmail', '${userEmail}');
+          localStorage.setItem('currentUserId', '${user.id}');
+          localStorage.setItem('currentUserEmail', '${userEmail}');
 
           // Notify the parent window and redirect to dashboard
           window.opener.postMessage({
             success: true,
             email: '${userEmail}',
+            userId: '${user.id}',
             message: 'Gmail connected successfully!',
             authenticated: true,
-            redirect: '/dashboard'
+            redirect: '/dashboard',
+            clearPreviousUser: true
           }, '*');
 
           // Close popup and redirect parent to dashboard
@@ -1736,7 +1745,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         </script>
       `);
     } catch (error) {
-      // Error in Gmail OAuth callback
+      console.error('Gmail OAuth callback error:', error);
       res.send(`
         <script>
           window.opener.postMessage({ success: false, error: 'OAuth callback failed' }, '*');
