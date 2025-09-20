@@ -2,20 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import type { Notification } from "@shared/schema";
 
-// Assume useCurrentUser hook is defined elsewhere and provides user object with id
-// For example:
-// import { useCurrentUser } from './useCurrentUser'; // Adjust path as needed
-
-// Mock useCurrentUser for demonstration if it's not provided
-const useCurrentUser = () => {
-  // In a real app, this would come from context or auth state
-  // For this example, we'll use a mock user or null if not logged in
-  const mockUserId = localStorage.getItem('currentUserId');
-  if (mockUserId) {
-    return { user: { id: mockUserId } };
-  }
-  return { user: null };
-};
+import { useCurrentUser } from "./useAuth";
 
 export function useNotifications(limit?: number, type?: string) {
   const { user } = useCurrentUser();
