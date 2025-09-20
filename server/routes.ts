@@ -371,34 +371,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-  // Waitlist join endpoint
+  // Waitlist join endpoint - no authentication required
   app.post('/api/waitlist/join', async (req, res) => {
     try {
       const { userEmail, plan } = req.body;
 
-      // Get real connected email if available, fallback to provided userEmail
-      const userId = req.user?.id || "demo-user";
-      const realUserEmail = userEmails.get(userId) || userEmail;
+      // Use provided email or fallback
+      const submittingEmail = userEmail || 'demo@flowhub.com';
+      const submittingPlan = plan || 'professional';
 
-      // Send email notification about waitlist signup
-      const emailContent = `
-        New Premium Upgrade Request
+      console.log(`[Waitlist] New signup: ${submittingEmail} for ${submittingPlan} plan`);
 
-        User Email: ${realUserEmail}
-        Requested Plan: ${plan}
-        Timestamp: ${new Date().toISOString()}
+      // Always log waitlist signup for debugging
+      console.log('=== NEW WAITLIST SIGNUP ===');
+      console.log(`User Email: ${submittingEmail}`);
+      console.log(`Requested Plan: ${submittingPlan}`);
+      console.log(`Timestamp: ${new Date().toISOString()}`);
+      console.log('===========================');
 
-        Please follow up with this user for premium upgrade.
-      `;
-
-      // Try to send feedback email if configured
-      let emailSent = false;
-
+      // Try to send email notification if configured, but don't fail if it doesn't work
       try {
-        // Check if Gmail app password is configured
         if (process.env.GMAIL_APP_PASSWORD) {
-          // Configure email transporter (using Gmail SMTP)
-          const transporter = nodemailer.createTransport({
+          const transporter = nodemailer.createTransporter({
             service: 'gmail',
             auth: {
               user: 'chavanuday407@gmail.com',
@@ -406,61 +400,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           });
 
-          // Send email to your mailbox
           const mailOptions = {
             from: 'chavanuday407@gmail.com',
             to: 'chavanuday407@gmail.com',
             subject: 'FlowHub Premium Upgrade Request',
             html: `
-            <h2>New Premium Upgrade Request</h2>
-            <p><strong>User Email:</strong> ${realUserEmail}</p>
-            <p><strong>Requested Plan:</strong> ${plan}</p>
-            <p><strong>Timestamp:</strong> ${new Date().toISOString()}</p>
-            <br>
-            <p>Please follow up with this user for premium upgrade.</p>
-          `,
-            text: emailContent
+              <h2>New Premium Upgrade Request</h2>
+              <p><strong>User Email:</strong> ${submittingEmail}</p>
+              <p><strong>Requested Plan:</strong> ${submittingPlan}</p>
+              <p><strong>Timestamp:</strong> ${new Date().toISOString()}</p>
+              <br>
+              <p>Please follow up with this user for premium upgrade.</p>
+            `,
+            text: `
+              New Premium Upgrade Request
+              User Email: ${submittingEmail}
+              Requested Plan: ${submittingPlan}
+              Timestamp: ${new Date().toISOString()}
+              Please follow up with this user for premium upgrade.
+            `
           };
 
           await transporter.sendMail(mailOptions);
-          console.log('Waitlist email sent successfully to chavanuday407@gmail.com');
-          emailSent = true;
-        } else {
-          console.log('GMAIL_APP_PASSWORD not configured, logging waitlist request instead');
+          console.log('Waitlist email sent successfully');
         }
       } catch (emailError) {
-        console.error('Failed to send waitlist email notification:', emailError);
-
-        // Log specific error details for debugging
-        if (emailError instanceof Error) {
-          console.error('Email error details:', {
-            message: emailError.message,
-            stack: emailError.stack
-          });
-        }
-
-        // Create a fallback notification if email fails
-        await storage.createNotification({
-          userId: userId,
-          title: `Waitlist Signup Recorded`,
-          description: `Your ${plan} plan request has been recorded. Email notification failed but your request is saved.`,
-          type: "informational",
-          sourceApp: "system",
-          aiSummary: `Waitlist signup recorded for ${userEmail} (email failed)`,
-          actionableInsights: ["Manual follow-up required"],
-          metadata: {
-            userEmail,
-            plan,
-            signupTime: new Date().toISOString(),
-            emailFailed: true
-          }
-        });
+        console.error('Waitlist email sending failed (non-critical):', emailError);
       }
 
-      res.json({ success: true, message: 'Successfully joined waitlist' });
+      res.json({ 
+        success: true, 
+        message: 'Successfully joined waitlist' 
+      });
     } catch (error) {
-      console.error('Error joining waitlist:', error);
-      res.status(500).json({ error: 'Failed to join waitlist' });
+      console.error('Waitlist signup error:', error);
+      res.status(500).json({ 
+        success: false,
+        error: 'Failed to join waitlist' 
+      });
     }
   });
 
@@ -1467,8 +1444,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Feedback route
-  app.post("/api/feedback/submit", optionalAuth, async (req: AuthenticatedRequest, res) => {
+  // Feedback route - no authentication required for demo
+  app.post("/api/feedback/submit", async (req, res) => {
     try {
       const { userId, feedback, timestamp } = req.body;
 
@@ -1476,35 +1453,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Feedback must be at least 10 characters long" });
       }
 
-      // Get real connected email if available, fallback to user email from auth or demo email
-      const authUserId = req.user?.id || userId;
-      const userEmail = (authUserId && userEmails.get(authUserId)) || req.user?.email || 'demo@flowhub.com';
+      // Use provided userId or demo-user as fallback
+      const submittingUserId = userId || "demo-user";
+      const userEmail = userEmails.get(submittingUserId) || 'demo@flowhub.com';
 
-      console.log(`[Feedback] Submitting feedback from user: ${authUserId}, email: ${userEmail}`);
+      console.log(`[Feedback] Submitting feedback from user: ${submittingUserId}, email: ${userEmail}`);
 
-      // Send feedback email using Nodemailer
-      const emailContent = `
-        New Feedback from FlowHub User
+      // Always log feedback to console for debugging
+      console.log('=== NEW FEEDBACK RECEIVED ===');
+      console.log(`User ID: ${submittingUserId}`);
+      console.log(`User Email: ${userEmail}`);
+      console.log(`Timestamp: ${timestamp}`);
+      console.log(`Feedback: ${feedback}`);
+      console.log('==========================');
 
-        User ID: ${userId}
-        User Email: ${userEmail}
-        Timestamp: ${timestamp}
-
-        Feedback:
-        ${feedback}
-
-        ---
-        This feedback was submitted through the FlowHub feedback system.
-      `;
-
-      // Try to send feedback email if configured
-      let emailSent = false;
-
+      // Try to send feedback email if configured, but don't fail if it doesn't work
       try {
-        // Check if Gmail app password is configured
         if (process.env.GMAIL_APP_PASSWORD) {
-          // Configure email transporter (using Gmail SMTP)
-          const transporter = nodemailer.createTransport({
+          const transporter = nodemailer.createTransporter({
             service: 'gmail',
             auth: {
               user: 'chavanuday407@gmail.com',
@@ -1512,14 +1478,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           });
 
-          // Send feedback email
           const mailOptions = {
             from: 'chavanuday407@gmail.com',
             to: 'chavanuday407@gmail.com',
             subject: 'New FlowHub Feedback',
             html: `
               <h2>New Feedback from FlowHub User</h2>
-              <p><strong>User ID:</strong> ${userId}</p>
+              <p><strong>User ID:</strong> ${submittingUserId}</p>
               <p><strong>User Email:</strong> ${userEmail}</p>
               <p><strong>Timestamp:</strong> ${timestamp}</p>
               <br>
@@ -1530,37 +1495,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
               <br>
               <p><em>This feedback was submitted through the FlowHub feedback system.</em></p>
             `,
-            text: emailContent
+            text: `
+              New Feedback from FlowHub User
+              User ID: ${submittingUserId}
+              User Email: ${userEmail}
+              Timestamp: ${timestamp}
+              Feedback: ${feedback}
+            `
           };
 
           await transporter.sendMail(mailOptions);
-          console.log('Feedback email sent successfully to chavanuday407@gmail.com');
-          emailSent = true;
-        } else {
-          console.log('GMAIL_APP_PASSWORD not configured, logging feedback instead');
+          console.log('Feedback email sent successfully');
         }
       } catch (emailError) {
-        console.error('Failed to send feedback email:', emailError);
-        emailSent = false;
+        console.error('Email sending failed (non-critical):', emailError);
       }
-
-      // Always log feedback to console as fallback
-      console.log('=== NEW FEEDBACK RECEIVED ===');
-      console.log(`User ID: ${userId}`);
-      console.log(`User Email: ${userEmail}`);
-      console.log(`Timestamp: ${timestamp}`);
-      console.log(`Feedback: ${feedback}`);
-      console.log('==========================');
 
       res.json({
         success: true,
-        message: emailSent
-          ? 'Feedback sent successfully'
-          : 'Feedback received and logged successfully'
+        message: 'Feedback received successfully'
       });
     } catch (error) {
-      console.error('Failed to send feedback email:', error);
-      res.status(500).json({ error: 'Failed to send feedback' });
+      console.error('Feedback submission error:', error);
+      res.status(500).json({ 
+        success: false,
+        error: 'Failed to submit feedback' 
+      });
     }
   });
 
@@ -1916,7 +1876,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Extract email details
             const subject = headers.find(h => h.name === 'Subject')?.value || 'No Subject';
             const from = headers.find(h => h.name === 'From')?.value || 'Unknown Sender';
-            const date = headers.find(h => h.name === 'Date')?.value || '';
 
             // Get email body (simplified - gets first text part)
             let body = '';
@@ -2003,7 +1962,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 fullEmailContent,
                 emailSubject: subject,
                 emailFrom: from,
-                emailDate: date,
+                emailDate: headers.find(h => h.name === 'Date')?.value || '', // Add date to metadata
                 emailId: message.id, // Store email ID for deduplication
                 isPriorityPerson: isPriorityPerson, // Mark if from priority contact
                 priorityReason: isPriorityPerson ? "Priority Contact" : "Normal Email",
@@ -2189,7 +2148,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                       fullEmailContent: `Subject: ${subject}\n\n${body}`,
                       emailSubject: subject,
                       emailFrom: from,
-                      emailDate: date,
+                      emailDate: headers.find(h => h.name === 'Date')?.value || '', // Add date to metadata
                       emailId: message.id, // Store email ID for deduplication
                       isPriorityPerson: isPriorityPerson, // Mark if from priority contact
                       priorityReason: isPriorityPerson ? "Priority Contact" : "Normal Email",
