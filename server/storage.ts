@@ -401,13 +401,13 @@ export class DatabaseStorage implements IStorage {
       // Atomic increment with limit check - only increment if under limit
       const [updatedUsage] = await requireDb()
         .update(userUsage)
-        .set({ 
+        .set({
           aiTasksCreated: sql`${userUsage.aiTasksCreated} + 1`,
           aiInteractionsCount: sql`${userUsage.aiInteractionsCount} + 1`,
           updatedAt: new Date()
         })
         .where(and(
-          eq(userUsage.userId, userId), 
+          eq(userUsage.userId, userId),
           eq(userUsage.month, currentMonth),
           sql`${userUsage.aiTasksCreated} < ${limit}` // Only update if under limit
         ))
@@ -437,13 +437,13 @@ export class DatabaseStorage implements IStorage {
           // Record exists, retry atomic update with limit check
           const [retryUsage] = await requireDb()
             .update(userUsage)
-            .set({ 
+            .set({
               aiTasksCreated: sql`${userUsage.aiTasksCreated} + 1`,
               aiInteractionsCount: sql`${userUsage.aiInteractionsCount} + 1`,
               updatedAt: new Date()
             })
             .where(and(
-              eq(userUsage.userId, userId), 
+              eq(userUsage.userId, userId),
               eq(userUsage.month, currentMonth),
               sql`${userUsage.aiTasksCreated} < ${limit}` // Only update if under limit
             ))
@@ -468,7 +468,7 @@ export class DatabaseStorage implements IStorage {
         // First, try to reserve capacity atomically using the transaction
         const [reservedUsage] = await tx
           .update(userUsage)
-          .set({ 
+          .set({
             aiTasksCreated: sql`${userUsage.aiTasksCreated} + 1`,
             aiInteractionsCount: sql`${userUsage.aiInteractionsCount} + 1`,
             updatedAt: new Date()
@@ -502,7 +502,7 @@ export class DatabaseStorage implements IStorage {
               // Record exists, try the conditional update one more time within transaction
               const [retryUsage] = await tx
                 .update(userUsage)
-                .set({ 
+                .set({
                   aiTasksCreated: sql`${userUsage.aiTasksCreated} + 1`,
                   aiInteractionsCount: sql`${userUsage.aiInteractionsCount} + 1`,
                   updatedAt: new Date()
@@ -568,7 +568,7 @@ export class DatabaseStorage implements IStorage {
     return { withinLimit, currentCount, limit, planType };
   }
 
-  // Create encrypted Gmail token
+  // Gmail Token operations
   async createEncryptedGmailToken(data: InsertEncryptedGmailToken): Promise<EncryptedGmailToken> {
     const [token] = await requireDb().insert(encryptedGmailTokens).values(data).returning();
     return token;
@@ -683,7 +683,7 @@ export class MemoryStorage implements IStorage {
   async createUser(userData: InsertUser): Promise<User> {
     // Generate a proper unique ID for the user
     const userId = userData.id || `user-${Math.random().toString(36).substr(2, 9)}`;
-    
+
     // Using memory storage instead of db
     const user: User = {
       ...userData,
