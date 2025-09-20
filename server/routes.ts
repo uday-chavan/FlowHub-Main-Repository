@@ -36,11 +36,11 @@ import {
   type AuthenticatedRequest
 } from "./auth";
 
-// Store connected user email addresses globally
+// Store connected user email addresses per session
 const userEmails = new Map();
 
-// Store processed email IDs to prevent duplicates
-const processedEmailIds = new Set();
+// Store processed email IDs per user to prevent duplicates
+const processedEmailIds = new Map<string, Set<string>>();
 
 // Define the redirect URI for Google OAuth
 const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || 'https://flowhub-production-409c.up.railway.app/auth/gmail/callback';
@@ -1572,8 +1572,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   );
 
   // Store user OAuth clients and intervals
-  const userGmailClients = new Map();
-  const userGmailIntervals = new Map();
+  const userGmailClients = new Map<string, OAuth2Client>();
+  const userGmailIntervals = new Map<string, NodeJS.Timeout>();
 
   // Gmail Integration routes
   app.post("/api/gmail/connect", optionalAuth, async (req: AuthenticatedRequest, res) => {
@@ -1819,13 +1819,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         for (const message of messages) {
           try {
             // Deduplicate based on message ID - check and add atomically
-            if (processedEmailIds.has(message.id)) {
+            if (!processedEmailIds.has(userId)) {
+              processedEmailIds.set(userId, new Set());
+            }
+            if (processedEmailIds.get(userId)!.has(message.id)) {
               console.log(`[Gmail] Skipping already processed email: ${message.id}`);
               continue;
             }
 
             // Add to processed set immediately to prevent race conditions
-            processedEmailIds.add(message.id!);
+            processedEmailIds.get(userId)!.add(message.id!);
 
             // Check if notification already exists with this email ID to prevent database duplicates
             const existingNotifications = await storage.getUserNotifications(userId, 100);
@@ -2009,13 +2012,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
               // Process any messages found in the retry
               for (const message of retryMessages) {
                 // Deduplicate based on message ID
-                if (processedEmailIds.has(message.id)) {
+                if (!processedEmailIds.has(userId)) {
+                  processedEmailIds.set(userId, new Set());
+                }
+                if (processedEmailIds.get(userId)!.has(message.id)) {
                   console.log(`[Gmail] Skipping already processed email during retry: ${message.id}`);
                   continue;
                 }
 
                 // Add to processed set immediately to prevent race conditions
-                processedEmailIds.add(message.id!);
+                processedEmailIds.get(userId)!.add(message.id!);
 
                 try {
                   // Check if notification already exists with this email ID
