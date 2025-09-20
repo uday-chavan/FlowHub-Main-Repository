@@ -52,32 +52,30 @@ export function GmailConnect({ onConnectionChange }: GmailConnectProps) {
           const newUserEmail = event.data.email;
           const newUserId = event.data.userId;
 
-          // If this is a different user, force complete refresh
-          if (previousUserEmail && previousUserEmail !== newUserEmail) {
-            console.log(`User switching from ${previousUserEmail} to ${newUserEmail}`);
-            
-            // Complete state reset for user switching
-            localStorage.clear();
-            sessionStorage.clear();
-            
-            // Set new user state
-            if (newUserEmail && newUserId) {
-              localStorage.setItem('currentUserEmail', newUserEmail);
-              localStorage.setItem('currentUserId', newUserId);
-              localStorage.setItem('gmailConnected', 'true');
-              localStorage.setItem('userEmail', newUserEmail);
-            }
-            
-            // Force complete page refresh to clear React state
-            setTimeout(() => {
-              window.location.href = '/dashboard';
-            }, 500);
-          } else {
-            // Same user re-authenticating, just refresh
-            setTimeout(() => {
-              window.location.reload();
-            }, 1000);
+          // Always clear everything to ensure clean state regardless of user change
+          console.log(`Gmail OAuth completed for user: ${newUserEmail}`);
+          
+          // Complete state reset to prevent any data contamination
+          localStorage.clear();
+          sessionStorage.clear();
+          
+          // Set new user state
+          if (newUserEmail && newUserId) {
+            localStorage.setItem('currentUserEmail', newUserEmail);
+            localStorage.setItem('currentUserId', newUserId);
+            localStorage.setItem('gmailConnected', 'true');
+            localStorage.setItem('userEmail', newUserEmail);
+            localStorage.setItem('user_auth', JSON.stringify({
+              id: newUserId,
+              email: newUserEmail,
+              name: event.data.name || newUserEmail.split('@')[0]
+            }));
           }
+          
+          // Force complete page refresh to ensure clean React state
+          setTimeout(() => {
+            window.location.href = '/dashboard';
+          }, 500);
         }
       } else if (!event.data.success) {
         setIsConnecting(false);
