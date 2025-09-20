@@ -43,7 +43,7 @@ const userEmails = new Map();
 const processedEmailIds = new Set();
 
 // Define the redirect URI for Google OAuth
-const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || 'https://abc-production-409c.up.railway.app/auth/gmail/callback';
+const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || 'https://flowhub-production-409c.up.railway.app/auth/gmail/callback';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Add cookie parser middleware
