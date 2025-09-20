@@ -409,7 +409,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Send email to your mailbox
         const mailOptions = {
-          from: process.env.SMTP_USER || 'noreply@flowhub.com',
+          from: 'chavanuday407@gmail.com',
           to: 'chavanuday407@gmail.com',
           subject: 'FlowHub Premium Upgrade Request',
           html: `
@@ -1512,7 +1512,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Send feedback email
       const mailOptions = {
-        from: 'noreply@flowhub.com',
+        from: 'chavanuday407@gmail.com',
         to: 'chavanuday407@gmail.com',
         subject: 'New FlowHub Feedback',
         html: `
