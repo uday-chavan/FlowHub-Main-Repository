@@ -2,67 +2,50 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import type { Notification } from "@shared/schema";
 
-const MOCK_USER_ID = "demo-user";
+// Assume useCurrentUser hook is defined elsewhere and provides user object with id
+// For example:
+// import { useCurrentUser } from './useCurrentUser'; // Adjust path as needed
 
-export function useNotifications() {
+// Mock useCurrentUser for demonstration if it's not provided
+const useCurrentUser = () => {
+  // In a real app, this would come from context or auth state
+  // For this example, we'll use a mock user or null if not logged in
+  const mockUserId = localStorage.getItem('currentUserId');
+  if (mockUserId) {
+    return { user: { id: mockUserId } };
+  }
+  return { user: null };
+};
+
+export function useNotifications(limit?: number, type?: string) {
+  const { user } = useCurrentUser();
+  const userId = user?.id;
+
   return useQuery<Notification[]>({
-    queryKey: ["/api/notifications", { userId: MOCK_USER_ID }],
+    queryKey: ["/api/notifications", userId, limit, type],
     queryFn: async () => {
-      try {
-        const response = await fetch(`/api/notifications?userId=${MOCK_USER_ID}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch notifications');
+      if (!userId) throw new Error('User not authenticated');
+
+      const params = new URLSearchParams();
+      params.append('userId', userId);
+      if (limit) params.append('limit', limit.toString());
+      if (type) params.append('type', type);
+
+      const response = await fetch(`/api/notifications?${params}`, {
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          // Authentication/authorization failed - clear local state
+          localStorage.clear();
+          sessionStorage.clear();
+          window.location.reload();
         }
-        return response.json();
-      } catch (error) {
-        // Return sample data if API fails
-        return [
-          {
-            id: "1",
-            title: "Meeting with Product Team",
-            description: "Quarterly planning meeting scheduled for 3 PM",
-            type: "important",
-            sourceApp: "calendar",
-            isRead: false,
-            isDismissed: false,
-            createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 minutes ago
-            aiSummary: "Important quarterly planning meeting with the product team"
-          },
-          {
-            id: "2",
-            title: "New email from client",
-            description: "Project update and feedback request",
-            type: "urgent",
-            sourceApp: "gmail",
-            isRead: false,
-            isDismissed: false,
-            createdAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(), // 15 minutes ago
-            aiSummary: "Client has provided feedback on the latest project deliverables"
-          },
-          {
-            id: "3",
-            title: "Slack message from team",
-            description: "New discussion in #development channel",
-            type: "informational",
-            sourceApp: "slack",
-            isRead: false,
-            isDismissed: false,
-            createdAt: new Date(Date.now() - 1000 * 60 * 5).toISOString(), // 5 minutes ago
-            aiSummary: "Team discussion about upcoming sprint planning"
-          }
-        ].map(notification => ({ 
-          ...notification, 
-          userId: MOCK_USER_ID, 
-          metadata: {}, 
-          actionableInsights: [] as string[],
-          createdAt: new Date(notification.createdAt),
-          type: notification.type as "urgent" | "important" | "informational",
-          sourceApp: notification.sourceApp as "gmail" | "slack" | "calendar" | "notion" | "trello" | "zoom" | "manual"
-        })) as Notification[];
+        throw new Error('Failed to fetch notifications');
       }
+      return response.json();
     },
-    refetchInterval: 5000, // Poll every 5 seconds for new notifications
-    refetchIntervalInBackground: true,
+    enabled: !!userId && !!user,
   });
 }
 
@@ -105,11 +88,15 @@ export function useAnalyzeNotification() {
       content: string;
       sourceApp: string;
     }) => {
+      const { user } = useCurrentUser(); // Get current user ID
+      const userId = user?.id;
+      if (!userId) throw new Error('User not authenticated');
+
       return await apiRequest("POST", "/api/notifications/analyze", {
         title,
         content,
         sourceApp,
-        userId: MOCK_USER_ID,
+        userId: userId, // Use the authenticated user's ID
       });
     },
     onSuccess: () => {
