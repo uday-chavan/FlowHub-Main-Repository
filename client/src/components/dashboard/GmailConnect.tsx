@@ -48,9 +48,18 @@ export function GmailConnect({ onConnectionChange }: GmailConnectProps) {
 
         // If user was authenticated through OAuth, clear old state and refresh
         if (event.data.authenticated) {
-          // Clear any previous user's Gmail connection state
-          localStorage.removeItem('gmailConnected');
-          localStorage.removeItem('userEmail');
+          // Clear ALL previous user state, not just Gmail
+          const currentUserEmail = localStorage.getItem('currentUserEmail');
+          localStorage.clear();
+          sessionStorage.clear();
+          
+          // Restore only the current user email and set new Gmail state
+          if (event.data.email) {
+            localStorage.setItem('currentUserEmail', event.data.email);
+            localStorage.setItem('gmailConnected', 'true');
+            localStorage.setItem('userEmail', event.data.email);
+          }
+          
           setTimeout(() => {
             window.location.reload();
           }, 1000);
