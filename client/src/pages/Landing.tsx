@@ -50,12 +50,20 @@ export function Landing() {
 
           if (event.data.success && event.data.authenticated) {
             // Authentication successful, completely clear all previous user data
-            localStorage.clear(); // Clear ALL localStorage data
-            sessionStorage.clear(); // Clear session storage too
+            const newUserEmail = event.data.email;
+            const previousUserEmail = localStorage.getItem('currentUserEmail');
+            
+            // Only clear and refresh if switching users
+            if (previousUserEmail && previousUserEmail !== newUserEmail) {
+              console.log(`User switching from ${previousUserEmail} to ${newUserEmail}`);
+              localStorage.clear();
+              sessionStorage.clear();
+            }
 
-            // Store the new user email
-            if (event.data.email) {
-              localStorage.setItem('currentUserEmail', event.data.email);
+            // Store the new user info
+            if (newUserEmail) {
+              localStorage.setItem('currentUserEmail', newUserEmail);
+              localStorage.setItem('gmailConnected', 'true');
             }
 
             popup?.close();
