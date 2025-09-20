@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Header } from "@/components/dashboard/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useCurrentUser } from "@/hooks/useAuth";
 
 interface TimeSavedStats {
   totalEmailsConverted: number;
@@ -89,27 +90,22 @@ function StatCard({
 }
 
 export default function TimeSaved() {
+  const { user } = useCurrentUser();
+  
   // Fetch time saved statistics
   const { data: stats, isLoading } = useQuery<TimeSavedStats>({
-    queryKey: ['timeSavedStats'],
+    queryKey: ['timeSavedStats', user?.id],
     queryFn: async () => {
-      const response = await fetch('/api/analytics/time-saved');
+      const userId = user?.id || 'demo-user';
+      const response = await fetch(`/api/analytics/time-saved?userId=${userId}`, {
+        credentials: 'include'
+      });
       if (!response.ok) {
-        // Return mock data if endpoint doesn't exist yet
-        return {
-          totalEmailsConverted: 47,
-          totalTasksCreatedFromNaturalLanguage: 128,
-          totalTimeSavedMinutes: 1847,
-          conversionBreakdown: {
-            emailConversions: 47,
-            naturalLanguageConversions: 128,
-            urgentTasksHandled: 23,
-            completedTasks: 156
-          }
-        };
+        throw new Error('Failed to fetch time saved statistics');
       }
       return response.json();
-    }
+    },
+    enabled: !!user
   });
 
   const formatTimeDisplay = (minutes: number) => {
