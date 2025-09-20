@@ -49,16 +49,17 @@ export function Landing() {
           if (event.origin !== window.location.origin) return;
           
           if (event.data.success && event.data.authenticated) {
-            // Authentication successful, redirect to dashboard
-            setLocation('/dashboard');
+            // Authentication successful, force page refresh to clear old state
+            popup?.close();
+            window.location.href = '/dashboard';
           }
 
           if (event.data.success) {
             // Close popup and redirect to dashboard
             popup?.close();
             
-            // Redirect to dashboard after successful login
-            setLocation('/dashboard');
+            // Force page refresh to ensure clean state
+            window.location.href = '/dashboard';
           }
         }, { once: true });
       }
