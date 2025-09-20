@@ -179,9 +179,7 @@ export function Header() {
           {/* Right side - AI Limit Bar, Upgrade Button, Notifications, Theme Switcher */}
           <div className="flex items-center space-x-1 md:space-x-3">
             {/* AI Tasks Limit Bar - Show on all pages */}
-            <div className="hidden lg:block">
-              <AITasksLimitBar />
-            </div>
+            <AITasksLimitBar />
 
             <Popover>
               <PopoverTrigger asChild>
