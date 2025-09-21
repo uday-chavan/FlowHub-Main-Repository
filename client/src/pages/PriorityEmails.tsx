@@ -5,7 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Plus, User } from "lucide-react";
+import { Trash2, Plus, User, ChevronDown } from "lucide-react";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 
 interface PriorityEmail {
@@ -255,16 +256,23 @@ export default function PriorityEmails() {
               <CardContent className="p-4">
                 <div className="flex items-start space-x-3">
                   <div className="text-blue-500 mt-0.5">ℹ️</div>
-                  <div className="space-y-2">
-                    <h4 className="font-medium text-blue-900 dark:text-blue-100">
-                      How Priority Emails Work
-                    </h4>
-                    <div className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
-                      <p>• Emails from these addresses will automatically be marked as <strong>urgent priority</strong></p>
-                      <p>• They will appear with a <strong>"Priority Person"</strong> corner sticker</p>
-                      <p>• These emails will be sorted to the top of your urgent notifications</p>
-                      <p>• You can remove contacts anytime by clicking the trash icon</p>
-                    </div>
+                  <div className="space-y-2 w-full">
+                    <Collapsible>
+                      <CollapsibleTrigger className="flex items-center justify-between w-full text-left">
+                        <h4 className="font-medium text-blue-900 dark:text-blue-100 text-lg">
+                          How Priority Emails Work?
+                        </h4>
+                        <ChevronDown className="h-5 w-5 text-blue-900 dark:text-blue-100 transition-transform duration-200" />
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="pt-4">
+                        <div className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
+                          <p>• Emails from these addresses will automatically be marked as <strong>urgent priority</strong></p>
+                          <p>• They will appear with a <strong>"Priority Person"</strong> corner sticker</p>
+                          <p>• These emails will be sorted to the top of your urgent notifications</p>
+                          <p>• You can remove contacts anytime by clicking the trash icon</p>
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
                   </div>
                 </div>
               </CardContent>
