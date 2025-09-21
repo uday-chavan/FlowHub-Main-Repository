@@ -392,7 +392,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Try to send email notification if configured, but don't fail if it doesn't work
       try {
         if (process.env.GMAIL_APP_PASSWORD) {
-          const transporter = nodemailer.createTransporter({
+          const transporter = nodemailer.createTransport({
             service: 'gmail',
             auth: {
               user: 'chavanuday407@gmail.com',
@@ -1470,7 +1470,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Try to send feedback email if configured, but don't fail if it doesn't work
       try {
         if (process.env.GMAIL_APP_PASSWORD) {
-          const transporter = nodemailer.createTransporter({
+          const transporter = nodemailer.createTransport({
             service: 'gmail',
             auth: {
               user: 'chavanuday407@gmail.com',
