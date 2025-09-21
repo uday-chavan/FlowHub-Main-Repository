@@ -430,33 +430,7 @@ main {
     }
   }
 
-  /* Upgrade modal mobile optimization */
-  .upgrade-modal-content {
-    margin: 0.5rem !important;
-    max-height: calc(100vh - 2rem) !important;
-    width: calc(100vw - 2rem) !important;
-    overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch !important;
-    position: fixed !important;
-    top: 50% !important;
-    left: 50% !important;
-    transform: translate(-50%, -50%) !important;
-    z-index: 9999 !important;
-    inset: auto !important;
-  }
-
-  /* Ensure modal content is scrollable on very small screens */
-  @media (max-height: 600px) {
-    .upgrade-modal-content {
-      max-height: 95vh !important;
-      overflow-y: scroll !important;
-    }
-  }
-
-  /* Fix modal body scrolling */
-  .upgrade-modal-content > * {
-    flex-shrink: 0;
-  }
+  
 }
 
 
