@@ -304,7 +304,7 @@ function AiTaskCountdown({ task, onEditClick }: { task: any; onEditClick?: () =>
 const parseRelativeTime = (text: string): Date | null => {
   if (!text) return null;
 
-  const now = new Date();
+  const now = Date.now();
   const lowerText = text.toLowerCase().trim();
 
   // Look for "in X min/mins/minutes/m" patterns
@@ -1120,7 +1120,7 @@ export function WorkflowRiver() {
                                   {task.priority}
                                 </Badge>
                               )}
-                              
+
                               {/* Show clickable reply button for all email-based tasks */}
                               {task.sourceApp === 'gmail' && task.metadata?.emailFrom ? (
                                 <Badge 
@@ -1132,9 +1132,10 @@ export function WorkflowRiver() {
                                     const replySubject = emailSubject.startsWith('Re:') ? emailSubject : `Re: ${emailSubject}`;
                                     window.open(`https://mail.google.com/mail/?view=cm&fs=1&tf=1&to=${encodeURIComponent(emailFrom)}&su=${encodeURIComponent(replySubject)}`, '_blank');
                                   }}
-                                  title="Click to reply to this email"
+                                  title={`Click to reply to ${task.metadata.emailFrom}`}
                                 >
-                                  reply &lt;{task.metadata.emailFrom}&gt;
+                                  <span className="hidden sm:inline">reply &lt;{task.metadata.emailFrom}&gt;</span>
+                                  <span className="sm:hidden">reply</span>
                                 </Badge>
                               ) : (
                                 <Badge variant="outline" className="text-xs">
