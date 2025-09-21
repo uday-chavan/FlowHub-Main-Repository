@@ -71,7 +71,7 @@ export function AITasksLimitBar() {
         </Button>
 
         <Dialog open={showUsageModal} onOpenChange={setShowUsageModal}>
-          <DialogContent className="max-w-sm mx-4">
+          <DialogContent className="max-w-sm mx-4 fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[calc(100vw-2rem)] max-w-sm">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Zap className="h-5 w-5 text-yellow-500" />
