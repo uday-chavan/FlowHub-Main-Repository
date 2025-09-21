@@ -231,7 +231,8 @@ export function NotificationFeed() {
                         <Badge 
                           className="priority-person-badge text-xs bg-red-500 text-white border-red-500 hover:bg-red-600"
                         >
-                          Priority Person
+                          <span className="hidden sm:inline">Priority Person</span>
+                          <span className="sm:hidden">Priority</span>
                         </Badge>
                       )}
                     </div>
