@@ -51,7 +51,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // New Email Service Configuration
   const createEmailTransporter = () => {
-    return nodemailer.createTransporter({
+    return nodemailer.createTransport({
       service: 'gmail',
       auth: {
         user: 'chavanuday407@gmail.com',
