@@ -79,7 +79,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Generate tokens
-      const { accessToken, refreshToken } = generateTokens({
+      const {accessToken, refreshToken } = generateTokens({
         id: user.id,
         email: user.email,
         name: user.name
@@ -133,7 +133,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
 
-        const { accessToken, refreshToken } = generateTokens({
+        const {accessToken, refreshToken } = generateTokens({
           id: demoUser.id,
           email: demoUser.email,
           name: demoUser.name
@@ -227,7 +227,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Generate new tokens
-      const { accessToken, refreshToken: newRefreshToken } = generateTokens({
+      const {accessToken, refreshToken: newRefreshToken } = generateTokens({
         id: user.id,
         email: user.email,
         name: user.name
@@ -402,12 +402,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
               pass: process.env.GMAIL_APP_PASSWORD
             },
             tls: {
-              rejectUnauthorized: false,
-              ciphers: 'SSLv3'
+              rejectUnauthorized: false
             },
-            connectionTimeout: 60000,
-            greetingTimeout: 30000,
-            socketTimeout: 60000
+            connectionTimeout: 10000,
+            greetingTimeout: 10000,
+            socketTimeout: 10000,
+            pool: true,
+            maxConnections: 5,
+            maxMessages: 10
           });
 
           const mailOptions = {
@@ -1490,12 +1492,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
               pass: process.env.GMAIL_APP_PASSWORD
             },
             tls: {
-              rejectUnauthorized: false,
-              ciphers: 'SSLv3'
+              rejectUnauthorized: false
             },
-            connectionTimeout: 60000,
-            greetingTimeout: 30000,
-            socketTimeout: 60000
+            connectionTimeout: 10000,
+            greetingTimeout: 10000,
+            socketTimeout: 10000,
+            pool: true,
+            maxConnections: 5,
+            maxMessages: 10
           });
 
           const mailOptions = {
@@ -1742,7 +1746,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       userEmails.set(user.id, userEmail); // Store the real connected email
 
       // Generate authentication tokens for the authenticated user
-      const { accessToken, refreshToken } = generateTokens({
+      const {accessToken, refreshToken } = generateTokens({
         id: user.id,
         email: user.email,
         name: user.name
@@ -1934,10 +1938,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             console.log(`[Gmail] Extracted email for priority check: "${fromEmail}" from "${from}"`);
             const isPriorityContact = await storage.isPriorityEmail(userId, fromEmail);
-            console.log(`[Gmail] Priority check result: ${isPriorityContact} for email: ${fromEmail}`);
-
-            // Use AI to analyze and determine priority
-            let priority: "urgent" | "important" | "informational" = "informational";
+            console.log(`[Gmail] Priority check result: ${isPriorityContact} for email: ${fromEmail}`);            let priority: "urgent" | "important" | "informational" = "informational";
             let isPriorityPerson = false;
 
             if (isPriorityContact) {
