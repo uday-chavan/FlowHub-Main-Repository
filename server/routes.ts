@@ -57,15 +57,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       throw new Error('Email password not configured. Please set FLOWHUB_EMAIL_PASSWORD or GMAIL_APP_PASSWORD environment variable.');
     }
 
-    return nodemailer.createTransport({
+    return nodemailer.createTransporter({
       service: 'gmail',
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
       auth: {
         user: 'chavanuday407@gmail.com',
         pass: emailPassword
       },
       tls: {
         rejectUnauthorized: false
-      }
+      },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 10000
     });
   };
 
