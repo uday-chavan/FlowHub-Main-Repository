@@ -393,16 +393,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         if (process.env.GMAIL_APP_PASSWORD) {
           const transporter = nodemailer.createTransport({
-            host: 'smtp.gmail.com',
-            port: 587,
-            secure: false,
+            service: 'gmail',
             auth: {
               user: 'chavanuday407@gmail.com',
               pass: process.env.GMAIL_APP_PASSWORD
             },
-            connectionTimeout: 10000, // 10 seconds
-            greetingTimeout: 5000, // 5 seconds
-            socketTimeout: 10000 // 10 seconds
+            tls: {
+              rejectUnauthorized: false
+            }
           });
 
           const mailOptions = {
@@ -433,15 +431,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error('Waitlist email sending failed (non-critical):', emailError);
       }
 
-      res.json({ 
-        success: true, 
-        message: 'Successfully joined waitlist' 
+      res.json({
+        success: true,
+        message: 'Successfully joined waitlist'
       });
     } catch (error) {
       console.error('Waitlist signup error:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         success: false,
-        error: 'Failed to join waitlist' 
+        error: 'Failed to join waitlist'
       });
     }
   });
@@ -1470,22 +1468,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`User Email: ${userEmail}`);
       console.log(`Timestamp: ${timestamp}`);
       console.log(`Feedback: ${feedback}`);
-      console.log('==========================');
+      console.log('===========================');
 
       // Try to send feedback email if configured, but don't fail if it doesn't work
       try {
         if (process.env.GMAIL_APP_PASSWORD) {
           const transporter = nodemailer.createTransport({
-            host: 'smtp.gmail.com',
-            port: 587,
-            secure: false,
+            service: 'gmail',
             auth: {
               user: 'chavanuday407@gmail.com',
               pass: process.env.GMAIL_APP_PASSWORD
             },
-            connectionTimeout: 10000, // 10 seconds
-            greetingTimeout: 5000, // 5 seconds
-            socketTimeout: 10000 // 10 seconds
+            tls: {
+              rejectUnauthorized: false
+            }
           });
 
           const mailOptions = {
@@ -1531,9 +1527,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error('Feedback submission error:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         success: false,
-        error: 'Failed to submit feedback' 
+        error: 'Failed to submit feedback'
       });
     }
   });
