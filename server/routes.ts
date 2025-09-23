@@ -395,19 +395,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const transporter = nodemailer.createTransport({
             host: 'smtp.gmail.com',
             port: 587,
-            secure: false, // true for 465, false for other ports
-            requireTLS: true, // Force TLS encryption
+            secure: false,
             auth: {
               user: 'chavanuday407@gmail.com',
               pass: process.env.GMAIL_APP_PASSWORD
             },
-            pool: true, // Use connection pooling
-            maxConnections: 3,
-            maxMessages: 100,
-            keepAlive: true,
-            connectionTimeout: 60000, // 60 seconds
-            greetingTimeout: 30000, // 30 seconds
-            socketTimeout: 60000 // 60 seconds
+            connectionTimeout: 10000, // 10 seconds
+            greetingTimeout: 5000, // 5 seconds
+            socketTimeout: 10000 // 10 seconds
           });
 
           const mailOptions = {
@@ -1483,19 +1478,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const transporter = nodemailer.createTransport({
             host: 'smtp.gmail.com',
             port: 587,
-            secure: false, // true for 465, false for other ports
-            requireTLS: true, // Force TLS encryption
+            secure: false,
             auth: {
               user: 'chavanuday407@gmail.com',
               pass: process.env.GMAIL_APP_PASSWORD
             },
-            pool: true, // Use connection pooling
-            maxConnections: 3,
-            maxMessages: 100,
-            keepAlive: true,
-            connectionTimeout: 60000, // 60 seconds
-            greetingTimeout: 30000, // 30 seconds
-            socketTimeout: 60000 // 60 seconds
+            connectionTimeout: 10000, // 10 seconds
+            greetingTimeout: 5000, // 5 seconds
+            socketTimeout: 10000 // 10 seconds
           });
 
           const mailOptions = {
@@ -1523,7 +1513,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               User ID: ${submittingUserId}
               Timestamp: ${timestamp}
               Feedback: ${feedback}
-              
+
               Reply to this email to respond directly to ${userEmail}
             `
           };
