@@ -174,7 +174,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Generate tokens
-      const { accessToken, refreshToken } = generateTokens({
+      const {accessToken, refreshToken } = generateTokens({
         id: user.id,
         email: user.email,
         name: user.name
@@ -394,13 +394,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (process.env.GMAIL_APP_PASSWORD) {
           const transporter = nodemailer.createTransport({
             service: 'gmail',
+            host: 'smtp.gmail.com',
+            port: 587,
+            secure: false,
             auth: {
               user: 'chavanuday407@gmail.com',
               pass: process.env.GMAIL_APP_PASSWORD
             },
             tls: {
-              rejectUnauthorized: false
-            }
+              rejectUnauthorized: false,
+              ciphers: 'SSLv3'
+            },
+            connectionTimeout: 60000,
+            greetingTimeout: 30000,
+            socketTimeout: 60000
           });
 
           const mailOptions = {
@@ -1475,13 +1482,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (process.env.GMAIL_APP_PASSWORD) {
           const transporter = nodemailer.createTransport({
             service: 'gmail',
+            host: 'smtp.gmail.com',
+            port: 587,
+            secure: false,
             auth: {
               user: 'chavanuday407@gmail.com',
               pass: process.env.GMAIL_APP_PASSWORD
             },
             tls: {
-              rejectUnauthorized: false
-            }
+              rejectUnauthorized: false,
+              ciphers: 'SSLv3'
+            },
+            connectionTimeout: 60000,
+            greetingTimeout: 30000,
+            socketTimeout: 60000
           });
 
           const mailOptions = {
