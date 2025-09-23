@@ -51,11 +51,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // New Email Service Configuration
   const createEmailTransporter = () => {
-    return nodemailer.createTransport({
+    const emailPassword = process.env.FLOWHUB_EMAIL_PASSWORD || process.env.GMAIL_APP_PASSWORD;
+
+    if (!emailPassword) {
+      throw new Error('Email password not configured. Please set FLOWHUB_EMAIL_PASSWORD or GMAIL_APP_PASSWORD environment variable.');
+    }
+
+    return nodemailer.createTransporter({
       service: 'gmail',
       auth: {
         user: 'chavanuday407@gmail.com',
-        pass: process.env.FLOWHUB_EMAIL_PASSWORD || process.env.GMAIL_APP_PASSWORD
+        pass: emailPassword
       },
       tls: {
         rejectUnauthorized: false
@@ -65,6 +71,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   const sendNotificationEmail = async (subject: string, htmlContent: string, textContent: string) => {
     try {
+      console.log('Attempting to send email...');
+      console.log('Email password configured:', !!(process.env.FLOWHUB_EMAIL_PASSWORD || process.env.GMAIL_APP_PASSWORD));
+
       const transporter = createEmailTransporter();
 
       const mailOptions = {
@@ -75,11 +84,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         text: textContent
       };
 
-      await transporter.sendMail(mailOptions);
-      console.log(`Email sent successfully: ${subject}`);
+      console.log('Sending email with subject:', subject);
+      const result = await transporter.sendMail(mailOptions);
+      console.log(`Email sent successfully: ${subject}`, result.messageId);
       return true;
     } catch (error) {
-      console.error(`Email sending failed for: ${subject}`, error);
+      console.error(`Email sending failed for: ${subject}`);
+      console.error('Error details:', error);
       return false;
     }
   };
