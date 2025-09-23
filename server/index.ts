@@ -44,6 +44,7 @@ app.use((req, res, next) => {
   log(`Database: ${process.env.DATABASE_URL ? 'PostgreSQL' : 'Memory (development mode)'}`);
   log(`Gemini API: ${process.env.GEMINI_API_KEY ? 'configured' : 'not configured'}`);
   log(`Google OAuth: ${process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET ? 'configured' : 'not configured'}`);
+  log(`Email Service: ${process.env.FLOWHUB_EMAIL_PASSWORD || process.env.GMAIL_APP_PASSWORD ? 'configured' : 'not configured'}`);
 
   const server = await registerRoutes(app);
 
@@ -67,7 +68,7 @@ app.use((req, res, next) => {
   // ALWAYS serve the app on the port specified in the environment variable PORT
   // Railway automatically sets the PORT environment variable
   const port = parseInt(process.env.PORT || '5000', 10);
-  const host = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
+  const host = '0.0.0.0'; // Use 0.0.0.0 for Replit compatibility
   
   server.listen(port, host, () => {
     log(`🚀 FlowHub serving on ${host}:${port}`);
