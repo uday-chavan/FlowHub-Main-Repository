@@ -393,11 +393,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         if (process.env.GMAIL_APP_PASSWORD) {
           const transporter = nodemailer.createTransport({
-            service: 'gmail',
+            host: 'smtp.gmail.com',
+            port: 587,
+            secure: false, // true for 465, false for other ports
+            requireTLS: true, // Force TLS encryption
             auth: {
               user: 'chavanuday407@gmail.com',
               pass: process.env.GMAIL_APP_PASSWORD
-            }
+            },
+            pool: true, // Use connection pooling
+            maxConnections: 3,
+            maxMessages: 100,
+            keepAlive: true,
+            connectionTimeout: 60000, // 60 seconds
+            greetingTimeout: 30000, // 30 seconds
+            socketTimeout: 60000 // 60 seconds
           });
 
           const mailOptions = {
@@ -1471,11 +1481,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         if (process.env.GMAIL_APP_PASSWORD) {
           const transporter = nodemailer.createTransport({
-            service: 'gmail',
+            host: 'smtp.gmail.com',
+            port: 587,
+            secure: false, // true for 465, false for other ports
+            requireTLS: true, // Force TLS encryption
             auth: {
               user: 'chavanuday407@gmail.com',
               pass: process.env.GMAIL_APP_PASSWORD
-            }
+            },
+            pool: true, // Use connection pooling
+            maxConnections: 3,
+            maxMessages: 100,
+            keepAlive: true,
+            connectionTimeout: 60000, // 60 seconds
+            greetingTimeout: 30000, // 30 seconds
+            socketTimeout: 60000 // 60 seconds
           });
 
           const mailOptions = {
