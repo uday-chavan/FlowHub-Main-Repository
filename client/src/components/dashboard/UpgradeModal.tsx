@@ -20,20 +20,18 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
       // Get user email from localStorage or use demo email
       const userEmail = localStorage.getItem('userEmail') || 'demo-user@example.com';
 
-      const response = await fetch('/api/waitlist/join', {
+      const formData = new FormData();
+      // Using the waitlist form entry ID for email field (1832906040)
+      formData.append('entry.1832906040', userEmail);
+
+      await fetch('https://docs.google.com/forms/d/e/1FAIpQLScmgrxBPiy2B6U1KEuBZLl_mK6ksc-tlcfrYSrHzlTDHci0lw/formResponse', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userEmail,
-          plan: 'professional'
-        }),
+        mode: 'no-cors',
+        body: formData
       });
 
-      if (response.ok) {
-        setWaitlistJoined(true);
-      }
+      // Since no-cors mode doesn't return response, we assume success
+      setWaitlistJoined(true);
     } catch (error) {
       console.error('Failed to join waitlist:', error);
     } finally {
