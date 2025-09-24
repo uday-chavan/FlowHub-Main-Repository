@@ -49,54 +49,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Add cookie parser middleware
   app.use(cookieParser());
 
-  // New Email Service Configuration
+  // Enhanced Email Service Configuration with multiple providers
   const createEmailTransporter = () => {
     const emailPassword = process.env.FLOWHUB_EMAIL_PASSWORD || process.env.GMAIL_APP_PASSWORD;
+    const sendgridApiKey = process.env.SENDGRID_API_KEY;
+    const resendApiKey = process.env.RESEND_API_KEY;
 
-    if (!emailPassword) {
-      throw new Error('Email password not configured. Please set FLOWHUB_EMAIL_PASSWORD or GMAIL_APP_PASSWORD environment variable.');
+    // Try SendGrid first (most reliable for cloud deployments)
+    if (sendgridApiKey) {
+      return nodemailer.createTransporter({
+        service: 'SendGrid',
+        auth: {
+          user: 'apikey',
+          pass: sendgridApiKey
+        },
+        connectionTimeout: 30000,
+        greetingTimeout: 30000,
+        socketTimeout: 30000
+      });
     }
 
-    return nodemailer.createTransport({
-      service: 'gmail',
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false,
-      auth: {
-        user: 'chavanuday407@gmail.com',
-        pass: emailPassword
-      },
-      tls: {
-        rejectUnauthorized: false
-      },
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 10000
-    });
+    // Try Resend (good alternative)
+    if (resendApiKey) {
+      return nodemailer.createTransporter({
+        host: 'smtp.resend.com',
+        port: 587,
+        secure: false,
+        auth: {
+          user: 'resend',
+          pass: resendApiKey
+        },
+        connectionTimeout: 30000,
+        greetingTimeout: 30000,
+        socketTimeout: 30000
+      });
+    }
+
+    // Fallback to Gmail (may have connectivity issues in cloud)
+    if (emailPassword) {
+      return nodemailer.createTransporter({
+        service: 'gmail',
+        host: 'smtp.gmail.com',
+        port: 587,
+        secure: false,
+        auth: {
+          user: 'chavanuday407@gmail.com',
+          pass: emailPassword
+        },
+        tls: {
+          rejectUnauthorized: false
+        },
+        connectionTimeout: 30000,
+        greetingTimeout: 30000,
+        socketTimeout: 30000
+      });
+    }
+
+    return null;
   };
 
   const sendNotificationEmail = async (subject: string, htmlContent: string, textContent: string) => {
     try {
       console.log('Attempting to send email...');
-      console.log('Email password configured:', !!(process.env.FLOWHUB_EMAIL_PASSWORD || process.env.GMAIL_APP_PASSWORD));
+      console.log('Email services available:', {
+        sendgrid: !!process.env.SENDGRID_API_KEY,
+        resend: !!process.env.RESEND_API_KEY,
+        gmail: !!(process.env.FLOWHUB_EMAIL_PASSWORD || process.env.GMAIL_APP_PASSWORD)
+      });
 
       const transporter = createEmailTransporter();
 
+      if (!transporter) {
+        console.log('No email service configured. Logging notification instead.');
+        console.log('=== EMAIL NOTIFICATION (NOT SENT) ===');
+        console.log(`Subject: ${subject}`);
+        console.log(`Content: ${textContent}`);
+        console.log('====================================');
+        return false;
+      }
+
       const mailOptions = {
-        from: 'chavanuday407@gmail.com',
-        to: 'chavanuday407@gmail.com',
+        from: process.env.FROM_EMAIL || 'chavanuday407@gmail.com',
+        to: process.env.NOTIFICATION_EMAIL || 'chavanuday407@gmail.com',
         subject: subject,
         html: htmlContent,
         text: textContent
       };
 
       console.log('Sending email with subject:', subject);
-      const result = await transporter.sendMail(mailOptions);
+
+      // Add timeout wrapper to prevent hanging
+      const emailPromise = transporter.sendMail(mailOptions);
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Email sending timeout')), 45000)
+      );
+
+      const result = await Promise.race([emailPromise, timeoutPromise]);
       console.log(`Email sent successfully: ${subject}`, result.messageId);
       return true;
     } catch (error) {
       console.error(`Email sending failed for: ${subject}`);
       console.error('Error details:', error);
+
+      // Log the notification content even if email fails
+      console.log('=== EMAIL NOTIFICATION (FAILED TO SEND) ===');
+      console.log(`Subject: ${subject}`);
+      console.log(`Content: ${textContent}`);
+      console.log('==========================================');
+
       return false;
     }
   };
