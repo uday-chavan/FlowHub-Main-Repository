@@ -15,23 +15,26 @@ export default function Feedback() {
   const { toast } = useToast();
   const { user } = useCurrentUser();
 
-  // Submit feedback mutation
+  // Submit feedback to Google Forms
   const submitFeedbackMutation = useMutation({
     mutationFn: async (feedbackText: string) => {
-      const response = await fetch('/api/feedback/submit', {
+      const formData = new FormData();
+      // Using the feedback form entry ID for message field
+      formData.append('entry.701563353', feedbackText);
+      // Add user email if available
+      const userEmail = user?.email || 'anonymous@flowhub.com';
+      formData.append('entry.1229648205', userEmail);
+      // Add timestamp as name field
+      formData.append('entry.30482898', `FlowHub User - ${new Date().toLocaleString()}`);
+
+      const response = await fetch('https://docs.google.com/forms/d/e/1FAIpQLScmgrxBPiy2B6U1KEuBZLl_mK6ksc-tlcfrYSrHzlTDHci0lw/formResponse', {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include',
-        body: JSON.stringify({ 
-          userId: user?.id || 'demo-user',
-          feedback: feedbackText,
-          timestamp: new Date().toISOString()
-        })
+        mode: 'no-cors',
+        body: formData
       });
-      if (!response.ok) throw new Error('Failed to submit feedback');
-      return response.json();
+      
+      // Since no-cors mode doesn't return response, we assume success
+      return { success: true };
     },
     onSuccess: () => {
       setSubmitted(true);
