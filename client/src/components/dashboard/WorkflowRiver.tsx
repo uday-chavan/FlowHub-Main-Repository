@@ -1,4 +1,4 @@
-import { CheckSquare, Zap, Clock, Play, Square, Info, Trash2, RotateCcw, Plus, Mail, Pencil, Sparkles, Calendar, Check, ChevronUp } from "lucide-react";
+import { CheckSquare, Zap, Clock, Play, Square, Info, Trash2, RotateCcw, Plus, Mail, Pencil, Sparkles, Calendar } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useTasks, useStartTask, useStopTask, useOptimizeWorkflow, useUpdateTask, useDeleteTask, useAutoReschedule, useCreateTaskFromText } from "@/hooks/useTasks";
@@ -18,30 +18,21 @@ const priorityConfig = {
     dotColor: "bg-red-500",
     class: "pulse-urgent",
     label: "🚨 Urgent",
-    bgColor: "bg-red-50/20",
-    textColor: "text-red-600",
-    borderColor: "border-red-500",
-    title: "Urgent Tasks",
+    bgColor: "bg-red-50/20"
   },
   important: {
     color: "border-orange-500",
     dotColor: "bg-orange-500",
     class: "",
     label: "⚡ Important",
-    bgColor: "bg-orange-50/20",
-    textColor: "text-orange-600",
-    borderColor: "border-orange-500",
-    title: "Important Tasks",
+    bgColor: "bg-orange-50/20"
   },
   normal: {
     color: "border-blue-500",
     dotColor: "bg-blue-500",
     class: "",
     label: "📋 Normal",
-    bgColor: "bg-blue-50/20",
-    textColor: "text-blue-600",
-    borderColor: "border-blue-500",
-    title: "Normal Tasks",
+    bgColor: "bg-blue-50/20"
   },
 };
 
@@ -434,80 +425,6 @@ const parseRelativeTime = (text: string): Date | null => {
   return null;
 };
 
-// Task Countdown Component for Compact View
-function TaskCountdown({ task, className }: { task: any; className?: string }) {
-  const [timeLeft, setTimeLeft] = useState<string>("");
-  const [isUrgent, setIsUrgent] = useState(false);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Memoize target time
-  const targetTime = useMemo(() => {
-    if (task.dueAt) {
-      return new Date(task.dueAt);
-    } else {
-      return parseRelativeTime(task.title + ' ' + (task.description || ''));
-    }
-  }, [task.dueAt, task.title, task.description]);
-
-  useEffect(() => {
-    const updateCountdown = () => {
-      if (task.status === 'completed') {
-        setTimeLeft('Completed');
-        setIsUrgent(false);
-        return false;
-      }
-      if (!targetTime) {
-        setTimeLeft('No deadline');
-        setIsUrgent(false);
-        return false;
-      }
-
-      const now = Date.now();
-      const target = targetTime.getTime();
-      const difference = target - now;
-
-      setIsUrgent(difference < 3 * 60 * 60 * 1000); // Urgent if < 3 hours
-
-      if (difference > 0) {
-        const days = Math.floor(difference / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((difference % (1000 * 60)) / 1000);
-
-        if (days > 0) setTimeLeft(`${days}d ${hours}h`);
-        else if (hours > 0) setTimeLeft(`${hours}h ${minutes}m`);
-        else setTimeLeft(`${minutes}m ${seconds}s`);
-        return false;
-      } else {
-        const absTimePassed = Math.abs(difference);
-        const hoursOverdue = Math.floor((absTimePassed % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const minutesOverdue = Math.floor((absTimePassed % (1000 * 60 * 60)) / (1000 * 60));
-        setTimeLeft(`${hoursOverdue}h ${minutesOverdue}m overdue`);
-        setIsUrgent(true);
-        return true; // Stop interval for overdue tasks
-      }
-    };
-
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    const shouldStop = updateCountdown();
-    if (shouldStop) return;
-
-    intervalRef.current = setInterval(updateCountdown, 1000);
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [targetTime, task.status]);
-
-  return (
-    <span className={`font-medium ${
-      task.status === 'completed' ? 'text-green-700' :
-      isUrgent ? 'text-red-500 animate-pulse' :
-      (task.priority || 'normal') === 'urgent' ? 'text-red-500' :
-      (task.priority || 'normal') === 'important' ? 'text-orange-500' :
-      'text-gray-500'
-    } ${className}`}>
-      {timeLeft}
-    </span>
-  );
-}
 
 export function WorkflowRiver() {
   const { data: tasks, isLoading } = useTasks();
@@ -532,7 +449,6 @@ export function WorkflowRiver() {
   const [editingTitle, setEditingTitle] = useState("");
   const [editingTimeTaskId, setEditingTimeTaskId] = useState<string | null>(null);
   const [editingDueDate, setEditingDueDate] = useState<Date | null>(null);
-  const [selectedPriority, setSelectedPriority] = useState<string | null>(null); // State for selected priority filter
 
   // Animation state for staggered section and task appearance
   const [visibleSections, setVisibleSections] = useState<Set<string>>(new Set());
@@ -671,19 +587,29 @@ export function WorkflowRiver() {
     deleteTaskMutation.mutate(taskId);
   };
 
-  const handleCompleteTask = (taskId: string) => {
-    updateTaskMutation.mutate({ id: taskId, updates: { status: 'completed' } });
-  };
+  // Placeholder for profile name update fix.
+  // In a real scenario, this would involve updating user state or profile data.
+  // If the profile section is managed by another component or context,
+  // you would typically trigger an update there or use a shared state management solution.
+  // Example of a hypothetical update function:
+  // const handleUpdateProfileName = async (userId: string, newName: string) => {
+  //   try {
+  //     // Assume an API call to update the user's profile
+  //     const response = await fetch(`/api/users/${userId}`, {
+  //       method: 'PUT',
+  //       headers: { 'Content-Type': 'application/json' },
+  //       body: JSON.stringify({ name: newName }),
+  //     });
+  //     if (!response.ok) throw new Error('Failed to update name');
+  //     queryClient.invalidateQueries({ queryKey: ['userProfile', userId] }); // Invalidate cache if applicable
+  //     toast({ title: "Profile updated", description: "Your name has been updated successfully." });
+  //   } catch (error) {
+  //     console.error("Error updating profile name:", error);
+  //     toast({ title: "Error", description: "Failed to update profile name. Please try again.", variant: "destructive" });
+  //   }
+  // };
 
-  // Placeholder for handling the "404 Page Not Found" error on scroll.
-  // This is an unusual error to associate directly with scrolling.
-  // Common causes might include:
-  // - Infinite scroll implementation issues: If new content fails to load and triggers a 404, it might be reported during scroll.
-  // - Routing errors: If scrolling triggers a navigation event that leads to a 404.
-  // - Dynamic component loading failures.
-  // Without more context, specific code changes are difficult. If this occurs, investigate network requests made during scrolling or any routing logic tied to scroll events.
-
-  const handleCreateAITask = async () => {
+  const handleCreateManualTask = async () => {
     if (!newTaskInput.trim() || createTaskFromTextMutation.isPending) return;
 
     try {
@@ -900,9 +826,13 @@ export function WorkflowRiver() {
     );
   }
 
-  const completedTasks = activeTasks.filter(task => task.status === 'completed');
-  const pendingTasks = activeTasks.filter(task => task.status !== 'completed');
-
+  // Placeholder for handling the "404 Page Not Found" error on scroll.
+  // This is an unusual error to associate directly with scrolling.
+  // Common causes might include:
+  // - Infinite scroll implementation issues: If new content fails to load and triggers a 404, it might be reported during scroll.
+  // - Routing errors: If scrolling triggers a navigation event that leads to a 404.
+  // - Dynamic component loading failures.
+  // Without more context, specific code changes are difficult. If this occurs, investigate network requests made during scrolling or any routing logic tied to scroll events.
 
   return (
     <div className="glass-card rounded-lg p-6 h-full animate-in slide-in-from-bottom-5 duration-700 flex flex-col" data-testid="card-workflow-river">
@@ -931,37 +861,19 @@ export function WorkflowRiver() {
             </Tooltip>
           </TooltipProvider>
         </div>
-        {/* Navigation Buttons */}
-        <div className="flex items-center gap-2">
-          {priorityOrder.map((priority) => {
-            const config = priorityConfig[priority];
-            const isActive = selectedPriority === priority;
-            return (
-              <Button
-                key={priority}
-                variant={isActive ? "default" : "outline"}
-                className={`${
-                  isActive ? config.bgColor : "hover:bg-accent"
-                } ${
-                  isActive ? config.textColor : "text-muted-foreground"
-                } px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200`}
-                onClick={() => setSelectedPriority(isActive ? null : priority)}
-                data-testid={`button-nav-${priority}`}
-              >
-                {config.label}
-              </Button>
-            );
-          })}
+        {/* Updated button group for responsiveness */}
+        <div className="flex flex-wrap items-center gap-2">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                    onClick={() => setIsAddTaskDialogOpen(true)}
-                    className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-2 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg animate-in slide-in-from-right-3 duration-500 delay-300"
+                    onClick={() => setIsAddTaskDialogOpen(true)} // Using the renamed state variable
+                    className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-2 sm:px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg animate-in slide-in-from-right-3 duration-500 delay-300"
                     data-testid="button-add-ai-task"
                   >
                   <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
-                  <span className="hidden sm:inline">AI Task</span>
+                  <span className="hidden sm:inline">AI (Natural Language to Task)</span>
+                  <span className="sm:hidden">AI</span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -973,12 +885,12 @@ export function WorkflowRiver() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                    onClick={() => setIsManualTaskDialogOpen(true)}
-                    className="bg-green-500 hover:bg-green-600 text-white px-2 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg"
+                    onClick={() => setIsManualTaskDialogOpen(true)} // Using the renamed state variable
+                    className="bg-green-500 hover:bg-green-600 text-white px-2 sm:px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg"
                     data-testid="button-add-manual-task-plus"
                   >
                   <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
-                  <span className="hidden sm:inline ml-1">Manual</span>
+                  <span className="hidden sm:inline ml-1">Manual Tasks</span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -991,546 +903,456 @@ export function WorkflowRiver() {
       </div>
 
       {/* Scrollable Content Area */}
-      <div className="flex-1 overflow-y-auto" data-testid="scrollable-tasks-container">
-        {/* Add Task Modal State Management */}
-        {isAddTaskDialogOpen && (
-          <Dialog open={isAddTaskDialogOpen} onOpenChange={(open) => { setIsAddTaskDialogOpen(open); if (!open) setNewTaskInput(""); }}>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle className="flex items-center">
-                  <Sparkles className="w-5 h-5 mr-2 text-purple-500" />
-                  AI (Natural Language to Task)
-                </DialogTitle>
-                <DialogDescription>
-                  Describe your task in natural language and AI will create it for you.
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Task Description</label>
-                  <Input
-                    value={newTaskInput}
-                    onChange={(e) => setNewTaskInput(e.target.value)}
-                    placeholder="e.g., Prepare presentation for Monday meeting about Q4 results"
-                    className="w-full"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        handleCreateAITask();
-                      }
-                    }}
-                    data-testid="input-ai-task"
-                  />
-                </div>
-
-                <div className="flex space-x-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsAddTaskDialogOpen(false)}
-                    className="flex-1"
-                    data-testid="button-cancel-ai-task"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={handleCreateAITask}
-                    disabled={createTaskFromTextMutation.isPending || !newTaskInput.trim()}
-                    className="flex-1 bg-green-500 hover:bg-green-600"
-                    data-testid="button-create-ai-task"
-                  >
-                    {createTaskFromTextMutation.isPending ? "🤖 AI Creating Task..." : "Create Task"}
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-        )}
-
-        {/* Manual Task Modal */}
-        {isManualTaskDialogOpen && (
-          <Dialog open={isManualTaskDialogOpen} onOpenChange={(open) => { setIsManualTaskDialogOpen(open); if (!open) { setManualTaskName(""); setManualTaskDateTime(null); } }}>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle className="flex items-center">
-                  <Plus className="w-5 h-5 mr-2 text-green-500" />
-                  Add Manual Task
-                </DialogTitle>
-                <DialogDescription>
-                  Create a task without AI assistance. Enter the task name and time separately.
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Task Name</label>
-                  <Input
-                    value={manualTaskName}
-                    onChange={(e) => setManualTaskName(e.target.value)}
-                    placeholder="e.g., Review project proposal"
-                    className="w-full"
-                    data-testid="input-manual-task-name"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Due Date & Time (Optional)</label>
-                  <div className="border border-gray-300 rounded-md p-2">
-                    <DatePicker
-                      selected={manualTaskDateTime}
-                      onChange={(date: Date | null) => setManualTaskDateTime(date)}
-                      showTimeSelect
-                      timeFormat="HH:mm"
-                      timeIntervals={15}
-                      dateFormat="MMMM d, yyyy h:mm aa"
-                      placeholderText="Select date and time"
-                      className="w-full bg-transparent outline-none"
-                      minDate={new Date()}
-                      isClearable
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Select a specific date and time, or leave empty for no deadline
-                  </p>
-                </div>
-
-                <div className="flex space-x-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsManualTaskDialogOpen(false)}
-                    className="flex-1"
-                    data-testid="button-cancel-manual-task"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={handleCreateCompletelyManualTask}
-                    disabled={!manualTaskName.trim()}
-                    className="flex-1 bg-blue-500 hover:bg-blue-600"
-                    data-testid="button-create-manual-task"
-                  >
-                    Create Task
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-        )}
-
-        {/* Tasks Rendering based on selectedPriority */}
-        {pendingTasks.length === 0 ? (
-          <div className="text-center py-12 space-y-4 animate-in fade-in-50 duration-700 delay-500">
-            <CheckSquare className="w-16 h-16 mx-auto text-muted-foreground/50" />
-            <div>
-              <h3 className="text-lg font-medium text-muted-foreground mb-2">No pending tasks</h3>
-              <p className="text-sm text-muted-foreground">
-                Your task pipeline is clear and ready for action!
-              </p>
-            </div>
+      <div className="space-y-6 flex-1 overflow-y-auto min-h-0">
+        {activeTasks.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground" data-testid="text-no-tasks">
+            <CheckSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <p>No pending tasks in your pipeline.</p>
+            <p className="text-sm mt-2">Your task pipeline is clear and ready for action!</p>
           </div>
-        ) : selectedPriority ? (
-          // Show full cards for selected priority
-          <div className="space-y-4">
-            {/* Sticky Section Header */}
-            <div className="sticky top-0 bg-background/95 backdrop-blur-sm z-10 py-2 border-b">
-              <div className="flex items-center space-x-2">
-                <div className={`w-2 h-2 ${priorityConfig[selectedPriority].dotColor} rounded-full`} />
-                <h3 className={`font-medium text-lg ${priorityConfig[selectedPriority].textColor} ${selectedPriority === 'urgent' ? 'animate-pulse' : ''}`}>
-                  {priorityConfig[selectedPriority].title} ({(tasksByPriority[selectedPriority] || []).length})
-                </h3>
-              </div>
-            </div>
+        ) : (
+          priorityOrder.map((priority) => {
+            const priorityTasks = tasksByPriority[priority];
+            if (priorityTasks.length === 0) return null;
 
-            <div className="space-y-3">
-              {(tasksByPriority[selectedPriority] || []).map((task) => {
-                const taskPriority = task.priority || 'normal';
-                const taskConfig = priorityConfig[taskPriority] || priorityConfig['normal'];
+            const config = priorityConfig[priority];
 
-                let sourceType = "Manual";
-                if (task.sourceApp === 'gmail') {
-                  sourceType = "Email";
-                } else if (task.metadata?.aiGenerated) {
-                  sourceType = "AI";
-                }
+            return (
+              <div key={priority} className="space-y-3">
+                <div className={`flex items-center space-x-2 mb-3 transition-all duration-500 ${
+                  visibleSections.has(priority) 
+                    ? 'animate-in slide-in-from-left-4 opacity-100' 
+                    : 'opacity-0'
+                }`}>
+                  <div className={`w-3 h-3 ${config.dotColor} rounded-full`} />
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                    {config.label} ({priorityTasks.length})
+                  </h3>
+                </div>
 
-                const isTaskVisible = visibleTasks.has(task.id);
+                <div className="space-y-3">
+                  {priorityTasks.map((task) => {
+                    // Ensure task has a valid priority, default to 'normal' if not set
+                    const taskPriority = task.priority || 'normal';
+                    const taskConfig = priorityConfig[taskPriority] || priorityConfig['normal'];
 
-                return (
-                  <div
-                    key={task.id}
-                    className={`glass-card p-4 rounded-lg border transition-all duration-500 hover:shadow-lg ${
-                      task.status === 'completed' ? 'opacity-60' : ''
-                    } ${taskConfig.borderColor} ${
-                      isTaskVisible ? 'animate-in slide-in-from-right-4' : 'opacity-0'
-                    }`}
-                  >
-                    <div className="flex items-start space-x-3">
-                      <Button
-                        onClick={() => handleCompleteTask(task.id)}
-                        disabled={updateTaskMutation.isPending}
-                        className={`mt-1 w-5 h-5 rounded-full p-0 transition-all duration-300 ${
-                          task.status === 'completed'
-                            ? 'bg-green-500 hover:bg-green-600 text-white'
-                            : 'bg-transparent border-2 border-gray-300 hover:border-primary hover:bg-primary/10'
+                    // Determine source type for badge
+                    let sourceType = "Manual";
+                    if (task.sourceApp === 'gmail') {
+                      sourceType = "Email";
+                    } else if (task.metadata?.aiGenerated) {
+                      sourceType = "AI";
+                    }
+
+                    return (
+                      <div
+                        key={task.id}
+                        className={`workflow-river rounded-lg p-2 border ${taskConfig.color} relative ${
+                          task.status !== 'completed' ? taskConfig.class : ''
+                        } ${
+                          task.status === 'completed' ? 'opacity-80 bg-green-50/50 border-green-300 border-dashed' : taskConfig.bgColor
+                        } overflow-hidden max-w-full min-w-0 transition-all duration-200 hover:shadow-lg hover:border-opacity-80 ${
+                          visibleTasks.has(task.id) 
+                            ? 'animate-in slide-in-from-bottom-4 opacity-100 duration-500' 
+                            : 'opacity-0 translate-y-4'
                         }`}
-                        data-testid={`button-complete-task-${task.id}`}
+                        data-testid={`task-item-${task.id}`}
+                        style={{
+                          wordBreak: 'break-word',
+                          overflowWrap: 'break-word',
+                          width: '100%',
+                          maxWidth: '100%'
+                        }}
                       >
-                        {task.status === 'completed' && <Check className="w-3 h-3" />}
-                      </Button>
-
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex items-center space-x-2 flex-wrap">
-                            <div className={`w-3 h-3 ${priorityConfig[selectedPriority].dotColor} rounded-full ${selectedPriority === 'urgent' ? 'animate-pulse' : ''} flex-shrink-0 mt-1`} />
-                          <div className="flex-1 min-w-0 overflow-hidden">
-                            {editingTaskId === task.id ? (
-                              <div className="flex items-center gap-2">
-                                <Input
-                                  value={editingTitle}
-                                  onChange={(e) => setEditingTitle(e.target.value)}
-                                  className="text-sm font-medium flex-1"
-                                  onKeyPress={(e) => {
-                                    if (e.key === 'Enter') {
-                                      handleSaveEditTitle(task.id);
-                                    } else if (e.key === 'Escape') {
-                                      handleCancelEditTitle();
-                                    }
-                                  }}
-                                  autoFocus
-                                />
-                                <Button
-                                  onClick={() => handleSaveEditTitle(task.id)}
-                                  disabled={updateTaskMutation.isPending}
-                                  className="bg-green-500 hover:bg-green-600 text-white p-1 h-6 w-6"
+                        {/* Main task content */}
+                        <div className="flex flex-col space-y-2">
+                          {/* Task header with title and status */}
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-start space-x-2 flex-1 min-w-0">
+                              <div className={`w-3 h-3 ${config.dotColor} rounded-full ${task.priority === 'urgent' ? 'animate-pulse' : ''} flex-shrink-0 mt-1`} />
+                              <div className="flex-1 min-w-0 overflow-hidden">
+                                {editingTaskId === task.id ? (
+                                  <div className="flex items-center gap-2">
+                                    <Input
+                                      value={editingTitle}
+                                      onChange={(e) => setEditingTitle(e.target.value)}
+                                      className="text-sm font-medium flex-1"
+                                      onKeyPress={(e) => {
+                                        if (e.key === 'Enter') {
+                                          handleSaveEditTitle(task.id);
+                                        } else if (e.key === 'Escape') {
+                                          handleCancelEditTitle();
+                                        }
+                                      }}
+                                      autoFocus
+                                    />
+                                    <Button
+                                      onClick={() => handleSaveEditTitle(task.id)}
+                                      disabled={updateTaskMutation.isPending}
+                                      className="bg-green-500 hover:bg-green-600 text-white p-1 h-6 w-6"
+                                    >
+                                      ✓
+                                    </Button>
+                                    <Button
+                                      onClick={handleCancelEditTitle}
+                                      className="bg-gray-500 hover:bg-gray-600 text-white p-1 h-6 w-6"
+                                    >
+                                      ✕
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-2">
+                                    <h3 className={`font-medium break-words text-sm leading-tight truncate flex-1 ${
+                                      visibleTasks.has(task.id) 
+                                        ? 'animate-in slide-in-from-left-2 duration-500' 
+                                        : 'opacity-0'
+                                    }`} data-testid={`task-title-${task.id}`}>
+                                      {task.status === 'completed' ? '✅ ' : ''}{task.title}
+                                      {task.status === 'completed' && (
+                                        <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-normal whitespace-nowrap">
+                                          Task Completed
+                                        </span>
+                                      )}
+                                    </h3>
+                                    {/* Pencil edit button for AI-generated tasks */}
+                                    {(task.metadata?.aiGenerated === true || task.metadata?.sourceNotificationId) && (
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <Button
+                                              onClick={() => handleStartEditTitle(task)}
+                                              className="bg-gray-50 hover:bg-gray-100 text-gray-600 p-1 h-5 w-5 opacity-60 hover:opacity-100 transition-opacity"
+                                              data-testid={`button-edit-title-${task.id}`}
+                                            >
+                                              <Pencil className="w-3 h-3" />
+                                            </Button>
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            <p>Change the title</p>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    )}
+                                  </div>
+                                )}
+                                <div
+                                  className="text-xs text-muted-foreground cursor-pointer hover:text-primary transition-colors flex items-center gap-1 mt-1"
+                                  data-testid={`task-description-${task.id}`}
+                                  onClick={() => handleViewDescription(task)}
                                 >
-                                  ✓
-                                </Button>
-                                <Button
-                                  onClick={handleCancelEditTitle}
-                                  className="bg-gray-500 hover:bg-gray-600 text-white p-1 h-6 w-6"
-                                >
-                                  ✕
-                                </Button>
+                                  <span className="underline">Show description</span>
+                                  <Info className="w-3 h-3 opacity-60" />
+                                </div>
                               </div>
-                            ) : (
-                              <div className="flex items-center gap-2">
-                                <h3 className={`font-medium break-words text-sm leading-tight truncate flex-1 ${
-                                  isTaskVisible ? 'animate-in slide-in-from-left-2 duration-500' : 'opacity-0'
-                                }`} data-testid={`task-title-${task.id}`}>
-                                  {task.status === 'completed' ? '✅ ' : ''}{task.title}
-                                  {task.status === 'completed' && (
-                                    <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-normal whitespace-nowrap">
-                                      Task Completed
-                                    </span>
-                                  )}
-                                </h3>
-                                {(task.metadata?.aiGenerated === true || task.metadata?.sourceNotificationId) && (
-                                  <TooltipProvider>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Button
-                                          onClick={() => handleStartEditTitle(task)}
-                                          className="bg-gray-50 hover:bg-gray-100 text-gray-600 p-1 h-5 w-5 opacity-60 hover:opacity-100 transition-opacity"
-                                          data-testid={`button-edit-title-${task.id}`}
-                                        >
-                                          <Pencil className="w-3 h-3" />
-                                        </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        <p>Change the title</p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
+                            </div>
+
+                            {/* Countdown timer */}
+                            {(((task.priority || 'normal') === 'urgent' || (task.priority || 'normal') === 'important') || task.dueAt) && (
+                              <div className="flex-shrink-0">
+                                {editingTimeTaskId === task.id ? (
+                                  <div className="relative flex items-center gap-2">
+                                    <div className="relative z-[9999]">
+                                      <DatePicker
+                                        selected={editingDueDate}
+                                        onChange={(date) => setEditingDueDate(date)}
+                                        showTimeSelect
+                                        timeFormat="HH:mm"
+                                        timeIntervals={15}
+                                        dateFormat="Pp"
+                                        className="text-xs p-1 rounded border text-center w-32 relative z-[9999] text-black bg-white"
+                                        placeholderText="Select date & time"
+                                        popperClassName="!z-[99999]"
+                                        popperPlacement="bottom-end"
+                                        popperModifiers={[
+                                          {
+                                            name: "preventOverflow",
+                                            options: {
+                                              rootBoundary: "viewport",
+                                              tether: false,
+                                              altAxis: true,
+                                              padding: 8
+                                            }
+                                          },
+                                          {
+                                            name: "flip",
+                                            options: {
+                                              fallbackPlacements: ["top-end", "bottom-start", "top-start"]
+                                            }
+                                          }
+                                        ]}
+                                        portalId="date-picker-portal"
+                                      />
+                                    </div>
+                                    <Button
+                                      onClick={() => handleSaveEditTime(task.id)}
+                                      disabled={updateTaskMutation.isPending}
+                                      className="bg-green-500 hover:bg-green-600 text-white p-1 h-6 w-6"
+                                    >
+                                      ✓
+                                    </Button>
+                                    <Button
+                                      onClick={handleCancelEditTime}
+                                      className="bg-gray-500 hover:bg-gray-600 text-white p-1 h-6 w-6"
+                                    >
+                                      ✕
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <CountdownTimer task={task} onEditClick={() => handleStartEditTime(task)} />
                                 )}
                               </div>
                             )}
-                            <div
-                              className="text-xs text-muted-foreground cursor-pointer hover:text-primary transition-colors flex items-center gap-1 mt-1"
-                              data-testid={`task-description-${task.id}`}
-                              onClick={() => handleViewDescription(task)}
-                            >
-                              <span className="underline">Show description</span>
-                              <Info className="w-3 h-3 opacity-60" />
-                            </div>
-                          </div>
                           </div>
 
-                          {/* Countdown timer */}
-                          {(((task.priority || 'normal') === 'urgent' || (task.priority || 'normal') === 'important') || task.dueAt) && (
-                            <div className="flex-shrink-0">
-                              {editingTimeTaskId === task.id ? (
-                                <div className="relative flex items-center gap-2">
-                                  <div className="relative z-[9999]">
-                                    <DatePicker
-                                      selected={editingDueDate}
-                                      onChange={(date) => setEditingDueDate(date)}
-                                      showTimeSelect
-                                      timeFormat="HH:mm"
-                                      timeIntervals={15}
-                                      dateFormat="Pp"
-                                      className="text-xs p-1 rounded border text-center w-32 relative z-[9999] text-black bg-white"
-                                      placeholderText="Select date & time"
-                                      popperClassName="!z-[99999]"
-                                      popperPlacement="bottom-end"
-                                      popperModifiers={[
-                                        {
-                                          name: "preventOverflow",
-                                          options: {
-                                            rootBoundary: "viewport",
-                                            tether: false,
-                                            altAxis: true,
-                                            padding: 8
-                                          }
-                                        },
-                                        {
-                                          name: "flip",
-                                          options: {
-                                            fallbackPlacements: ["top-end", "bottom-start", "top-start"]
-                                          }
-                                        }
-                                      ]}
-                                      portalId="date-picker-portal"
-                                    />
-                                  </div>
-                                  <Button
-                                    onClick={() => handleSaveEditTime(task.id)}
-                                    disabled={updateTaskMutation.isPending}
-                                    className="bg-green-500 hover:bg-green-600 text-white p-1 h-6 w-6"
-                                  >
-                                    ✓
-                                  </Button>
-                                  <Button
-                                    onClick={handleCancelEditTime}
-                                    className="bg-gray-500 hover:bg-gray-600 text-white p-1 h-6 w-6"
-                                  >
-                                    ✕
-                                  </Button>
-                                </div>
+                          {/* Action buttons row */}
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="task-badge-container flex items-center space-x-2">
+                              {/* Show Priority Person badge in place of urgent priority */}
+                              {task.metadata?.isPriorityPerson ? (
+                                <Badge className="priority-person-badge text-xs bg-red-500 text-white border-red-500 hover:bg-red-600">
+                                  <span className="hidden sm:inline">Priority Person</span>
+                                  <span className="sm:hidden">Priority</span>
+                                </Badge>
                               ) : (
-                                <CountdownTimer task={task} onEditClick={() => handleStartEditTime(task)} />
+                                <Badge
+                                  variant={task.priority === "important" ? "default" : "secondary"}
+                                  className="text-xs"
+                                >
+                                  {task.priority}
+                                </Badge>
+                              )}
+
+                              {/* Show clickable reply button for all email-based tasks */}
+                              {task.sourceApp === 'gmail' && task.metadata?.emailFrom ? (
+                                <Badge 
+                                  variant="outline" 
+                                  className="email-reply-badge text-xs cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-colors"
+                                  onClick={() => {
+                                    const emailFrom = task.metadata?.emailFrom || '';
+                                    const emailSubject = task.metadata?.emailSubject || '';
+                                    const replySubject = emailSubject.startsWith('Re:') ? emailSubject : `Re: ${emailSubject}`;
+                                    window.open(`https://mail.google.com/mail/?view=cm&fs=1&tf=1&to=${encodeURIComponent(emailFrom)}&su=${encodeURIComponent(replySubject)}`, '_blank');
+                                  }}
+                                  title={`Click to reply to ${task.metadata.emailFrom}`}
+                                >
+                                  <span className="hidden sm:inline">reply &lt;{task.metadata.emailFrom}&gt;</span>
+                                  <span className="sm:hidden">reply</span>
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-xs">
+                                  {sourceType}
+                                </Badge>
                               )}
                             </div>
-                          )}
-                        </div>
+                            <div className="task-action-buttons flex items-center gap-1 flex-shrink-0">
+                              {task.status === 'pending' && (
+                                <Button
+                                  onClick={() => handleStartTask(task.id)}
+                                  disabled={startTaskMutation.isPending}
+                                  className="bg-primary hover:bg-primary/80 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors hover:shadow-lg"
+                                  data-testid={`button-start-task-${task.id}`}
+                                >
+                                  <Play className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                                  {startTaskMutation.isPending ? "Starting..." : "Start"}
+                                </Button>
+                              )}
+                              {task.status === 'in_progress' && (
+                                <Button
+                                  onClick={() => handleStopTask(task.id)}
+                                  disabled={stopTaskMutation.isPending}
+                                  className="bg-green-600 hover:bg-green-700 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors hover:shadow-lg text-white"
+                                  data-testid={`button-stop-task-${task.id}`}
+                                >
+                                  <Square className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                                  {stopTaskMutation.isPending ? "Stopping..." : "Stop"}
+                                </Button>
+                              )}
+                              {task.status === 'completed' && (
+                                <div className="px-3 py-1.5 rounded-lg text-sm font-medium bg-green-100 text-green-800 border border-green-200 pointer-events-none">
+                                  <CheckSquare className="w-4 h-4 mr-1 inline" />
+                                  Completed
+                                </div>
+                              )}
 
-                        {/* Action buttons row */}
-                        <div className="flex items-center justify-between gap-2 mt-2">
-                          <div className="task-badge-container flex items-center space-x-2">
-                            {task.metadata?.isPriorityPerson ? (
-                              <Badge className="priority-person-badge text-xs bg-red-500 text-white border-red-500 hover:bg-red-600">
-                                <span className="hidden sm:inline">Priority Person</span>
-                                <span className="sm:hidden">Priority</span>
-                              </Badge>
-                            ) : (
-                              <Badge
-                                variant={task.priority === "important" ? "default" : "secondary"}
-                                className="text-xs"
-                              >
-                                {task.priority || 'normal'}
-                              </Badge>
-                            )}
+                              {/* Reply to Gmail button for email-converted tasks */}
+                              {task.sourceApp === 'gmail' && task.metadata?.sourceNotificationId && (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        onClick={() => window.open('https://gmail.com', '_blank')}
+                                        className="bg-blue-50 hover:bg-blue-100 text-blue-600 px-1.5 py-1 sm:px-2 sm:py-1.5 rounded-lg text-sm transition-colors"
+                                        data-testid={`button-reply-gmail-${task.id}`}
+                                      >
+                                        <Mail className="w-3 h-3 sm:w-4 sm:h-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Reply in Gmail</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
 
-                            {task.sourceApp === 'gmail' && task.metadata?.emailFrom ? (
-                              <Badge 
-                                variant="outline" 
-                                className="email-reply-badge text-xs cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-colors"
-                                onClick={() => {
-                                  const emailFrom = task.metadata?.emailFrom || '';
-                                  const emailSubject = task.metadata?.emailSubject || '';
-                                  const replySubject = emailSubject.startsWith('Re:') ? emailSubject : `Re: ${emailSubject}`;
-                                  window.open(`https://mail.google.com/mail/?view=cm&fs=1&tf=1&to=${encodeURIComponent(emailFrom)}&su=${encodeURIComponent(replySubject)}`, '_blank');
-                                }}
-                                title={`Click to reply to ${task.metadata.emailFrom}`}
-                              >
-                                <span className="hidden sm:inline">reply &lt;{task.metadata.emailFrom}&gt;</span>
-                                <span className="sm:hidden">reply</span>
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="text-xs">
-                                {sourceType}
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="task-action-buttons flex items-center gap-1 flex-shrink-0">
-                            {task.status === 'pending' && (
-                              <Button
-                                onClick={() => handleStartTask(task.id)}
-                                disabled={startTaskMutation.isPending}
-                                className="bg-primary hover:bg-primary/80 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors hover:shadow-lg"
-                                data-testid={`button-start-task-${task.id}`}
-                              >
-                                <Play className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                                {startTaskMutation.isPending ? "Starting..." : "Start"}
-                              </Button>
-                            )}
-                            {task.status === 'in_progress' && (
-                              <Button
-                                onClick={() => handleStopTask(task.id)}
-                                disabled={stopTaskMutation.isPending}
-                                className="bg-green-600 hover:bg-green-700 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors hover:shadow-lg text-white"
-                                data-testid={`button-stop-task-${task.id}`}
-                              >
-                                <Square className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                                {stopTaskMutation.isPending ? "Stopping..." : "Stop"}
-                              </Button>
-                            )}
-                            {task.status === 'completed' && (
-                              <div className="px-3 py-1.5 rounded-lg text-sm font-medium bg-green-100 text-green-800 border border-green-200 pointer-events-none">
-                                <CheckSquare className="w-4 h-4 mr-1 inline" />
-                                Completed
-                              </div>
-                            )}
-
-                            {task.sourceApp === 'gmail' && task.metadata?.sourceNotificationId && (
+                              {/* Clear task button */}
                               <TooltipProvider>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <Button
-                                      onClick={() => window.open('https://gmail.com', '_blank')}
-                                      className="bg-blue-50 hover:bg-blue-100 text-blue-600 px-1.5 py-1 sm:px-2 sm:py-1.5 rounded-lg text-sm transition-colors"
-                                      data-testid={`button-reply-gmail-${task.id}`}
+                                      onClick={() => handleDeleteTask(task.id)}
+                                      disabled={deleteTaskMutation.isPending}
+                                      className="bg-red-50 hover:bg-red-100 text-red-600 px-1.5 py-1 sm:px-2 sm:py-1.5 rounded-lg text-sm transition-colors"
+                                      data-testid={`button-clear-task-${task.id}`}
                                     >
-                                      <Mail className="w-3 h-3 sm:w-4 sm:h-4" />
+                                      <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
                                     </Button>
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    <p>Reply in Gmail</p>
+                                    <p>Remove this task</p>
                                   </TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>
-                            )}
-
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    onClick={() => handleDeleteTask(task.id)}
-                                    disabled={deleteTaskMutation.isPending}
-                                    className="bg-red-50 hover:bg-red-100 text-red-600 px-1.5 py-1 sm:px-2 sm:py-1.5 rounded-lg text-sm transition-colors"
-                                    data-testid={`button-clear-task-${task.id}`}
-                                  >
-                                    <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Remove this task</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ) : (
-          // Show compact cards for all priorities - horizontal layout
-          <div className="flex gap-4 h-full">
-            {priorityOrder.map((priority) => {
-              const priorityTasks = tasksByPriority[priority] || [];
-              if (priorityTasks.length === 0) return null;
-
-              const config = priorityConfig[priority];
-              const isVisible = visibleSections.has(priority);
-
-              return (
-                <div
-                  key={priority}
-                  className={`flex-1 space-y-3 transition-all duration-500 ${
-                    isVisible ? 'animate-in slide-in-from-left-4' : 'opacity-0'
-                  }`}
-                >
-                  {/* Section Header */}
-                  <div className="sticky top-0 bg-background/95 backdrop-blur-sm z-10 py-2 border-b">
-                    <div className="flex items-center space-x-2">
-                      <div className={`w-2 h-2 ${config.dotColor} rounded-full`} />
-                      <h3 className={`font-medium text-sm ${config.textColor} ${priority === 'urgent' ? 'animate-pulse' : ''}`}>
-                        {config.title} ({priorityTasks.length})
-                      </h3>
-                    </div>
-                  </div>
-
-                  {/* Compact Task Cards */}
-                  <div className="space-y-2">
-                    {priorityTasks.map((task) => {
-                      const isTaskVisible = visibleTasks.has(task.id);
-
-                      return (
-                        <div
-                          key={task.id}
-                          className={`glass-card p-3 rounded-lg border transition-all duration-300 hover:shadow-md cursor-pointer ${
-                            task.status === 'completed' ? 'opacity-60' : ''
-                          } ${config.borderColor} ${
-                            isTaskVisible ? 'animate-in slide-in-from-right-4' : 'opacity-0'
-                          }`}
-                          onClick={() => setSelectedPriority(priority)}
-                        >
-                          <div className="flex items-start space-x-2">
-                            <div className={`w-2 h-2 ${config.dotColor} rounded-full flex-shrink-0 mt-1.5`} />
-                            <div className="flex-1 min-w-0">
-                              <h4 className="text-xs font-medium text-foreground truncate">
-                                {task.title}
-                              </h4>
-                              {task.dueAt && (
-                                <TaskCountdown 
-                                  task={task} 
-                                  className="text-xs mt-1" 
-                                />
-                              )}
                             </div>
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Completed Tasks Section */}
-        {showCompletedTasks && completedTasks.length > 0 && (
-          <div className="space-y-3 animate-in slide-in-from-bottom-4 duration-500 mt-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full" />
-                <h3 className="font-medium text-sm text-green-600">
-                  Completed ({completedTasks.length})
-                </h3>
               </div>
-              <Button
-                onClick={() => setShowCompletedTasks(false)}
-                variant="ghost"
-                size="sm"
-                className="text-xs"
-              >
-                <ChevronUp className="w-4 h-4" />
-              </Button>
-            </div>
-            <div className="space-y-2">
-              {completedTasks.map((task) => (
-                <div
-                  key={task.id}
-                  className="glass-card p-3 rounded-lg border border-green-200 bg-green-50/50 opacity-75"
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
-                      <Check className="w-2 h-2 text-white" />
-                    </div>
-                    <span className="text-sm text-green-700 line-through">
-                      {task.title}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+            );
+          })
         )}
       </div>
+
+      {/* Add AI Task Dialog */}
+      <Dialog open={isAddTaskDialogOpen} onOpenChange={setIsAddTaskDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Zap className="w-5 h-5 mr-2 text-purple-500" />
+              AI (Natural Language to Task)
+            </DialogTitle>
+            <DialogDescription>
+              Describe your task in natural language and AI will create it for you.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">Task Description</label>
+              <Input
+                value={newTaskInput}
+                onChange={(e) => setNewTaskInput(e.target.value)}
+                placeholder="e.g., Review project proposal by 3pm today"
+                className="w-full"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleCreateManualTask();
+                  }
+                }}
+                data-testid="input-manual-task"
+              />
+            </div>
+
+            <div className="flex space-x-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsAddTaskDialogOpen(false);
+                  setNewTaskInput("");
+                }}
+                className="flex-1"
+                data-testid="button-cancel-task"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleCreateManualTask}
+                disabled={!newTaskInput.trim() || createTaskFromTextMutation.isPending}
+                className="flex-1 bg-green-500 hover:bg-green-600"
+                data-testid="button-create-task"
+              >
+                {createTaskFromTextMutation.isPending ? "🤖 AI Creating Task..." : "Create Task"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Completely Manual Task Dialog */}
+      <Dialog open={isManualTaskDialogOpen} onOpenChange={setIsManualTaskDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Plus className="w-5 h-5 mr-2 text-green-500" />
+              Add Manual Task
+            </DialogTitle>
+            <DialogDescription>
+              Create a task without AI assistance. Enter the task name and time separately.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">Task Name</label>
+              <Input
+                value={manualTaskName}
+                onChange={(e) => setManualTaskName(e.target.value)}
+                placeholder="e.g., Review project proposal"
+                className="w-full"
+                data-testid="input-manual-task-name"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">Due Date & Time (Optional)</label>
+              <div className="border border-gray-300 rounded-md p-2">
+                <DatePicker
+                  selected={manualTaskDateTime}
+                  onChange={(date: Date | null) => setManualTaskDateTime(date)}
+                  showTimeSelect
+                  timeFormat="HH:mm"
+                  timeIntervals={15}
+                  dateFormat="MMMM d, yyyy h:mm aa"
+                  placeholderText="Select date and time"
+                  className="w-full bg-transparent outline-none"
+                  minDate={new Date()}
+                  isClearable
+                />
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Select a specific date and time, or leave empty for no deadline
+              </p>
+            </div>
+
+            <div className="flex space-x-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsManualTaskDialogOpen(false);
+                  setManualTaskName("");
+                  setManualTaskTime("");
+                  setManualTaskDateTime(null);
+                }}
+                className="flex-1"
+                data-testid="button-cancel-manual-task"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleCreateCompletelyManualTask}
+                disabled={!manualTaskName.trim()}
+                className="flex-1 bg-blue-500 hover:bg-blue-600"
+                data-testid="button-create-manual-task"
+              >
+                Create Task
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Description Dialog */}
       <Dialog open={isDescriptionDialogOpen} onOpenChange={setIsDescriptionDialogOpen}>
@@ -1563,9 +1385,11 @@ export function WorkflowRiver() {
                 <div className="border rounded-lg p-4 bg-muted/20">
                   <h4 className="font-medium mb-2">Priority:</h4>
                   <span className={`text-sm px-2 py-1 rounded-full ${
-                    priorityConfig[selectedTask.priority]?.bgColor || 'bg-gray-100'
-                  } ${priorityConfig[selectedTask.priority]?.textColor || 'text-gray-800'}`}>
-                    {priorityConfig[selectedTask.priority]?.label || selectedTask.priority}
+                    selectedTask.priority === 'urgent' ? 'bg-red-100 text-red-800' :
+                    selectedTask.priority === 'important' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-green-100 text-green-800'
+                  }`}>
+                    {selectedTask.priority.charAt(0).toUpperCase() + selectedTask.priority.slice(1)}
                   </span>
                 </div>
               )}
