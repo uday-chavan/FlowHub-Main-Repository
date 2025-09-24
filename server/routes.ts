@@ -57,7 +57,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     // Try SendGrid first (most reliable for cloud deployments)
     if (sendgridApiKey) {
-      return nodemailer.createTransporter({
+      return nodemailer.createTransport({
         service: 'SendGrid',
         auth: {
           user: 'apikey',
@@ -71,7 +71,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     // Try Resend (good alternative)
     if (resendApiKey) {
-      return nodemailer.createTransporter({
+      return nodemailer.createTransport({
         host: 'smtp.resend.com',
         port: 587,
         secure: false,
@@ -87,7 +87,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     // Fallback to Gmail (may have connectivity issues in cloud)
     if (emailPassword) {
-      return nodemailer.createTransporter({
+      return nodemailer.createTransport({
         service: 'gmail',
         host: 'smtp.gmail.com',
         port: 587,
