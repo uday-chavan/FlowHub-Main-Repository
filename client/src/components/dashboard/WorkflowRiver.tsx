@@ -1427,8 +1427,8 @@ export function WorkflowRiver() {
             </div>
           </div>
         ) : (
-          // Show compact cards for all priorities
-          <div className="space-y-6">
+          // Show compact cards for all priorities - horizontal layout
+          <div className="flex gap-4 h-full">
             {priorityOrder.map((priority) => {
               const priorityTasks = tasksByPriority[priority] || [];
               if (priorityTasks.length === 0) return null;
@@ -1439,11 +1439,11 @@ export function WorkflowRiver() {
               return (
                 <div
                   key={priority}
-                  className={`space-y-3 transition-all duration-500 ${
+                  className={`flex-1 space-y-3 transition-all duration-500 ${
                     isVisible ? 'animate-in slide-in-from-left-4' : 'opacity-0'
                   }`}
                 >
-                  {/* Sticky Section Header */}
+                  {/* Section Header */}
                   <div className="sticky top-0 bg-background/95 backdrop-blur-sm z-10 py-2 border-b">
                     <div className="flex items-center space-x-2">
                       <div className={`w-2 h-2 ${config.dotColor} rounded-full`} />
@@ -1454,7 +1454,7 @@ export function WorkflowRiver() {
                   </div>
 
                   {/* Compact Task Cards */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  <div className="space-y-2">
                     {priorityTasks.map((task) => {
                       const isTaskVisible = visibleTasks.has(task.id);
 
