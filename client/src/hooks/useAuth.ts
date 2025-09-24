@@ -24,14 +24,12 @@ export function useAuth() {
         });
 
         if (!response.ok) {
-          // Only clear auth state for actual auth failures (401), not server errors (500)
-          if (response.status === 401) {
-            localStorage.removeItem('user_auth');
-            localStorage.removeItem('gmailConnected');
-            localStorage.removeItem('userEmail');
-            localStorage.removeItem('currentUserId');
-            localStorage.removeItem('currentUserEmail');
-          }
+          // Clear any stale auth state on failed requests
+          localStorage.removeItem('user_auth');
+          localStorage.removeItem('gmailConnected');
+          localStorage.removeItem('userEmail');
+          localStorage.removeItem('currentUserId');
+          localStorage.removeItem('currentUserEmail');
           return { user: undefined };
         }
 
@@ -98,4 +96,3 @@ export function useCurrentUser() {
     error
   };
 }
-
