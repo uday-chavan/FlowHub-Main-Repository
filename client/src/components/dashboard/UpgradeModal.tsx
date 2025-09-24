@@ -24,7 +24,7 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
       // Using the upgrade request form entry ID for email field (1832906040)
       formData.append('entry.1832906040', userEmail);
 
-      await fetch('https://docs.google.com/forms/d/e/[YOUR_UPGRADE_FORM_ID]/formResponse', {
+      await fetch('https://docs.google.com/forms/d/e/[1832906040]/formResponse', {
         method: 'POST',
         mode: 'no-cors',
         body: formData
