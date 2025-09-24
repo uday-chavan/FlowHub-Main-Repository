@@ -20,7 +20,7 @@ import { google } from "googleapis";
 import { OAuth2Client } from "google-auth-library";
 import { smartScheduler } from "./scheduler";
 import { taskNotificationScheduler } from "./notificationScheduler";
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import cookieParser from 'cookie-parser';
 import {
   generateTokens,
@@ -49,78 +49,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Add cookie parser middleware
   app.use(cookieParser());
 
-  // Enhanced Email Service Configuration with multiple providers
-  const createEmailTransporter = () => {
-    const emailPassword = process.env.FLOWHUB_EMAIL_PASSWORD || process.env.GMAIL_APP_PASSWORD;
-    const sendgridApiKey = process.env.SENDGRID_API_KEY;
+  // Fast Resend Email Service - No SMTP timeouts!
+  const createResendClient = () => {
     const resendApiKey = process.env.RESEND_API_KEY;
-
-    // Try SendGrid first (most reliable for cloud deployments)
-    if (sendgridApiKey) {
-      return nodemailer.createTransport({
-        service: 'SendGrid',
-        auth: {
-          user: 'apikey',
-          pass: sendgridApiKey
-        },
-        connectionTimeout: 30000,
-        greetingTimeout: 30000,
-        socketTimeout: 30000
-      });
+    
+    if (!resendApiKey) {
+      console.log('No RESEND_API_KEY configured');
+      return null;
     }
-
-    // Try Resend (good alternative)
-    if (resendApiKey) {
-      return nodemailer.createTransport({
-        host: 'smtp.resend.com',
-        port: 587,
-        secure: false,
-        auth: {
-          user: 'resend',
-          pass: resendApiKey
-        },
-        connectionTimeout: 30000,
-        greetingTimeout: 30000,
-        socketTimeout: 30000
-      });
-    }
-
-    // Fallback to Gmail (may have connectivity issues in cloud)
-    if (emailPassword) {
-      return nodemailer.createTransport({
-        service: 'gmail',
-        host: 'smtp.gmail.com',
-        port: 587,
-        secure: false,
-        auth: {
-          user: 'chavanuday407@gmail.com',
-          pass: emailPassword
-        },
-        tls: {
-          rejectUnauthorized: false
-        },
-        connectionTimeout: 30000,
-        greetingTimeout: 30000,
-        socketTimeout: 30000
-      });
-    }
-
-    return null;
+    
+    return new Resend(resendApiKey);
   };
 
   const sendNotificationEmail = async (subject: string, htmlContent: string, textContent: string) => {
     try {
-      console.log('Attempting to send email...');
-      console.log('Email services available:', {
-        sendgrid: !!process.env.SENDGRID_API_KEY,
-        resend: !!process.env.RESEND_API_KEY,
-        gmail: !!(process.env.FLOWHUB_EMAIL_PASSWORD || process.env.GMAIL_APP_PASSWORD)
-      });
+      console.log('Attempting to send email via Resend...');
+      console.log('Resend API configured:', !!process.env.RESEND_API_KEY);
 
-      const transporter = createEmailTransporter();
+      const resend = createResendClient();
 
-      if (!transporter) {
-        console.log('No email service configured. Logging notification instead.');
+      if (!resend) {
+        console.log('No Resend API key configured. Logging notification instead.');
         console.log('=== EMAIL NOTIFICATION (NOT SENT) ===');
         console.log(`Subject: ${subject}`);
         console.log(`Content: ${textContent}`);
@@ -128,27 +77,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return false;
       }
 
-      const mailOptions = {
+      console.log('Sending email via Resend with subject:', subject);
+
+      const result = await resend.emails.send({
         from: process.env.FROM_EMAIL || 'chavanuday407@gmail.com',
         to: process.env.NOTIFICATION_EMAIL || 'chavanuday407@gmail.com',
         subject: subject,
         html: htmlContent,
         text: textContent
-      };
-
-      console.log('Sending email with subject:', subject);
-
-      // Add timeout wrapper to prevent hanging
-      const emailPromise = transporter.sendMail(mailOptions);
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Email sending timeout')), 45000)
-      );
-
-      const result = await Promise.race([emailPromise, timeoutPromise]);
-      console.log(`Email sent successfully: ${subject}`, result.messageId);
+      });
+      
+      console.log(`Email sent successfully via Resend: ${subject}`, result.data?.id);
       return true;
     } catch (error) {
-      console.error(`Email sending failed for: ${subject}`);
+      console.error(`Resend email sending failed for: ${subject}`);
       console.error('Error details:', error);
 
       // Log the notification content even if email fails
