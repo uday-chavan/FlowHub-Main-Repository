@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, Crown, Sparkles, Star, X, CheckCircle } from "lucide-react";
+import { useCurrentUser } from "@/hooks/useAuth";
 
 interface UpgradeModalProps {
   isOpen: boolean;
@@ -12,13 +13,14 @@ interface UpgradeModalProps {
 export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
   const [isJoiningWaitlist, setIsJoiningWaitlist] = useState(false);
   const [waitlistJoined, setWaitlistJoined] = useState(false);
+  const { user } = useCurrentUser();
 
   const handleJoinWaitlist = async () => {
     setIsJoiningWaitlist(true);
 
     try {
-      // Get user email from localStorage or use demo email
-      const userEmail = localStorage.getItem('userEmail') || 'demo-user@example.com';
+      // Get user email from authenticated user or use fallback
+      const userEmail = user?.email || 'anonymous@flowhub.com';
 
       const formData = new FormData();
       // Using the upgrade request form entry ID for email field (1832906040)
