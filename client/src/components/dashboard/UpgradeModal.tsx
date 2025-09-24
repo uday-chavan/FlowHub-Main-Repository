@@ -21,10 +21,10 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
       const userEmail = localStorage.getItem('userEmail') || 'demo-user@example.com';
 
       const formData = new FormData();
-      // Using the waitlist form entry ID for email field (1832906040)
+      // Using the upgrade request form entry ID for email field (1832906040)
       formData.append('entry.1832906040', userEmail);
 
-      await fetch('https://docs.google.com/forms/d/e/1FAIpQLScmgrxBPiy2B6U1KEuBZLl_mK6ksc-tlcfrYSrHzlTDHci0lw/formResponse', {
+      await fetch('https://docs.google.com/forms/d/e/[YOUR_UPGRADE_FORM_ID]/formResponse', {
         method: 'POST',
         mode: 'no-cors',
         body: formData
