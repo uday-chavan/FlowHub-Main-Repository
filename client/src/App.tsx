@@ -40,68 +40,71 @@ function AppRouter() {
 
   // Handle authentication state changes and user switching
   useEffect(() => {
-    if (authChecked && initialAuthState !== null && user) {
-      const previousUserId = localStorage.getItem('currentUserId');
-      const previousUserEmail = localStorage.getItem('currentUserEmail');
-      
-      // Check for user change - be very strict about user isolation
-      const userChanged = (previousUserId && previousUserId !== user.id) || 
-                         (previousUserEmail && previousUserEmail !== user.email);
-      
-      if (userChanged) {
-        // User changed - force complete refresh to clear all state
-        console.log(`User switching detected: ${previousUserEmail || 'unknown'} -> ${user.email}`);
+    if (authChecked) {
+      if (isAuthenticated && user) {
+        const previousUserId = localStorage.getItem('currentUserId');
+        const previousUserEmail = localStorage.getItem('currentUserEmail');
         
-        // Complete state reset to prevent data bleeding
-        localStorage.clear();
-        sessionStorage.clear();
+        // Check for user change - be very strict about user isolation
+        const userChanged = (previousUserId && previousUserId !== user.id) || 
+                           (previousUserEmail && previousUserEmail !== user.email);
         
-        // Clear React Query cache to prevent old data
-        qc.clear();
+        if (userChanged) {
+          // User changed - force complete refresh to clear all state
+          console.log(`User switching detected: ${previousUserEmail || 'unknown'} -> ${user.email}`);
+          
+          // Complete state reset to prevent data bleeding
+          localStorage.clear();
+          sessionStorage.clear();
+          
+          // Clear React Query cache to prevent old data
+          qc.clear();
+          
+          // Set new user state
+          localStorage.setItem('currentUserId', user.id);
+          localStorage.setItem('currentUserEmail', user.email);
+          localStorage.setItem('user_auth', JSON.stringify(user));
+          
+          // Force navigation to dashboard for the new user
+          setLocation("/dashboard");
+          setInitialAuthState(true);
+          
+          return; // Exit early to prevent further processing
+        }
         
-        // Set new user state
-        localStorage.setItem('currentUserId', user.id);
-        localStorage.setItem('currentUserEmail', user.email);
-        localStorage.setItem('user_auth', JSON.stringify(user));
+        // Set initial user data if not present
+        if (!previousUserId || !previousUserEmail) {
+          localStorage.setItem('currentUserId', user.id);
+          localStorage.setItem('currentUserEmail', user.email);
+          localStorage.setItem('user_auth', JSON.stringify(user));
+        }
         
-        // Force navigation to dashboard for the new user
-        setLocation("/dashboard");
-        setInitialAuthState(true);
-        
-        return; // Exit early to prevent further processing
+        // User is authenticated and we're on the landing page - redirect to dashboard
+        if (location === "/" && initialAuthState !== false) {
+          setLocation("/dashboard");
+          setInitialAuthState(true);
+        }
+      } else {
+        // User is not authenticated
+        if (initialAuthState === true) {
+          // User was authenticated but now isn't - they logged out
+          localStorage.clear();
+          sessionStorage.clear();
+          qc.clear();
+          setLocation("/");
+          setInitialAuthState(false);
+        } else if (location !== "/" && location !== "/404") {
+          // User is trying to access protected route without auth
+          setLocation("/");
+        }
       }
       
-      // Set initial user data if not present
-      if (!previousUserId || !previousUserEmail) {
-        localStorage.setItem('currentUserId', user.id);
-        localStorage.setItem('currentUserEmail', user.email);
-        localStorage.setItem('user_auth', JSON.stringify(user));
+      // Set initial auth state if not set
+      if (initialAuthState === null) {
+        setInitialAuthState(isAuthenticated);
       }
-      
-      // Handle auth state transitions
-      if (initialAuthState && !isAuthenticated) {
-        // User logged out - clear everything and go to landing
-        localStorage.clear();
-        sessionStorage.clear();
-        qc.clear();
-        setLocation("/");
-        setInitialAuthState(false);
-      } else if (!initialAuthState && isAuthenticated) {
-        // User just logged in - go to dashboard
-        setLocation("/dashboard");
-        setInitialAuthState(true);
-      }
-    } else if (authChecked && !isAuthenticated) {
-      // No user authenticated - ensure clean state
-      const hadPreviousUser = localStorage.getItem('currentUserId');
-      if (hadPreviousUser) {
-        localStorage.clear();
-        sessionStorage.clear();
-        qc.clear();
-      }
-      setLocation("/");
     }
-  }, [authChecked, isAuthenticated, initialAuthState, setLocation, user, qc]);
+  }, [authChecked, isAuthenticated, initialAuthState, setLocation, user, qc, location]);
 
   // Listen for storage changes (when user logs out in another tab)
   useEffect(() => {
@@ -142,7 +145,11 @@ function AppRouter() {
         <Landing />
       </Route>
       <Route path="/dashboard">
-        {isAuthenticated ? <Dashboard /> : <Landing />}
+        {authChecked ? (isAuthenticated ? <Dashboard /> : <Landing />) : (
+          <div className="min-h-screen flex items-center justify-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+          </div>
+        )}
       </Route>
       <Route path="/emails-converted">
         {isAuthenticated ? <EmailsConverted /> : <Landing />}
