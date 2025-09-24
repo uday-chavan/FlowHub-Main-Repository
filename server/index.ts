@@ -44,7 +44,12 @@ app.use((req, res, next) => {
   log(`Database: ${process.env.DATABASE_URL ? 'PostgreSQL' : 'Memory (development mode)'}`);
   log(`Gemini API: ${process.env.GEMINI_API_KEY ? 'configured' : 'not configured'}`);
   log(`Google OAuth: ${process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET ? 'configured' : 'not configured'}`);
-  log(`Email Service: ${process.env.FLOWHUB_EMAIL_PASSWORD || process.env.GMAIL_APP_PASSWORD ? 'configured' : 'not configured'}`);
+  const emailServices = [];
+  if (process.env.SENDGRID_API_KEY) emailServices.push('SendGrid');
+  if (process.env.RESEND_API_KEY) emailServices.push('Resend');
+  if (process.env.FLOWHUB_EMAIL_PASSWORD || process.env.GMAIL_APP_PASSWORD) emailServices.push('Gmail');
+  
+  log(`Email Services: ${emailServices.length > 0 ? emailServices.join(', ') : 'none configured (notifications will be logged)'}`);
 
   const server = await registerRoutes(app);
 
