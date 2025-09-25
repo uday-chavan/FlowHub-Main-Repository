@@ -59,23 +59,27 @@ function ManualTaskCountdown({ task, onEditClick }: { task: any; onEditClick?: (
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const targetTimeRef = useRef<Date | null>(null);
   const lastTaskStatusRef = useRef<string>(task.status);
-  const initializedRef = useRef<boolean>(false);
-  const lastDueAtRef = useRef<string | undefined>(task.dueAt);
 
-  // Initialize target time only once and store in ref to prevent recalculation
+  // Initialize target time using global store to prevent recalculation
   useEffect(() => {
-    // Only initialize once or when dueAt actually changes
-    if (!initializedRef.current || lastDueAtRef.current !== task.dueAt) {
-      initializedRef.current = true;
-      lastDueAtRef.current = task.dueAt;
-      
-      if (task.dueAt) {
-        targetTimeRef.current = new Date(task.dueAt);
-      } else {
-        targetTimeRef.current = null;
-      }
+    const taskKey = task.id;
+    
+    // Check if we already have this task's time in global store
+    if (globalParsedTimes.has(taskKey)) {
+      targetTimeRef.current = globalParsedTimes.get(taskKey);
+      return;
     }
-  }, [task.dueAt]); // Only depend on task.dueAt changes
+    
+    // Initialize target time for manual tasks
+    if (task.dueAt) {
+      const dueDate = new Date(task.dueAt);
+      targetTimeRef.current = dueDate;
+      globalParsedTimes.set(taskKey, dueDate);
+    } else {
+      targetTimeRef.current = null;
+      globalParsedTimes.set(taskKey, null);
+    }
+  }, [task.id, task.dueAt]); // Only depend on task.id and task.dueAt
 
   useEffect(() => {
     const updateCountdown = () => {
@@ -191,6 +195,9 @@ function ManualTaskCountdown({ task, onEditClick }: { task: any; onEditClick?: (
   );
 }
 
+// Global store for parsed times to prevent recalculation across renders
+const globalParsedTimes = new Map<string, Date | null>();
+
 // AI Task Countdown Component
 function AiTaskCountdown({ task, onEditClick }: { task: any; onEditClick?: () => void }) {
   const [timeLeft, setTimeLeft] = useState<string>("");
@@ -198,45 +205,54 @@ function AiTaskCountdown({ task, onEditClick }: { task: any; onEditClick?: () =>
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const targetTimeRef = useRef<Date | null>(null);
   const lastTaskStatusRef = useRef<string>(task.status);
-  const initializedRef = useRef<boolean>(false);
 
-  // Initialize target time only once and store in ref to prevent recalculation
+  // Initialize target time only once using global store
   useEffect(() => {
-    // Only initialize once per task
-    if (!initializedRef.current) {
-      initializedRef.current = true;
+    const taskKey = task.id;
+    
+    // Check if we already have this task's parsed time in global store
+    if (globalParsedTimes.has(taskKey)) {
+      targetTimeRef.current = globalParsedTimes.get(taskKey);
+      return;
+    }
+    
+    // Initialize target time
+    if (task.dueAt) {
+      const dueDate = new Date(task.dueAt);
+      targetTimeRef.current = dueDate;
+      globalParsedTimes.set(taskKey, dueDate);
+    } else {
+      // Check localStorage for stored parsed time
+      const storedTimeKey = `task_parsed_time_${task.id}`;
+      const storedTime = localStorage.getItem(storedTimeKey);
       
-      if (task.dueAt) {
-        targetTimeRef.current = new Date(task.dueAt);
-      } else {
-        // Check if we already have a stored parsed time for this task
-        const storedTimeKey = `task_parsed_time_${task.id}`;
-        const storedTime = localStorage.getItem(storedTimeKey);
-        
-        if (storedTime && storedTime !== 'null' && storedTime !== 'undefined') {
-          try {
-            const parsedDate = new Date(storedTime);
-            if (!isNaN(parsedDate.getTime())) {
-              targetTimeRef.current = parsedDate;
-              return; // Exit early if we have a valid stored time
-            }
-          } catch (e) {
-            // If stored time is corrupted, remove it and reparse
-            localStorage.removeItem(storedTimeKey);
+      if (storedTime && storedTime !== 'null' && storedTime !== 'undefined') {
+        try {
+          const parsedDate = new Date(storedTime);
+          if (!isNaN(parsedDate.getTime())) {
+            targetTimeRef.current = parsedDate;
+            globalParsedTimes.set(taskKey, parsedDate);
+            return;
           }
-        }
-        
-        // Parse time once and store it if we don't have it yet
-        const baseTime = task.createdAt ? new Date(task.createdAt) : new Date();
-        const parsedTime = parseRelativeTime(task.title + ' ' + (task.description || ''), baseTime);
-        
-        if (parsedTime && !isNaN(parsedTime.getTime())) {
-          localStorage.setItem(storedTimeKey, parsedTime.toISOString());
-          targetTimeRef.current = parsedTime;
+        } catch (e) {
+          localStorage.removeItem(storedTimeKey);
         }
       }
+      
+      // Parse time once and store it
+      const baseTime = task.createdAt ? new Date(task.createdAt) : new Date();
+      const parsedTime = parseRelativeTime(task.title + ' ' + (task.description || ''), baseTime);
+      
+      if (parsedTime && !isNaN(parsedTime.getTime())) {
+        localStorage.setItem(storedTimeKey, parsedTime.toISOString());
+        targetTimeRef.current = parsedTime;
+        globalParsedTimes.set(taskKey, parsedTime);
+      } else {
+        targetTimeRef.current = null;
+        globalParsedTimes.set(taskKey, null);
+      }
     }
-  }, []); // Run only once when component mounts
+  }, [task.id]); // Only depend on task.id
 
   useEffect(() => {
     const updateCountdown = () => {
@@ -630,6 +646,8 @@ export function WorkflowRiver() {
     activeTasks.forEach(task => {
       // Clean up stored parsed time when clearing task
       localStorage.removeItem(`task_parsed_time_${task.id}`);
+      // Clean up global store
+      globalParsedTimes.delete(task.id);
       deleteTaskMutation.mutate(task.id);
     });
   };
@@ -637,6 +655,8 @@ export function WorkflowRiver() {
   const handleDeleteTask = (taskId: string) => {
     // Clean up stored parsed time when deleting task
     localStorage.removeItem(`task_parsed_time_${taskId}`);
+    // Clean up global store
+    globalParsedTimes.delete(taskId);
     deleteTaskMutation.mutate(taskId);
   };
 
