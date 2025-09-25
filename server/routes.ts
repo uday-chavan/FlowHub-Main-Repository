@@ -488,9 +488,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/tasks", async (req, res) => {
+  app.post("/api/tasks", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
-      const taskData = insertTaskSchema.parse(req.body);
+      if (!req.user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      // Use authenticated user's ID
+      const taskData = insertTaskSchema.parse({ ...req.body, userId: req.user.id });
       const task = await storage.createTask(taskData);
 
       // Schedule reminders for the new task
