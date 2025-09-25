@@ -879,7 +879,7 @@ export function WorkflowRiver() {
             <p className="text-sm mt-2">Your task pipeline is clear and ready for action!</p>
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-4 h-full min-h-[400px]">
+          <div className="grid grid-cols-3 gap-6 h-full min-h-[400px]">
             {priorityOrder.map((priority) => {
               const priorityTasks = tasksByPriority[priority];
               const config = priorityConfig[priority];
@@ -889,7 +889,7 @@ export function WorkflowRiver() {
               }
 
               return (
-                <div key={priority} className={`flex flex-col h-full max-h-full rounded-lg ${config.sectionBg} p-3`}>
+                <div key={priority} className={`flex flex-col h-full max-h-full rounded-lg ${config.sectionBg} p-4`}>
                   {/* Fixed Header */}
                   <div className={`flex items-center space-x-2 mb-3 pb-2 border-b border-muted/20 flex-shrink-0 transition-all duration-500 ${
                     visibleSections.has(priority) 
