@@ -108,7 +108,7 @@ export function useUserAppLinks() {
   const userId = user?.id;
 
   return useQuery<UserAppLink[]>({
-    queryKey: ["/api/user-app-links", userId],
+    queryKey: ["/api/user-app-links"],
     queryFn: async () => {
       if (!userId) throw new Error('User not authenticated');
       const response = await fetch(`/api/user-app-links?userId=${userId}`, {
