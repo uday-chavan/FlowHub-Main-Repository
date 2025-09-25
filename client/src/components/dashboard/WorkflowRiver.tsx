@@ -27,7 +27,7 @@ const priorityConfig = {
     bgColor: "bg-orange-50/20",
     textColor: "text-orange-600",
     dotColor: "bg-orange-500",
-    label: "IMPORTANT",
+    label: "IMP",
     sectionBg: "bg-orange-500/10",
   },
   normal: {
@@ -1147,25 +1147,7 @@ export function WorkflowRiver() {
                                 </div>
                               )}
 
-                              {/* Reply to Gmail button for email-converted tasks */}
-                              {task.sourceApp === 'gmail' && task.metadata?.sourceNotificationId && (
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        onClick={() => window.open('https://gmail.com', '_blank')}
-                                        className="bg-blue-50 hover:bg-blue-100 text-blue-600 px-1.5 py-1 sm:px-2 sm:py-1.5 rounded-lg text-sm transition-colors"
-                                        data-testid={`button-reply-gmail-${task.id}`}
-                                      >
-                                        Reply
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>Reply in Gmail</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              )}
+                              
 
                               {/* Clear task button */}
                               <TooltipProvider>
