@@ -32,6 +32,8 @@ export function useNotifications(limit?: number, type?: string) {
       return response.json();
     },
     enabled: !!userId && !!user,
+    refetchInterval: 3000, // Poll every 3 seconds for real-time updates
+    refetchIntervalInBackground: true,
   });
 }
 
