@@ -120,6 +120,8 @@ export function useUserAppLinks() {
       return response.json();
     },
     enabled: !!userId && !!user,
+    refetchInterval: 2000, // Poll every 2 seconds for real-time updates
+    refetchIntervalInBackground: true,
   });
 }
 
