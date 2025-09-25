@@ -139,8 +139,8 @@ export function useCreateUserAppLink() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/user-app-links", userId] });
-      queryClient.refetchQueries({ queryKey: ["/api/user-app-links", userId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user-app-links"] });
+      queryClient.refetchQueries({ queryKey: ["/api/user-app-links"] });
     },
   });
 }
