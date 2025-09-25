@@ -1,4 +1,4 @@
-import { CheckSquare, Zap, Clock, Play, Square, Info, Trash2, RotateCcw, Plus, Mail, Pencil, Sparkles, Calendar } from "lucide-react";
+import { CheckSquare, Zap, Clock, Play, Square, Info, Trash2, RotateCcw, Plus, Pencil, Sparkles, Calendar } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useTasks, useStartTask, useStopTask, useOptimizeWorkflow, useUpdateTask, useDeleteTask, useAutoReschedule, useCreateTaskFromText, useCreateTask } from "@/hooks/useTasks";
@@ -25,7 +25,7 @@ const priorityConfig = {
     color: "border-orange-500",
     dotColor: "bg-orange-500",
     class: "",
-    label: "Important",
+    label: "Imp",
     bgColor: "bg-orange-50/20"
   },
   normal: {
@@ -890,7 +890,7 @@ export function WorkflowRiver() {
       </div>
 
       {/* Three Column Layout - Side by Side */}
-      <div className="flex-1 overflow-hidden min-h-0">
+      <div className="flex-1 overflow-hidden min-h-0 max-h-[calc(100vh-200px)]">
         {activeTasks.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground" data-testid="text-no-tasks">
             <CheckSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -898,15 +898,15 @@ export function WorkflowRiver() {
             <p className="text-sm mt-2">Your task pipeline is clear and ready for action!</p>
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-4 h-full">
+          <div className="grid grid-cols-3 gap-4 h-full min-h-[400px]">
             {priorityOrder.map((priority) => {
               const priorityTasks = tasksByPriority[priority];
               const config = priorityConfig[priority];
 
               return (
-                <div key={priority} className="flex flex-col h-full">
+                <div key={priority} className="flex flex-col h-full max-h-full">
                   {/* Fixed Header */}
-                  <div className={`flex items-center space-x-2 mb-3 pb-2 border-b border-muted/20 transition-all duration-500 ${
+                  <div className={`flex items-center space-x-2 mb-3 pb-2 border-b border-muted/20 flex-shrink-0 transition-all duration-500 ${
                     visibleSections.has(priority) 
                       ? 'animate-in slide-in-from-left-4 opacity-100' 
                       : 'opacity-0'
@@ -918,7 +918,7 @@ export function WorkflowRiver() {
                   </div>
 
                   {/* Scrollable Task Content */}
-                  <div className="flex-1 overflow-y-auto min-h-0 space-y-3 pr-2">
+                  <div className="flex-1 overflow-y-auto min-h-0 space-y-3 pr-2 max-h-full">
                   {priorityTasks.map((task) => {
                     // Ensure task has a valid priority, default to 'normal' if not set
                     const taskPriority = task.priority || 'normal';
@@ -1106,7 +1106,7 @@ export function WorkflowRiver() {
                                   variant={task.priority === "important" ? "default" : "secondary"}
                                   className="text-xs"
                                 >
-                                  {task.priority}
+                                  {priorityConfig[task.priority || 'normal']?.label || task.priority}
                                 </Badge>
                               )}
 
@@ -1123,7 +1123,7 @@ export function WorkflowRiver() {
                                   }}
                                   title={`Click to reply to ${task.metadata.emailFrom}`}
                                 >
-                                  <span className="hidden sm:inline">reply &lt;{task.metadata.emailFrom}&gt;</span>
+                                  <span className="hidden sm:inline">reply</span>
                                   <span className="sm:hidden">reply</span>
                                 </Badge>
                               ) : (
@@ -1172,7 +1172,7 @@ export function WorkflowRiver() {
                                         className="bg-blue-50 hover:bg-blue-100 text-blue-600 px-1.5 py-1 sm:px-2 sm:py-1.5 rounded-lg text-sm transition-colors"
                                         data-testid={`button-reply-gmail-${task.id}`}
                                       >
-                                        <Mail className="w-3 h-3 sm:w-4 sm:h-4" />
+                                        Reply
                                       </Button>
                                     </TooltipTrigger>
                                     <TooltipContent>
