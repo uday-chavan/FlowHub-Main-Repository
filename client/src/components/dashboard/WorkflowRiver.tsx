@@ -31,10 +31,10 @@ const priorityConfig = {
     sectionBg: "bg-orange-500/10",
   },
   normal: {
-    color: "border-green-500",
-    bgColor: "bg-green-50/20",
-    textColor: "text-green-600",
-    dotColor: "bg-green-500",
+    color: "border-blue-500", // Changed from green-500 to blue-500
+    bgColor: "bg-blue-50/20",  // Changed from green-50/20 to blue-50/20
+    textColor: "text-blue-600", // Changed from green-600 to blue-600
+    dotColor: "bg-blue-500",   // Changed from green-500 to blue-500
     label: "NORMAL",
     sectionBg: "bg-blue-500/10",
   },
@@ -1088,8 +1088,8 @@ export function WorkflowRiver() {
                                 </Badge>
                               ) : (
                                 <Badge
-                                  variant={task.priority === "important" ? "default" : "secondary"}
-                                  className="text-xs"
+                                  variant={task.priority === "important" ? "default" : task.priority === "urgent" ? "destructive" : "secondary"} // Changed variant for 'urgent' and 'important'
+                                  className={`text-xs ${task.priority === 'urgent' ? 'bg-red-100 text-red-800' : task.priority === 'important' ? 'bg-orange-100 text-orange-800' : ''}`} // Added specific color classes
                                 >
                                   {priorityConfig[task.priority || 'normal']?.label || task.priority}
                                 </Badge>
@@ -1147,7 +1147,7 @@ export function WorkflowRiver() {
                                 </div>
                               )}
 
-                              
+
 
                               {/* Clear task button */}
                               <TooltipProvider>
@@ -1341,9 +1341,10 @@ export function WorkflowRiver() {
                 <div className="border rounded-lg p-4 bg-muted/20">
                   <h4 className="font-medium mb-2">Priority:</h4>
                   <span className={`text-sm px-2 py-1 rounded-full ${
-                    selectedTask.priority === 'urgent' ? 'bg-red-100 text-red-800' :
-                    selectedTask.priority === 'important' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-green-100 text-green-800'
+                    selectedTask.priority === 'urgent' ? 'bg-red-500 text-white' : // Red for urgent
+                    selectedTask.priority === 'important' ? 'bg-orange-500 text-white' : // Orange for important
+                    selectedTask.priority === 'normal' ? 'bg-blue-500 text-white' : // Blue for normal
+                    'bg-gray-200 text-gray-800' // Default
                   }`}>
                     {selectedTask.priority.charAt(0).toUpperCase() + selectedTask.priority.slice(1)}
                   </span>
