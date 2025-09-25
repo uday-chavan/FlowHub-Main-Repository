@@ -1,7 +1,8 @@
 import { CheckSquare, Zap, Clock, Play, Square, Info, Trash2, RotateCcw, Plus, Mail, Pencil, Sparkles, Calendar } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { useTasks, useStartTask, useStopTask, useOptimizeWorkflow, useUpdateTask, useDeleteTask, useAutoReschedule, useCreateTaskFromText } from "@/hooks/useTasks";
+import { useTasks, useStartTask, useStopTask, useOptimizeWorkflow, useUpdateTask, useDeleteTask, useAutoReschedule, useCreateTaskFromText, useCreateTask } from "@/hooks/useTasks";
+import { useCurrentUser } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
@@ -427,6 +428,7 @@ const parseRelativeTime = (text: string): Date | null => {
 
 
 export function WorkflowRiver() {
+  const { user } = useCurrentUser();
   const { data: tasks, isLoading } = useTasks();
   const startTaskMutation = useStartTask();
   const stopTaskMutation = useStopTask();
@@ -434,6 +436,7 @@ export function WorkflowRiver() {
   const autoRescheduleMutation = useAutoReschedule();
   const deleteTaskMutation = useDeleteTask(); // Added for deleting tasks
   const createTaskFromTextMutation = useCreateTaskFromText();
+  const createTaskMutation = useCreateTask();
   const updateTaskMutation = useUpdateTask();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -643,7 +646,7 @@ export function WorkflowRiver() {
   };
 
   const handleCreateManualTask = async () => {
-    if (!manualTaskName.trim()) return;
+    if (!manualTaskName.trim() || createTaskMutation.isPending) return;
 
     try {
       // Use the selected date/time from the picker
@@ -665,37 +668,21 @@ export function WorkflowRiver() {
         }
       }
 
-      // Create task directly without AI using authenticated user
-      const response = await fetch('/api/tasks', {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: manualTaskName,
-          description: dueAt ? `Due: ${dueAt.toLocaleDateString()} at ${dueAt.toLocaleTimeString()}` : "No specific time mentioned",
-          priority: priority,
-          status: "pending",
-          estimatedMinutes: 60,
-          dueAt: dueAt?.toISOString(),
-          sourceApp: "manual",
-          metadata: {
-            manuallyCreated: true,
-            noAI: true,
-            selectedDateTime: dueAt?.toISOString() || null
-          }
-        }),
+      // Use the proper createTask mutation hook
+      await createTaskMutation.mutateAsync({
+        title: manualTaskName,
+        description: dueAt ? `Due: ${dueAt.toLocaleDateString()} at ${dueAt.toLocaleTimeString()}` : "No specific time mentioned",
+        priority: priority,
+        status: "pending",
+        estimatedMinutes: 60,
+        dueAt: dueAt?.toISOString(),
+        sourceApp: "manual",
+        metadata: {
+          manuallyCreated: true,
+          noAI: true,
+          selectedDateTime: dueAt?.toISOString() || null
+        }
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to create task');
-      }
-
-      const result = await response.json();
-
-      // Refresh tasks using authenticated user
-      queryClient.invalidateQueries({ queryKey: ["/api/tasks", user?.id] });
 
       setManualTaskName("");
       setManualTaskTime("");
@@ -708,6 +695,7 @@ export function WorkflowRiver() {
         duration: 3000,
       });
     } catch (error) {
+      console.error('Manual task creation error:', error);
       toast({
         title: "Error",
         description: "Failed to create manual task. Please try again.",
@@ -1342,11 +1330,11 @@ export function WorkflowRiver() {
               </Button>
               <Button
                 onClick={handleCreateManualTask}
-                disabled={!manualTaskName.trim()}
+                disabled={!manualTaskName.trim() || createTaskMutation.isPending}
                 className="flex-1 bg-blue-500 hover:bg-blue-600"
                 data-testid="button-create-manual-task"
               >
-                Create Task
+                {createTaskMutation.isPending ? "Creating..." : "Create Task"}
               </Button>
             </div>
           </div>
