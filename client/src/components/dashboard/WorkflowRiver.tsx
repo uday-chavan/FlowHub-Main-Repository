@@ -1122,10 +1122,11 @@ export function WorkflowRiver() {
                                 <Button
                                   onClick={() => handleStartTask(task.id)}
                                   disabled={startTaskMutation.isPending}
-                                  className="bg-primary hover:bg-primary/80 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors hover:shadow-lg"
+                                  className="bg-primary hover:bg-primary/80 px-2 py-1 rounded text-xs font-medium transition-colors hover:shadow-md h-6"
+                                  size="sm"
                                   data-testid={`button-start-task-${task.id}`}
                                 >
-                                  <Play className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                                  <Play className="w-3 h-3 mr-1" />
                                   {startTaskMutation.isPending ? "Starting..." : "Start"}
                                 </Button>
                               )}
@@ -1133,16 +1134,17 @@ export function WorkflowRiver() {
                                 <Button
                                   onClick={() => handleStopTask(task.id)}
                                   disabled={stopTaskMutation.isPending}
-                                  className="bg-green-600 hover:bg-green-700 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors hover:shadow-lg text-white"
+                                  className="bg-green-600 hover:bg-green-700 px-2 py-1 rounded text-xs font-medium transition-colors hover:shadow-md text-white h-6"
+                                  size="sm"
                                   data-testid={`button-stop-task-${task.id}`}
                                 >
-                                  <Square className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                                  <Square className="w-3 h-3 mr-1" />
                                   {stopTaskMutation.isPending ? "Stopping..." : "Stop"}
                                 </Button>
                               )}
                               {task.status === 'completed' && (
-                                <div className="px-3 py-1.5 rounded-lg text-sm font-medium bg-green-100 text-green-800 border border-green-200 pointer-events-none">
-                                  <CheckSquare className="w-4 h-4 mr-1 inline" />
+                                <div className="px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800 border border-green-200 pointer-events-none h-6 flex items-center">
+                                  <CheckSquare className="w-3 h-3 mr-1" />
                                   Completed
                                 </div>
                               )}
@@ -1156,10 +1158,11 @@ export function WorkflowRiver() {
                                     <Button
                                       onClick={() => handleDeleteTask(task.id)}
                                       disabled={deleteTaskMutation.isPending}
-                                      className="bg-red-50 hover:bg-red-100 text-red-600 px-1.5 py-1 sm:px-2 sm:py-1.5 rounded-lg text-sm transition-colors"
+                                      className="bg-red-50 hover:bg-red-100 text-red-600 px-1.5 py-1 rounded text-xs transition-colors h-6"
+                                      size="sm"
                                       data-testid={`button-clear-task-${task.id}`}
                                     >
-                                      <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+                                      <Trash2 className="w-3 h-3" />
                                     </Button>
                                   </TooltipTrigger>
                                   <TooltipContent>
