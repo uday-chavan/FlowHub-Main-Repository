@@ -56,20 +56,23 @@ function CountdownTimer({ task, onEditClick }: { task: any; onEditClick?: () => 
 function ManualTaskCountdown({ task, onEditClick }: { task: any; onEditClick?: () => void }) {
   const [timeLeft, setTimeLeft] = useState<string>("");
   const [isUrgent, setIsUrgent] = useState(false);
-  const [targetTime, setTargetTime] = useState<Date | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const targetTimeRef = useRef<Date | null>(null);
+  const lastTaskStatusRef = useRef<string>(task.status);
 
-  // For manual tasks, use explicit dueAt with memoization to prevent recalculation
-  const memoizedTargetTime = useMemo(() => {
-    if (task.dueAt) {
-      return new Date(task.dueAt);
-    }
-    return null;
-  }, [task.dueAt]);
-
+  // Initialize target time only once and store in ref to prevent recalculation
   useEffect(() => {
-    setTargetTime(memoizedTargetTime);
-  }, [memoizedTargetTime]);
+    // Only set target time if not already set or if dueAt changed
+    if (task.dueAt) {
+      const newTargetTime = new Date(task.dueAt);
+      // Only update if different from current target time
+      if (!targetTimeRef.current || targetTimeRef.current.getTime() !== newTargetTime.getTime()) {
+        targetTimeRef.current = newTargetTime;
+      }
+    } else if (targetTimeRef.current === null) {
+      targetTimeRef.current = null;
+    }
+  }, [task.dueAt]); // Only depend on task.dueAt
 
   useEffect(() => {
     const updateCountdown = () => {
@@ -77,18 +80,18 @@ function ManualTaskCountdown({ task, onEditClick }: { task: any; onEditClick?: (
       if (task.status === 'completed') {
         setTimeLeft('Completed');
         setIsUrgent(false);
-        return false;
+        return true; // Stop interval for completed tasks
       }
 
       // If no target time, show no deadline set
-      if (!targetTime) {
+      if (!targetTimeRef.current) {
         setTimeLeft('No deadline set');
         setIsUrgent(false);
-        return false;
+        return true; // Stop interval if no target time
       }
 
       const now = Date.now();
-      const target = targetTime.getTime();
+      const target = targetTimeRef.current.getTime();
       const difference = target - now;
 
       // Mark as urgent if less than 3 hours remaining
@@ -127,28 +130,34 @@ function ManualTaskCountdown({ task, onEditClick }: { task: any; onEditClick?: (
           setTimeLeft(`${minutesOverdue}m overdue`);
         }
         setIsUrgent(true);
-        return true; // Stop interval for overdue tasks
+        return false; // Keep running for overdue tasks
       }
     };
 
-    // Clear any existing interval first
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
+    // Only restart interval if task status changed or interval doesn't exist
+    const statusChanged = lastTaskStatusRef.current !== task.status;
+    lastTaskStatusRef.current = task.status;
 
-    // Update immediately
-    const shouldStop = updateCountdown();
-    if (shouldStop) return;
-
-    // Set up interval to update every second - use intervalRef for stability
-    intervalRef.current = setInterval(() => {
-      const stop = updateCountdown();
-      if (stop && intervalRef.current) {
+    if (statusChanged || !intervalRef.current) {
+      // Clear any existing interval first
+      if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
-    }, 1000);
+
+      // Update immediately
+      const shouldStop = updateCountdown();
+      if (shouldStop) return;
+
+      // Set up interval to update every second only if not stopped
+      intervalRef.current = setInterval(() => {
+        const stop = updateCountdown();
+        if (stop && intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
+      }, 1000);
+    }
 
     return () => {
       if (intervalRef.current) {
@@ -156,7 +165,7 @@ function ManualTaskCountdown({ task, onEditClick }: { task: any; onEditClick?: (
         intervalRef.current = null;
       }
     };
-  }, [targetTime, task.status]);
+  }, [task.status]); // Only depend on task.status
 
   return (
     <span
@@ -184,41 +193,45 @@ function AiTaskCountdown({ task, onEditClick }: { task: any; onEditClick?: () =>
   const [timeLeft, setTimeLeft] = useState<string>("");
   const [isUrgent, setIsUrgent] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const targetTimeRef = useRef<Date | null>(null);
+  const lastTaskStatusRef = useRef<string>(task.status);
 
-  // Store the initial parsed time in localStorage to prevent recalculation
-  const targetTime = useMemo(() => {
-    // First use explicit dueAt if available
-    if (task.dueAt) {
-      return new Date(task.dueAt);
-    } else {
-      // Check if we already have a stored parsed time for this task
-      const storedTimeKey = `task_parsed_time_${task.id}`;
-      const storedTime = localStorage.getItem(storedTimeKey);
-      
-      if (storedTime && storedTime !== 'null' && storedTime !== 'undefined') {
-        try {
-          const parsedDate = new Date(storedTime);
-          if (!isNaN(parsedDate.getTime())) {
-            return parsedDate;
+  // Initialize target time only once and store in ref to prevent recalculation
+  useEffect(() => {
+    // Only set target time if not already set
+    if (targetTimeRef.current === null) {
+      if (task.dueAt) {
+        targetTimeRef.current = new Date(task.dueAt);
+      } else {
+        // Check if we already have a stored parsed time for this task
+        const storedTimeKey = `task_parsed_time_${task.id}`;
+        const storedTime = localStorage.getItem(storedTimeKey);
+        
+        if (storedTime && storedTime !== 'null' && storedTime !== 'undefined') {
+          try {
+            const parsedDate = new Date(storedTime);
+            if (!isNaN(parsedDate.getTime())) {
+              targetTimeRef.current = parsedDate;
+            }
+          } catch (e) {
+            // If stored time is corrupted, remove it and reparse
+            localStorage.removeItem(storedTimeKey);
           }
-        } catch (e) {
-          // If stored time is corrupted, remove it and reparse
-          localStorage.removeItem(storedTimeKey);
+        }
+        
+        // Parse time once and store it if we don't have it yet
+        if (targetTimeRef.current === null) {
+          const baseTime = task.createdAt ? new Date(task.createdAt) : new Date();
+          const parsedTime = parseRelativeTime(task.title + ' ' + (task.description || ''), baseTime);
+          
+          if (parsedTime && !isNaN(parsedTime.getTime())) {
+            localStorage.setItem(storedTimeKey, parsedTime.toISOString());
+            targetTimeRef.current = parsedTime;
+          }
         }
       }
-      
-      // Parse time once and store it
-      const baseTime = task.createdAt ? new Date(task.createdAt) : new Date();
-      const parsedTime = parseRelativeTime(task.title + ' ' + (task.description || ''), baseTime);
-      
-      if (parsedTime && !isNaN(parsedTime.getTime())) {
-        localStorage.setItem(storedTimeKey, parsedTime.toISOString());
-        return parsedTime;
-      }
-      
-      return null;
     }
-  }, [task.dueAt, task.id, task.createdAt]); // Keep stable dependencies
+  }, [task.id]); // Only depend on task.id, run once per task
 
   useEffect(() => {
     const updateCountdown = () => {
@@ -226,18 +239,18 @@ function AiTaskCountdown({ task, onEditClick }: { task: any; onEditClick?: () =>
       if (task.status === 'completed') {
         setTimeLeft('Completed');
         setIsUrgent(false);
-        return false;
+        return true; // Stop interval for completed tasks
       }
 
       // If no target time, show no deadline set
-      if (!targetTime) {
+      if (!targetTimeRef.current) {
         setTimeLeft('No deadline set');
         setIsUrgent(false);
-        return false;
+        return true; // Stop interval if no target time
       }
 
       const now = Date.now();
-      const target = targetTime.getTime();
+      const target = targetTimeRef.current.getTime();
       const difference = target - now;
 
       // Mark as urgent if less than 3 hours remaining
@@ -276,28 +289,34 @@ function AiTaskCountdown({ task, onEditClick }: { task: any; onEditClick?: () =>
           setTimeLeft(`${minutesOverdue}m overdue`);
         }
         setIsUrgent(true);
-        return true; // Stop interval for overdue tasks
+        return false; // Keep running for overdue tasks
       }
     };
 
-    // Clear any existing interval first
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
+    // Only restart interval if task status changed or interval doesn't exist
+    const statusChanged = lastTaskStatusRef.current !== task.status;
+    lastTaskStatusRef.current = task.status;
 
-    // Update immediately
-    const shouldStop = updateCountdown();
-    if (shouldStop) return;
-
-    // Set up interval to update every second - use intervalRef for stability
-    intervalRef.current = setInterval(() => {
-      const stop = updateCountdown();
-      if (stop && intervalRef.current) {
+    if (statusChanged || !intervalRef.current) {
+      // Clear any existing interval first
+      if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
-    }, 1000);
+
+      // Update immediately
+      const shouldStop = updateCountdown();
+      if (shouldStop) return;
+
+      // Set up interval to update every second only if not stopped
+      intervalRef.current = setInterval(() => {
+        const stop = updateCountdown();
+        if (stop && intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
+      }, 1000);
+    }
 
     return () => {
       if (intervalRef.current) {
@@ -305,7 +324,7 @@ function AiTaskCountdown({ task, onEditClick }: { task: any; onEditClick?: () =>
         intervalRef.current = null;
       }
     };
-  }, [targetTime, task.status]);
+  }, [task.status]); // Only depend on task.status, not targetTime
 
   return (
     <span
