@@ -185,21 +185,40 @@ function AiTaskCountdown({ task, onEditClick }: { task: any; onEditClick?: () =>
   const [isUrgent, setIsUrgent] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Memoize target time to prevent unnecessary recalculations and ensure stability
+  // Store the initial parsed time in localStorage to prevent recalculation
   const targetTime = useMemo(() => {
-    // First use explicit dueAt if available (backend already did IST conversion correctly)
+    // First use explicit dueAt if available
     if (task.dueAt) {
       return new Date(task.dueAt);
     } else {
-      // For AI tasks without explicit dueAt, use a stable calculation based on task creation time
-      // This prevents time jumping on refreshes
+      // Check if we already have a stored parsed time for this task
+      const storedTimeKey = `task_parsed_time_${task.id}`;
+      const storedTime = localStorage.getItem(storedTimeKey);
+      
+      if (storedTime && storedTime !== 'null' && storedTime !== 'undefined') {
+        try {
+          const parsedDate = new Date(storedTime);
+          if (!isNaN(parsedDate.getTime())) {
+            return parsedDate;
+          }
+        } catch (e) {
+          // If stored time is corrupted, remove it and reparse
+          localStorage.removeItem(storedTimeKey);
+        }
+      }
+      
+      // Parse time once and store it
       const baseTime = task.createdAt ? new Date(task.createdAt) : new Date();
       const parsedTime = parseRelativeTime(task.title + ' ' + (task.description || ''), baseTime);
       
-      // If we parsed a relative time, use it; otherwise return null for "No deadline set"
-      return parsedTime;
+      if (parsedTime && !isNaN(parsedTime.getTime())) {
+        localStorage.setItem(storedTimeKey, parsedTime.toISOString());
+        return parsedTime;
+      }
+      
+      return null;
     }
-  }, [task.dueAt, task.id, task.createdAt]); // Removed task.title and task.description to prevent recalculation
+  }, [task.dueAt, task.id, task.createdAt]); // Keep stable dependencies
 
   useEffect(() => {
     const updateCountdown = () => {
@@ -605,11 +624,15 @@ export function WorkflowRiver() {
 
   const handleClearAllTasks = () => {
     activeTasks.forEach(task => {
+      // Clean up stored parsed time when clearing task
+      localStorage.removeItem(`task_parsed_time_${task.id}`);
       deleteTaskMutation.mutate(task.id);
     });
   };
 
   const handleDeleteTask = (taskId: string) => {
+    // Clean up stored parsed time when deleting task
+    localStorage.removeItem(`task_parsed_time_${taskId}`);
     deleteTaskMutation.mutate(taskId);
   };
 
