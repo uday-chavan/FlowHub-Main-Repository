@@ -199,7 +199,7 @@ function AiTaskCountdown({ task, onEditClick }: { task: any; onEditClick?: () =>
       // If we parsed a relative time, use it; otherwise return null for "No deadline set"
       return parsedTime;
     }
-  }, [task.dueAt, task.id, task.createdAt]); // Use task.id and createdAt for stability, not changing title/description
+  }, [task.dueAt, task.id, task.createdAt]); // Removed task.title and task.description to prevent recalculation
 
   useEffect(() => {
     const updateCountdown = () => {
@@ -557,7 +557,7 @@ export function WorkflowRiver() {
       }
     });
     return timeMap;
-  }, [activeTasks.map(t => `${t.id}-${t.dueAt}-${t.title}-${t.description}`).join(',')]);
+  }, [activeTasks.map(t => `${t.id}-${t.dueAt}-${t.createdAt}`).join(',')]); // Removed title and description from dependency
 
   // Group tasks by priority and sort by time urgency within each priority
   const tasksByPriority = priorityOrder.reduce((acc, priority) => {
