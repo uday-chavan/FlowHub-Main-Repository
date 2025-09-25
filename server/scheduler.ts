@@ -137,6 +137,13 @@ export class SmartTaskScheduler {
       for (const task of activePendingTasks) {
         const oldDueAt = task.dueAt ? new Date(task.dueAt) : null;
         
+        // **CRITICAL FIX**: Skip tasks that already have a due date set
+        // This prevents countdown timer corruption when completing other tasks
+        if (oldDueAt && oldDueAt > currentTime) {
+          // Task already has a valid future due date - skip rescheduling
+          continue;
+        }
+        
         // Calculate adjusted estimated time using historical accuracy
         const baseEstimate = task.estimatedMinutes || 30;
         const adjustedEstimate = Math.ceil(baseEstimate * timeAccuracyRatio);
