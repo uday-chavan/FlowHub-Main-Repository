@@ -57,6 +57,7 @@ export function useCreateTaskFromText() {
       if (!userId) throw new Error('User not authenticated');
       const response = await fetch("/api/tasks/create-from-text", {
         method: "POST",
+        credentials: 'include',
         headers: {
           "Content-Type": "application/json",
         },
