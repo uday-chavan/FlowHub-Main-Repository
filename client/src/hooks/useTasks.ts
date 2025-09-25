@@ -28,6 +28,8 @@ export function useTasks() {
       return response.json();
     },
     enabled: !!userId && !!user,
+    refetchInterval: 2000, // Poll every 2 seconds for real-time updates
+    refetchIntervalInBackground: true,
   });
 }
 
@@ -41,8 +43,9 @@ export function useCreateTask() {
       // Assuming apiRequest can handle user context or task should include userId
       return await apiRequest("POST", "/api/tasks", { ...task, userId });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/tasks", userId] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/tasks"] });
     },
   });
 }
@@ -73,8 +76,9 @@ export function useCreateTaskFromText() {
 
       return await response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/tasks", userId] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/tasks"] });
     },
   });
 }
