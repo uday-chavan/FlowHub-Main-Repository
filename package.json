@@ -12,10 +12,10 @@
     "start": "cross-env NODE_ENV=production node dist/server/index.js",
     "check": "tsc",
     "db:push": "drizzle-kit push",
-    "db:migrate": "drizzle-kit push --force",
+    "db:push:safe": "drizzle-kit push",
     "clean": "rimraf dist build node_modules/.cache tmp attached_assets",
     "install:prod": "npm ci && npm run build && npm run start",
-    "railway:deploy": "npm run db:migrate && npm run build && npm run start"
+    "railway:deploy": "npm run build && npm run start"
   },
   "dependencies": {
     "@google/genai": "^1.20.0",
