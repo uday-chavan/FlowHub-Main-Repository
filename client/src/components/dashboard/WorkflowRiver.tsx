@@ -194,7 +194,7 @@ function AiTaskCountdown({ task, onEditClick }: { task: any; onEditClick?: () =>
       // For AI tasks without explicit dueAt, use a stable calculation based on task creation time
       // This prevents time jumping on refreshes
       const baseTime = task.createdAt ? new Date(task.createdAt) : new Date();
-      const parsedTime = parseRelativeTime(task.title + ' ' + (task.description || ''));
+      const parsedTime = parseRelativeTime(task.title + ' ' + (task.description || ''), baseTime);
       
       // If we parsed a relative time, use it; otherwise return null for "No deadline set"
       return parsedTime;
@@ -310,36 +310,36 @@ function AiTaskCountdown({ task, onEditClick }: { task: any; onEditClick?: () =>
 }
 
 // Enhanced helper function to parse relative time strings including day names and "tomorrow"
-const parseRelativeTime = (text: string): Date | null => {
+const parseRelativeTime = (text: string, baseTime?: Date): Date | null => {
   if (!text) return null;
 
-  const now = Date.now();
+  const base = baseTime || new Date();
   const lowerText = text.toLowerCase().trim();
 
   // Look for "in X min/mins/minutes/m" patterns
   const minuteMatch = lowerText.match(/in\s+(\d+)\s*(?:m|min|mins|minutes?)\b/i);
   if (minuteMatch) {
     const minutes = parseInt(minuteMatch[1]);
-    return new Date(now.getTime() + minutes * 60 * 1000);
+    return new Date(base.getTime() + minutes * 60 * 1000);
   }
 
   // Look for "in X hour/hours/hr/hrs/h" patterns
   const hourMatch = lowerText.match(/in\s+(\d+)\s*(?:h|hr|hrs|hour|hours?)\b/i);
   if (hourMatch) {
     const hours = parseInt(hourMatch[1]);
-    return new Date(now.getTime() + hours * 60 * 60 * 1000);
+    return new Date(base.getTime() + hours * 60 * 60 * 1000);
   }
 
   // Look for "in X days" patterns
   const dayMatch = lowerText.match(/in\s+(\d+)\s*(?:day|days?)/);
   if (dayMatch) {
     const days = parseInt(dayMatch[1]);
-    return new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+    return new Date(base.getTime() + days * 24 * 60 * 60 * 1000);
   }
 
   // Handle "tomorrow" or "tommorow" (common typo)
   if (lowerText.includes('tomorrow') || lowerText.includes('tommorow')) {
-    const tomorrow = new Date(now);
+    const tomorrow = new Date(base);
     tomorrow.setDate(tomorrow.getDate() + 1);
     tomorrow.setHours(9, 0, 0, 0); // Set to 9 AM tomorrow by default
     return tomorrow;
@@ -347,8 +347,7 @@ const parseRelativeTime = (text: string): Date | null => {
 
   // Handle "today" using browser's local timezone (no manual IST offset)
   if (lowerText.includes('today')) {
-    const today = new Date();
-    const date = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const date = new Date(base.getFullYear(), base.getMonth(), base.getDate());
 
     // Look for specific time mentions like "9 pm today"
     const timeToday = lowerText.match(/(\d{1,2}):?(\d{2})?\s*(pm|p\.m\.|am|a\.m\.)\s*today|today\s*(?:at\s*)?(\d{1,2}):?(\d{2})?\s*(pm|p\.m\.|am|a\.m\.)|(\d{1,2}):?(\d{2})?\s*(pm|p\.m\.|am|a\.m\.)/i);
@@ -385,12 +384,12 @@ const parseRelativeTime = (text: string): Date | null => {
 
   for (const [dayName, dayNumber] of Object.entries(dayNames)) {
     if (lowerText.includes(dayName)) {
-      const targetDate = new Date(now);
-      const currentDay = now.getDay();
+      const targetDate = new Date(base);
+      const currentDay = base.getDay();
       const daysUntilTarget = (dayNumber - currentDay + 7) % 7;
 
       // If it's the same day, assume next week unless it's still early
-      if (daysUntilTarget === 0 && now.getHours() >= 12) {
+      if (daysUntilTarget === 0 && base.getHours() >= 12) {
         targetDate.setDate(targetDate.getDate() + 7);
       } else if (daysUntilTarget === 0) {
         // Same day, set to later today
@@ -407,7 +406,7 @@ const parseRelativeTime = (text: string): Date | null => {
 
   // Handle "next week"
   if (lowerText.includes('next week')) {
-    const nextWeek = new Date(now);
+    const nextWeek = new Date(base);
     nextWeek.setDate(nextWeek.getDate() + 7);
     nextWeek.setHours(9, 0, 0, 0);
     return nextWeek;
@@ -415,9 +414,9 @@ const parseRelativeTime = (text: string): Date | null => {
 
   // Handle "this week" (Friday)
   if (lowerText.includes('this week')) {
-    const friday = new Date(now);
-    const daysUntilFriday = (5 - now.getDay() + 7) % 7;
-    if (daysUntilFriday === 0 && now.getHours() >= 17) {
+    const friday = new Date(base);
+    const daysUntilFriday = (5 - base.getDay() + 7) % 7;
+    if (daysUntilFriday === 0 && base.getHours() >= 17) {
       friday.setDate(friday.getDate() + 7); // Next Friday if it's late Friday
     } else {
       friday.setDate(friday.getDate() + daysUntilFriday);
@@ -428,7 +427,7 @@ const parseRelativeTime = (text: string): Date | null => {
 
   // Look for immediate urgency keywords
   if (lowerText.includes('asap') || lowerText.includes('urgent') || lowerText.includes('right now') || lowerText.includes('immediately')) {
-    return new Date(now.getTime() + 5 * 60 * 1000); // 5 minutes from now
+    return new Date(base.getTime() + 5 * 60 * 1000); // 5 minutes from now
   }
 
   return null;
@@ -544,6 +543,22 @@ export function WorkflowRiver() {
 
   const activeTasks = tasks?.filter(task => task.status === "pending" || task.status === "in_progress" || task.status === "completed") || [];
 
+  // Memoize parsed times to prevent recalculation and timing drift
+  const taskParsedTimes = useMemo(() => {
+    const timeMap = new Map<string, Date | null>();
+    activeTasks.forEach(task => {
+      if (task.dueAt) {
+        timeMap.set(task.id, new Date(task.dueAt));
+      } else {
+        // Only parse relative time once and cache it, using task creation time as base
+        const baseTime = task.createdAt ? new Date(task.createdAt) : new Date();
+        const parsedTime = parseRelativeTime(task.title + ' ' + (task.description || ''), baseTime);
+        timeMap.set(task.id, parsedTime);
+      }
+    });
+    return timeMap;
+  }, [activeTasks.map(t => `${t.id}-${t.dueAt}-${t.title}-${t.description}`).join(',')]);
+
   // Group tasks by priority and sort by time urgency within each priority
   const tasksByPriority = priorityOrder.reduce((acc, priority) => {
     // Filter tasks by priority, with fallback to 'normal' if priority is undefined
@@ -554,9 +569,9 @@ export function WorkflowRiver() {
 
     // Sort tasks within each priority by time urgency
     priorityTasks.sort((a, b) => {
-      // Get parsed times for both tasks
-      const aTime = a.dueAt ? new Date(a.dueAt) : parseRelativeTime(a.title + ' ' + (a.description || ''));
-      const bTime = b.dueAt ? new Date(b.dueAt) : parseRelativeTime(b.title + ' ' + (b.description || ''));
+      // Get memoized parsed times for both tasks
+      const aTime = taskParsedTimes.get(a.id);
+      const bTime = taskParsedTimes.get(b.id);
 
       // If both have times, sort by time (earliest first)
       if (aTime && bTime) {
@@ -986,11 +1001,6 @@ export function WorkflowRiver() {
                                         : 'opacity-0'
                                     }`} data-testid={`task-title-${task.id}`}>
                                       {task.status === 'completed' ? '✅ ' : ''}{task.title}
-                                      {task.status === 'completed' && (
-                                        <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-normal whitespace-nowrap">
-                                          Task Completed
-                                        </span>
-                                      )}
                                     </h3>
                                     {/* Pencil edit button for AI-generated tasks */}
                                     {(task.metadata?.aiGenerated === true || task.metadata?.sourceNotificationId) && (
@@ -1024,8 +1034,8 @@ export function WorkflowRiver() {
                               </div>
                             </div>
 
-                            {/* Countdown timer */}
-                            {(((task.priority || 'normal') === 'urgent' || (task.priority || 'normal') === 'important') || task.dueAt) && (
+                            {/* Countdown timer - hide for completed tasks */}
+                            {task.status !== 'completed' && (((task.priority || 'normal') === 'urgent' || (task.priority || 'normal') === 'important') || task.dueAt) && (
                               <div className="flex-shrink-0">
                                 {editingTimeTaskId === task.id ? (
                                   <div className="relative flex items-center gap-2">
