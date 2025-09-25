@@ -65,9 +65,9 @@ export function AppLauncher() {
       return await apiRequest("POST", "/api/user-app-links", linkData);
     },
     onSuccess: async () => {
-      // Invalidate and refetch with proper await
-      await queryClient.invalidateQueries({ queryKey: ["/api/user-app-links", "demo-user"] });
-      await queryClient.refetchQueries({ queryKey: ["/api/user-app-links", "demo-user"] });
+      // Invalidate and refetch with proper user ID
+      await queryClient.invalidateQueries({ queryKey: ["/api/user-app-links"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/user-app-links"] });
       setIsDialogOpen(false);
       setNewUrl("");
       toast({
@@ -89,9 +89,9 @@ export function AppLauncher() {
       await apiRequest("DELETE", `/api/user-app-links/${id}`);
     },
     onSuccess: async () => {
-      // Invalidate and refetch with proper await
-      await queryClient.invalidateQueries({ queryKey: ["/api/user-app-links", "demo-user"] });
-      await queryClient.refetchQueries({ queryKey: ["/api/user-app-links", "demo-user"] });
+      // Invalidate and refetch with proper query key
+      await queryClient.invalidateQueries({ queryKey: ["/api/user-app-links"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/user-app-links"] });
       toast({
         title: "Removed",
         description: "App link removed successfully",
@@ -131,7 +131,7 @@ export function AppLauncher() {
       const { name, logo } = detectAppFromUrl(formattedUrl);
 
       createAppLinkMutation.mutate({
-        userId: "demo-user",
+        userId: "demo-user", // This will be handled by the server auth
         name,
         url: formattedUrl,
         logo,
