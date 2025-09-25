@@ -64,8 +64,8 @@ function ManualTaskCountdown({ task, onEditClick }: { task: any; onEditClick?: (
   useEffect(() => {
     const taskKey = task.id;
     
-    // Check if we already have this task's time in global store
-    if (globalParsedTimes.has(taskKey)) {
+    // Check if we already have this task's time in global store and it's not null
+    if (globalParsedTimes.has(taskKey) && globalParsedTimes.get(taskKey) !== null) {
       targetTimeRef.current = globalParsedTimes.get(taskKey);
       return;
     }
@@ -79,7 +79,7 @@ function ManualTaskCountdown({ task, onEditClick }: { task: any; onEditClick?: (
       targetTimeRef.current = null;
       globalParsedTimes.set(taskKey, null);
     }
-  }, [task.id, task.dueAt]); // Only depend on task.id and task.dueAt
+  }, [task.id]); // Only depend on task.id to prevent updates from changing dueAt
 
   useEffect(() => {
     const updateCountdown = () => {
@@ -210,49 +210,50 @@ function AiTaskCountdown({ task, onEditClick }: { task: any; onEditClick?: () =>
   useEffect(() => {
     const taskKey = task.id;
     
-    // Check if we already have this task's parsed time in global store
-    if (globalParsedTimes.has(taskKey)) {
+    // Check if we already have this task's parsed time in global store and it's not null
+    if (globalParsedTimes.has(taskKey) && globalParsedTimes.get(taskKey) !== null) {
       targetTimeRef.current = globalParsedTimes.get(taskKey);
       return;
     }
     
-    // Initialize target time
+    // Initialize target time - prioritize existing dueAt first
     if (task.dueAt) {
       const dueDate = new Date(task.dueAt);
       targetTimeRef.current = dueDate;
       globalParsedTimes.set(taskKey, dueDate);
-    } else {
-      // Check localStorage for stored parsed time
-      const storedTimeKey = `task_parsed_time_${task.id}`;
-      const storedTime = localStorage.getItem(storedTimeKey);
-      
-      if (storedTime && storedTime !== 'null' && storedTime !== 'undefined') {
-        try {
-          const parsedDate = new Date(storedTime);
-          if (!isNaN(parsedDate.getTime())) {
-            targetTimeRef.current = parsedDate;
-            globalParsedTimes.set(taskKey, parsedDate);
-            return;
-          }
-        } catch (e) {
-          localStorage.removeItem(storedTimeKey);
+      return;
+    }
+    
+    // Check localStorage for stored parsed time
+    const storedTimeKey = `task_parsed_time_${task.id}`;
+    const storedTime = localStorage.getItem(storedTimeKey);
+    
+    if (storedTime && storedTime !== 'null' && storedTime !== 'undefined') {
+      try {
+        const parsedDate = new Date(storedTime);
+        if (!isNaN(parsedDate.getTime())) {
+          targetTimeRef.current = parsedDate;
+          globalParsedTimes.set(taskKey, parsedDate);
+          return;
         }
-      }
-      
-      // Parse time once and store it
-      const baseTime = task.createdAt ? new Date(task.createdAt) : new Date();
-      const parsedTime = parseRelativeTime(task.title + ' ' + (task.description || ''), baseTime);
-      
-      if (parsedTime && !isNaN(parsedTime.getTime())) {
-        localStorage.setItem(storedTimeKey, parsedTime.toISOString());
-        targetTimeRef.current = parsedTime;
-        globalParsedTimes.set(taskKey, parsedTime);
-      } else {
-        targetTimeRef.current = null;
-        globalParsedTimes.set(taskKey, null);
+      } catch (e) {
+        localStorage.removeItem(storedTimeKey);
       }
     }
-  }, [task.id]); // Only depend on task.id
+    
+    // Parse time once and store it
+    const baseTime = task.createdAt ? new Date(task.createdAt) : new Date();
+    const parsedTime = parseRelativeTime(task.title + ' ' + (task.description || ''), baseTime);
+    
+    if (parsedTime && !isNaN(parsedTime.getTime())) {
+      localStorage.setItem(storedTimeKey, parsedTime.toISOString());
+      targetTimeRef.current = parsedTime;
+      globalParsedTimes.set(taskKey, parsedTime);
+    } else {
+      targetTimeRef.current = null;
+      globalParsedTimes.set(taskKey, null);
+    }
+  }, [task.id]); // Only depend on task.id - never recalculate once set
 
   useEffect(() => {
     const updateCountdown = () => {
@@ -635,6 +636,7 @@ export function WorkflowRiver() {
   };
 
   const handleStopTask = (taskId: string) => {
+    // Disable auto-rescheduling temporarily to prevent countdown changes
     stopTaskMutation.mutate(taskId);
   };
 
