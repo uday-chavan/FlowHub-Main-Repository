@@ -1,5 +1,5 @@
 import { Header } from "@/components/dashboard/Header";
-import { AppLauncher } from "@/components/dashboard/AppLauncher";
+
 import { WorkflowRiver } from "@/components/dashboard/WorkflowRiver";
 import { NotificationFeed } from "@/components/dashboard/NotificationFeed";
 
@@ -46,14 +46,9 @@ export default function Dashboard() {
           </div>
         ) : (
           /* Desktop Layout */
-          <div className="flex gap-4 h-[calc(100vh-120px)]">
-            {/* Left Column - App Launcher with Fixed Height */}
-            <div className="w-20 flex-shrink-0 h-full">
-              <AppLauncher />
-            </div>
-
-            {/* Middle Column - Tasks with Fixed Height */}
-            <div className="flex-[2.5] px-2 h-full">
+          <div className="flex gap-6 h-[calc(100vh-120px)]">
+            {/* Main Column - Tasks with Extended Width */}
+            <div className="flex-[3] px-2 h-full">
               <WorkflowRiver />
             </div>
 
