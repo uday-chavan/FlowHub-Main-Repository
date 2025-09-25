@@ -42,14 +42,20 @@ export function useAuth() {
           const currentUserId = data.user.id;
           const currentUserEmail = data.user.email;
           
-          // Only clear data if we're actually switching to a different user account
-          // Don't clear if this is the same user after a deployment/refresh
+          // Only clear data if we're switching to a genuinely different user account
+          // Be more strict about when to clear data to prevent clearing on deployments
           const isDifferentUser = previousUserId && previousUserEmail && 
-                                 (previousUserId !== currentUserId || previousUserEmail !== currentUserEmail);
+                                 previousUserId !== currentUserId && 
+                                 previousUserEmail !== currentUserEmail &&
+                                 // Additional check: only clear if both old and new data are valid and different
+                                 currentUserId && currentUserEmail &&
+                                 previousUserId !== 'undefined' && previousUserEmail !== 'undefined' &&
+                                 // Extra safety: ensure we're not just dealing with a temporary state
+                                 previousUserId.length > 0 && previousUserEmail.length > 0;
           
           if (isDifferentUser) {
-            console.log(`Auth hook detected user change: ${previousUserEmail} -> ${currentUserEmail}`);
-            // Only clear auth-related data, not all localStorage
+            console.log(`Auth hook detected actual user switch: ${previousUserEmail} -> ${currentUserEmail}`);
+            // Only clear auth-related data when actually switching users
             const authKeys = ['user_auth', 'gmailConnected', 'userEmail', 'currentUserId', 'currentUserEmail'];
             authKeys.forEach(key => localStorage.removeItem(key));
             sessionStorage.clear();
