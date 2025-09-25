@@ -18,21 +18,21 @@ const priorityConfig = {
     color: "border-red-500",
     dotColor: "bg-red-500",
     class: "pulse-urgent",
-    label: "🚨 Urgent",
+    label: "Urgent",
     bgColor: "bg-red-50/20"
   },
   important: {
     color: "border-orange-500",
     dotColor: "bg-orange-500",
     class: "",
-    label: "⚡ Important",
+    label: "Important",
     bgColor: "bg-orange-50/20"
   },
   normal: {
     color: "border-blue-500",
     dotColor: "bg-blue-500",
     class: "",
-    label: "📋 Normal",
+    label: "Normal",
     bgColor: "bg-blue-50/20"
   },
 };
@@ -889,8 +889,8 @@ export function WorkflowRiver() {
         </div>
       </div>
 
-      {/* Scrollable Content Area */}
-      <div className="space-y-6 flex-1 overflow-y-auto min-h-0">
+      {/* Three Column Layout - Side by Side */}
+      <div className="flex-1 overflow-hidden min-h-0">
         {activeTasks.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground" data-testid="text-no-tasks">
             <CheckSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -898,26 +898,27 @@ export function WorkflowRiver() {
             <p className="text-sm mt-2">Your task pipeline is clear and ready for action!</p>
           </div>
         ) : (
-          priorityOrder.map((priority) => {
-            const priorityTasks = tasksByPriority[priority];
-            if (priorityTasks.length === 0) return null;
+          <div className="grid grid-cols-3 gap-4 h-full">
+            {priorityOrder.map((priority) => {
+              const priorityTasks = tasksByPriority[priority];
+              const config = priorityConfig[priority];
 
-            const config = priorityConfig[priority];
+              return (
+                <div key={priority} className="flex flex-col h-full">
+                  {/* Fixed Header */}
+                  <div className={`flex items-center space-x-2 mb-3 pb-2 border-b border-muted/20 transition-all duration-500 ${
+                    visibleSections.has(priority) 
+                      ? 'animate-in slide-in-from-left-4 opacity-100' 
+                      : 'opacity-0'
+                  }`}>
+                    <div className={`w-3 h-3 ${config.dotColor} rounded-full`} />
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                      {config.label} ({priorityTasks.length})
+                    </h3>
+                  </div>
 
-            return (
-              <div key={priority} className="space-y-3">
-                <div className={`flex items-center space-x-2 mb-3 transition-all duration-500 ${
-                  visibleSections.has(priority) 
-                    ? 'animate-in slide-in-from-left-4 opacity-100' 
-                    : 'opacity-0'
-                }`}>
-                  <div className={`w-3 h-3 ${config.dotColor} rounded-full`} />
-                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                    {config.label} ({priorityTasks.length})
-                  </h3>
-                </div>
-
-                <div className="space-y-3">
+                  {/* Scrollable Task Content */}
+                  <div className="flex-1 overflow-y-auto min-h-0 space-y-3 pr-2">
                   {priorityTasks.map((task) => {
                     // Ensure task has a valid priority, default to 'normal' if not set
                     const taskPriority = task.priority || 'normal';
@@ -1205,10 +1206,11 @@ export function WorkflowRiver() {
                       </div>
                     );
                   })}
+                  </div>
                 </div>
-              </div>
-            );
-          })
+              );
+            })}
+          </div>
         )}
       </div>
 
