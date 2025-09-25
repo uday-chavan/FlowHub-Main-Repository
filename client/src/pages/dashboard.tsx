@@ -34,11 +34,11 @@ export default function Dashboard() {
         {isMobile ? (
           /* Mobile Layout */
           <div className="flex flex-col gap-6 h-full overflow-y-auto">
-            {/* Main Content - Tasks */}
-            <WorkflowRiver />
-
             {/* Mobile Notifications */}
             <NotificationFeed />
+
+            {/* Main Content - Tasks */}
+            <WorkflowRiver />
 
             {/* Secondary Content */}
             <WindowsNotificationManager userId={userId} />
@@ -47,14 +47,14 @@ export default function Dashboard() {
         ) : (
           /* Desktop Layout */
           <div className="flex gap-6 h-[calc(100vh-120px)]">
+            {/* Left Column - Notifications with Fixed Width */}
+            <div className="w-80 flex-shrink-0 px-2 h-full">
+              <NotificationFeed />
+            </div>
+
             {/* Main Column - Tasks with Extended Width */}
             <div className="flex-[3] px-2 h-full">
               <WorkflowRiver />
-            </div>
-
-            {/* Right Column - Notifications with Fixed Height */}
-            <div className="w-80 flex-shrink-0 px-2 h-full">
-              <NotificationFeed />
             </div>
           </div>
         )}
