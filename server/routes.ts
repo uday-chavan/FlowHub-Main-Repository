@@ -565,32 +565,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Remove reminders for completed task
       taskNotificationScheduler.removeTaskReminders(req.params.id);
 
-      // DISABLED: Auto-rescheduling to prevent countdown timer changes
-        // Users reported that completing tasks was changing other task countdown times
-        // This was caused by auto-rescheduling updating dueAt values
-        /*
-        try {
-          const reschedulingResult = await smartScheduler.rescheduleUserTasks(task.userId, task.id);
+      // Trigger smart rescheduling after task completion
+      try {
+        const reschedulingResult = await smartScheduler.rescheduleUserTasks(task.userId, req.params.id);
 
-          // Create AI insight about the rescheduling if tasks were rescheduled
-          if (reschedulingResult.rescheduledTasks.length > 0) {
-            await storage.createAiInsight({
-              userId: task.userId,
-              type: "task_rescheduling",
-              title: "Tasks Auto-Rescheduled",
-              description: `Completed task influenced rescheduling of ${reschedulingResult.rescheduledTasks.length} upcoming tasks. ${reschedulingResult.insights.join(' ')}`,
-              priority: "normal" as any,
-              metadata: {
-                rescheduledTasks: reschedulingResult.rescheduledTasks,
-                completedTaskId: req.params.id,
-                timeSaved: reschedulingResult.totalTimeSaved
-              },
-            });
-          }
-        } catch (scheduleError) {
-          // Auto-rescheduling failed, but task completed successfully
+        // Create AI insight about the rescheduling if tasks were rescheduled
+        if (reschedulingResult.rescheduledTasks.length > 0) {
+          await storage.createAiInsight({
+            userId: task.userId,
+            type: "task_rescheduling",
+            title: "Tasks Auto-Rescheduled",
+            description: `Completed task influenced rescheduling of ${reschedulingResult.rescheduledTasks.length} upcoming tasks. ${reschedulingResult.insights.join(' ')}`,
+            priority: "normal" as any,
+            metadata: {
+              rescheduledTasks: reschedulingResult.rescheduledTasks,
+              completedTaskId: req.params.id,
+              timeSaved: reschedulingResult.totalTimeSaved
+            },
+          });
         }
-        */
+      } catch (scheduleError) {
+        // Auto-rescheduling failed, but task completed successfully
+      }
 
       res.json(task);
     } catch (error) {
