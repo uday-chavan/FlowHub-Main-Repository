@@ -59,20 +59,23 @@ function ManualTaskCountdown({ task, onEditClick }: { task: any; onEditClick?: (
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const targetTimeRef = useRef<Date | null>(null);
   const lastTaskStatusRef = useRef<string>(task.status);
+  const initializedRef = useRef<boolean>(false);
+  const lastDueAtRef = useRef<string | undefined>(task.dueAt);
 
   // Initialize target time only once and store in ref to prevent recalculation
   useEffect(() => {
-    // Only set target time if not already set or if dueAt changed
-    if (task.dueAt) {
-      const newTargetTime = new Date(task.dueAt);
-      // Only update if different from current target time
-      if (!targetTimeRef.current || targetTimeRef.current.getTime() !== newTargetTime.getTime()) {
-        targetTimeRef.current = newTargetTime;
+    // Only initialize once or when dueAt actually changes
+    if (!initializedRef.current || lastDueAtRef.current !== task.dueAt) {
+      initializedRef.current = true;
+      lastDueAtRef.current = task.dueAt;
+      
+      if (task.dueAt) {
+        targetTimeRef.current = new Date(task.dueAt);
+      } else {
+        targetTimeRef.current = null;
       }
-    } else if (targetTimeRef.current === null) {
-      targetTimeRef.current = null;
     }
-  }, [task.dueAt]); // Only depend on task.dueAt
+  }, [task.dueAt]); // Only depend on task.dueAt changes
 
   useEffect(() => {
     const updateCountdown = () => {
@@ -195,11 +198,14 @@ function AiTaskCountdown({ task, onEditClick }: { task: any; onEditClick?: () =>
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const targetTimeRef = useRef<Date | null>(null);
   const lastTaskStatusRef = useRef<string>(task.status);
+  const initializedRef = useRef<boolean>(false);
 
   // Initialize target time only once and store in ref to prevent recalculation
   useEffect(() => {
-    // Only set target time if not already set
-    if (targetTimeRef.current === null) {
+    // Only initialize once per task
+    if (!initializedRef.current) {
+      initializedRef.current = true;
+      
       if (task.dueAt) {
         targetTimeRef.current = new Date(task.dueAt);
       } else {
@@ -212,6 +218,7 @@ function AiTaskCountdown({ task, onEditClick }: { task: any; onEditClick?: () =>
             const parsedDate = new Date(storedTime);
             if (!isNaN(parsedDate.getTime())) {
               targetTimeRef.current = parsedDate;
+              return; // Exit early if we have a valid stored time
             }
           } catch (e) {
             // If stored time is corrupted, remove it and reparse
@@ -220,18 +227,16 @@ function AiTaskCountdown({ task, onEditClick }: { task: any; onEditClick?: () =>
         }
         
         // Parse time once and store it if we don't have it yet
-        if (targetTimeRef.current === null) {
-          const baseTime = task.createdAt ? new Date(task.createdAt) : new Date();
-          const parsedTime = parseRelativeTime(task.title + ' ' + (task.description || ''), baseTime);
-          
-          if (parsedTime && !isNaN(parsedTime.getTime())) {
-            localStorage.setItem(storedTimeKey, parsedTime.toISOString());
-            targetTimeRef.current = parsedTime;
-          }
+        const baseTime = task.createdAt ? new Date(task.createdAt) : new Date();
+        const parsedTime = parseRelativeTime(task.title + ' ' + (task.description || ''), baseTime);
+        
+        if (parsedTime && !isNaN(parsedTime.getTime())) {
+          localStorage.setItem(storedTimeKey, parsedTime.toISOString());
+          targetTimeRef.current = parsedTime;
         }
       }
     }
-  }, [task.id]); // Only depend on task.id, run once per task
+  }, []); // Run only once when component mounts
 
   useEffect(() => {
     const updateCountdown = () => {
@@ -581,22 +586,6 @@ export function WorkflowRiver() {
 
   const activeTasks = tasks?.filter(task => task.status === "pending" || task.status === "in_progress" || task.status === "completed") || [];
 
-  // Memoize parsed times to prevent recalculation and timing drift
-  const taskParsedTimes = useMemo(() => {
-    const timeMap = new Map<string, Date | null>();
-    activeTasks.forEach(task => {
-      if (task.dueAt) {
-        timeMap.set(task.id, new Date(task.dueAt));
-      } else {
-        // Only parse relative time once and cache it, using task creation time as base
-        const baseTime = task.createdAt ? new Date(task.createdAt) : new Date();
-        const parsedTime = parseRelativeTime(task.title + ' ' + (task.description || ''), baseTime);
-        timeMap.set(task.id, parsedTime);
-      }
-    });
-    return timeMap;
-  }, [activeTasks.map(t => `${t.id}-${t.dueAt}-${t.createdAt}`).join(',')]); // Removed title and description from dependency
-
   // Group tasks by priority and sort by time urgency within each priority
   const tasksByPriority = priorityOrder.reduce((acc, priority) => {
     // Filter tasks by priority, with fallback to 'normal' if priority is undefined
@@ -607,20 +596,16 @@ export function WorkflowRiver() {
 
     // Sort tasks within each priority by time urgency
     priorityTasks.sort((a, b) => {
-      // Get memoized parsed times for both tasks
-      const aTime = taskParsedTimes.get(a.id);
-      const bTime = taskParsedTimes.get(b.id);
-
-      // If both have times, sort by time (earliest first)
-      if (aTime && bTime) {
-        return aTime.getTime() - bTime.getTime();
+      // Simple sorting by dueAt if available
+      if (a.dueAt && b.dueAt) {
+        return new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime();
       }
+      
+      // Tasks with due dates come first
+      if (a.dueAt && !b.dueAt) return -1;
+      if (!a.dueAt && b.dueAt) return 1;
 
-      // Tasks with times come before tasks without times
-      if (aTime && !bTime) return -1;
-      if (!aTime && bTime) return 1;
-
-      // If neither has a time, maintain original order
+      // If neither has a dueAt, maintain original order
       return 0;
     });
 
