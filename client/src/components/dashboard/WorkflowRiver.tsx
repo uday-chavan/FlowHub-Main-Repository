@@ -59,16 +59,17 @@ function ManualTaskCountdown({ task, onEditClick }: { task: any; onEditClick?: (
   const [targetTime, setTargetTime] = useState<Date | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // For manual tasks, use explicit dueAt
-  useEffect(() => {
-    let calculatedTargetTime: Date | null = null;
-
+  // For manual tasks, use explicit dueAt with memoization to prevent recalculation
+  const memoizedTargetTime = useMemo(() => {
     if (task.dueAt) {
-      calculatedTargetTime = new Date(task.dueAt);
+      return new Date(task.dueAt);
     }
-
-    setTargetTime(calculatedTargetTime);
+    return null;
   }, [task.dueAt]);
+
+  useEffect(() => {
+    setTargetTime(memoizedTargetTime);
+  }, [memoizedTargetTime]);
 
   useEffect(() => {
     const updateCountdown = () => {
@@ -184,17 +185,21 @@ function AiTaskCountdown({ task, onEditClick }: { task: any; onEditClick?: () =>
   const [isUrgent, setIsUrgent] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Memoize target time to prevent unnecessary recalculations
+  // Memoize target time to prevent unnecessary recalculations and ensure stability
   const targetTime = useMemo(() => {
     // First use explicit dueAt if available (backend already did IST conversion correctly)
     if (task.dueAt) {
       return new Date(task.dueAt);
     } else {
-      // Fallback to parsing natural language from title or description
+      // For AI tasks without explicit dueAt, use a stable calculation based on task creation time
+      // This prevents time jumping on refreshes
+      const baseTime = task.createdAt ? new Date(task.createdAt) : new Date();
       const parsedTime = parseRelativeTime(task.title + ' ' + (task.description || ''));
+      
+      // If we parsed a relative time, use it; otherwise return null for "No deadline set"
       return parsedTime;
     }
-  }, [task.dueAt, task.title, task.description]);
+  }, [task.dueAt, task.id, task.createdAt]); // Use task.id and createdAt for stability, not changing title/description
 
   useEffect(() => {
     const updateCountdown = () => {
@@ -1080,41 +1085,44 @@ export function WorkflowRiver() {
                           {/* Action buttons row */}
                           <div className="flex items-center justify-between gap-2">
                             <div className="task-badge-container flex items-center space-x-2">
-                              {/* Show Priority Person badge in place of urgent priority */}
-                              {task.metadata?.isPriorityPerson ? (
-                                <Badge className="priority-person-badge text-xs bg-red-500 text-white border-red-500 hover:bg-red-600">
-                                  <span className="hidden sm:inline">Priority Person</span>
-                                  <span className="sm:hidden">Priority</span>
-                                </Badge>
-                              ) : (
-                                <Badge
-                                  variant={task.priority === "important" ? "default" : task.priority === "urgent" ? "destructive" : "secondary"} // Changed variant for 'urgent' and 'important'
-                                  className={`text-xs ${task.priority === 'urgent' ? 'bg-red-100 text-red-800' : task.priority === 'important' ? 'bg-orange-100 text-orange-800' : ''}`} // Added specific color classes
-                                >
-                                  {priorityConfig[task.priority || 'normal']?.label || task.priority}
-                                </Badge>
-                              )}
+                              {/* Only show badges for non-completed tasks */}
+                              {task.status !== 'completed' && (
+                                <>
+                                  {/* Show Priority badge for priority person emails */}
+                                  {task.metadata?.isPriorityPerson ? (
+                                    <Badge className="priority-person-badge text-xs bg-red-500 text-white border-red-500 hover:bg-red-600">
+                                      Priority
+                                    </Badge>
+                                  ) : (
+                                    <Badge
+                                      variant={task.priority === "important" ? "default" : task.priority === "urgent" ? "destructive" : "secondary"}
+                                      className={`text-xs ${task.priority === 'urgent' ? 'bg-red-100 text-red-800' : task.priority === 'important' ? 'bg-orange-100 text-orange-800' : ''}`}
+                                    >
+                                      {priorityConfig[task.priority || 'normal']?.label || task.priority}
+                                    </Badge>
+                                  )}
 
-                              {/* Show clickable reply button for all email-based tasks */}
-                              {task.sourceApp === 'gmail' && task.metadata?.emailFrom ? (
-                                <Badge 
-                                  variant="outline" 
-                                  className="email-reply-badge text-xs cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-colors"
-                                  onClick={() => {
-                                    const emailFrom = task.metadata?.emailFrom || '';
-                                    const emailSubject = task.metadata?.emailSubject || '';
-                                    const replySubject = emailSubject.startsWith('Re:') ? emailSubject : `Re: ${emailSubject}`;
-                                    window.open(`https://mail.google.com/mail/?view=cm&fs=1&tf=1&to=${encodeURIComponent(emailFrom)}&su=${encodeURIComponent(replySubject)}`, '_blank');
-                                  }}
-                                  title={`Click to reply to ${task.metadata.emailFrom}`}
-                                >
-                                  <span className="hidden sm:inline">reply</span>
-                                  <span className="sm:hidden">reply</span>
-                                </Badge>
-                              ) : (
-                                <Badge variant="outline" className="text-xs">
-                                  {sourceType}
-                                </Badge>
+                                  {/* Show clickable reply button for all email-based tasks */}
+                                  {task.sourceApp === 'gmail' && task.metadata?.emailFrom ? (
+                                    <Badge 
+                                      variant="outline" 
+                                      className="email-reply-badge text-xs cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-colors"
+                                      onClick={() => {
+                                        const emailFrom = task.metadata?.emailFrom || '';
+                                        const emailSubject = task.metadata?.emailSubject || '';
+                                        const replySubject = emailSubject.startsWith('Re:') ? emailSubject : `Re: ${emailSubject}`;
+                                        window.open(`https://mail.google.com/mail/?view=cm&fs=1&tf=1&to=${encodeURIComponent(emailFrom)}&su=${encodeURIComponent(replySubject)}`, '_blank');
+                                      }}
+                                      title={`Click to reply to ${task.metadata.emailFrom}`}
+                                    >
+                                      reply
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="outline" className="text-xs">
+                                      {sourceType}
+                                    </Badge>
+                                  )}
+                                </>
                               )}
                             </div>
                             <div className="task-action-buttons flex items-center gap-1 flex-shrink-0">
