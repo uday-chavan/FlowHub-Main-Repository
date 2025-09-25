@@ -22,9 +22,9 @@ const notificationTypeConfig = {
     label: "IMPORTANT",
   },
   informational: {
-    color: "border-muted",
-    bgColor: "bg-muted/10",
-    textColor: "text-muted-foreground",
+    color: "border-blue-500",
+    bgColor: "bg-blue-50/20",
+    textColor: "text-blue-600",
     label: "INFO",
   },
 };
@@ -230,10 +230,14 @@ export function NotificationFeed() {
                   <div className="flex items-center space-x-3">
                       <Badge 
                         variant={notification.type === 'urgent' ? 'destructive' : 
-                                notification.type === 'important' ? 'default' : 'secondary'}
-                        className="text-xs"
+                                notification.type === 'important' ? 'default' : 'outline'}
+                        className={`text-xs ${
+                          notification.type === 'urgent' ? '' :
+                          notification.type === 'important' ? 'bg-orange-500 text-white border-orange-500 hover:bg-orange-600' :
+                          'bg-blue-500 text-white border-blue-500 hover:bg-blue-600'
+                        }`}
                       >
-                        {notification.type}
+                        {notification.type.toUpperCase()}
                       </Badge>
                       {notification.metadata?.isPriorityPerson && (
                         <Badge 
