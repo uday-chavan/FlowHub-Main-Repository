@@ -42,15 +42,18 @@ export function useAuth() {
           const currentUserId = data.user.id;
           const currentUserEmail = data.user.email;
           
-          // Strict user change detection - clear everything if user changed
-          const userChanged = (previousUserId && previousUserId !== currentUserId) || 
-                             (previousUserEmail && previousUserEmail !== currentUserEmail);
+          // Only clear data if we're actually switching to a different user account
+          // Don't clear if this is the same user after a deployment/refresh
+          const isDifferentUser = previousUserId && previousUserEmail && 
+                                 (previousUserId !== currentUserId || previousUserEmail !== currentUserEmail);
           
-          if (userChanged) {
-            console.log(`Auth hook detected user change: ${previousUserEmail || previousUserId} -> ${currentUserEmail}`);
-            // Complete data isolation - clear everything
-            localStorage.clear();
+          if (isDifferentUser) {
+            console.log(`Auth hook detected user change: ${previousUserEmail} -> ${currentUserEmail}`);
+            // Only clear auth-related data, not all localStorage
+            const authKeys = ['user_auth', 'gmailConnected', 'userEmail', 'currentUserId', 'currentUserEmail'];
+            authKeys.forEach(key => localStorage.removeItem(key));
             sessionStorage.clear();
+            
             // Set new user data
             localStorage.setItem('user_auth', JSON.stringify(data.user));
             localStorage.setItem('currentUserId', data.user.id);
@@ -60,14 +63,14 @@ export function useAuth() {
             return { user: data.user };
           }
           
-          // Store fresh user data only after validation
+          // Store fresh user data for same user or first login
           localStorage.setItem('user_auth', JSON.stringify(data.user));
           localStorage.setItem('currentUserId', data.user.id);
           localStorage.setItem('currentUserEmail', data.user.email);
         } else {
-          // Clear all auth-related data on logout
-          localStorage.clear();
-          sessionStorage.clear();
+          // Clear only auth-related data on logout, not everything
+          const authKeys = ['user_auth', 'gmailConnected', 'userEmail', 'currentUserId', 'currentUserEmail'];
+          authKeys.forEach(key => localStorage.removeItem(key));
         }
 
         return data;
