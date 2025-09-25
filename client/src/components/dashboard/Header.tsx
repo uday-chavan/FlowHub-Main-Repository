@@ -30,7 +30,13 @@ const notificationTypeConfig = {
     color: "border-blue-500",
     bgColor: "bg-blue-50/20",
     textColor: "text-blue-600",
-    label: "INFO",
+    label: "INFORMATIONAL",
+  },
+  normal: {
+    color: "border-blue-500",
+    bgColor: "bg-blue-50/20",
+    textColor: "text-blue-600",
+    label: "NORMAL",
   },
 };
 
