@@ -609,12 +609,11 @@ export function WorkflowRiver() {
   //   }
   // };
 
-  const handleCreateManualTask = async () => {
+  const handleCreateAITask = async () => {
     if (!newTaskInput.trim() || createTaskFromTextMutation.isPending) return;
 
     try {
       const result = await createTaskFromTextMutation.mutateAsync({
-        userId: "demo-user",
         naturalLanguageInput: newTaskInput,
       });
 
@@ -643,7 +642,7 @@ export function WorkflowRiver() {
     }
   };
 
-  const handleCreateCompletelyManualTask = async () => {
+  const handleCreateManualTask = async () => {
     if (!manualTaskName.trim()) return;
 
     try {
@@ -666,14 +665,14 @@ export function WorkflowRiver() {
         }
       }
 
-      // Create task directly without AI
+      // Create task directly without AI using authenticated user
       const response = await fetch('/api/tasks', {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          userId: "demo-user",
           title: manualTaskName,
           description: dueAt ? `Due: ${dueAt.toLocaleDateString()} at ${dueAt.toLocaleTimeString()}` : "No specific time mentioned",
           priority: priority,
@@ -695,8 +694,8 @@ export function WorkflowRiver() {
 
       const result = await response.json();
 
-      // Refresh tasks
-      queryClient.invalidateQueries({ queryKey: ["/api/tasks", { userId: "demo-user" }] });
+      // Refresh tasks using authenticated user
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks", user?.id] });
 
       setManualTaskName("");
       setManualTaskTime("");
@@ -1269,7 +1268,7 @@ export function WorkflowRiver() {
                 Cancel
               </Button>
               <Button
-                onClick={handleCreateManualTask}
+                onClick={handleCreateAITask}
                 disabled={!newTaskInput.trim() || createTaskFromTextMutation.isPending}
                 className="flex-1 bg-green-500 hover:bg-green-600"
                 data-testid="button-create-task"
@@ -1342,7 +1341,7 @@ export function WorkflowRiver() {
                 Cancel
               </Button>
               <Button
-                onClick={handleCreateCompletelyManualTask}
+                onClick={handleCreateManualTask}
                 disabled={!manualTaskName.trim()}
                 className="flex-1 bg-blue-500 hover:bg-blue-600"
                 data-testid="button-create-manual-task"
