@@ -64,10 +64,10 @@ export function AppLauncher() {
     mutationFn: async (linkData: { userId: string; name: string; url: string; logo: string }) => {
       return await apiRequest("POST", "/api/user-app-links", linkData);
     },
-    onSuccess: () => {
-      // Use exact query key match for immediate update
-      queryClient.invalidateQueries({ queryKey: ["/api/user-app-links", "demo-user"] });
-      queryClient.refetchQueries({ queryKey: ["/api/user-app-links", "demo-user"] });
+    onSuccess: async () => {
+      // Invalidate and refetch with proper await
+      await queryClient.invalidateQueries({ queryKey: ["/api/user-app-links", "demo-user"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/user-app-links", "demo-user"] });
       setIsDialogOpen(false);
       setNewUrl("");
       toast({
@@ -88,10 +88,10 @@ export function AppLauncher() {
     mutationFn: async (id: string) => {
       await apiRequest("DELETE", `/api/user-app-links/${id}`);
     },
-    onSuccess: () => {
-      // Use exact query key match for immediate update
-      queryClient.invalidateQueries({ queryKey: ["/api/user-app-links", "demo-user"] });
-      queryClient.refetchQueries({ queryKey: ["/api/user-app-links", "demo-user"] });
+    onSuccess: async () => {
+      // Invalidate and refetch with proper await
+      await queryClient.invalidateQueries({ queryKey: ["/api/user-app-links", "demo-user"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/user-app-links", "demo-user"] });
       toast({
         title: "Removed",
         description: "App link removed successfully",
