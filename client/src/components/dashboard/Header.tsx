@@ -21,15 +21,15 @@ const notificationTypeConfig = {
     label: "URGENT",
   },
   important: {
-    color: "border-accent",
-    bgColor: "bg-accent/10",
-    textColor: "text-accent",
+    color: "border-orange-500",
+    bgColor: "bg-orange-50/20",
+    textColor: "text-orange-600",
     label: "IMPORTANT",
   },
   informational: {
-    color: "border-muted",
-    bgColor: "bg-muted/10",
-    textColor: "text-muted-foreground",
+    color: "border-blue-500",
+    bgColor: "bg-blue-50/20",
+    textColor: "text-blue-600",
     label: "INFO",
   },
 };
@@ -267,7 +267,7 @@ export function Header() {
                 )}
               </PopoverContent>
             </Popover>
-            
+
             {/* Upgrade to Premium Button */}
             <Button
               onClick={() => setIsUpgradeModalOpen(true)}
