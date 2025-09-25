@@ -79,9 +79,13 @@ export function NotificationFeed() {
 
       // Task created successfully
 
-      // Refresh tasks and notifications - match the exact query key patterns
-      queryClient.invalidateQueries({ queryKey: ["/api/tasks", { userId: "demo-user" }] });
-      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+      // Refresh tasks and notifications with proper query key patterns
+      await queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+      
+      // Force immediate refetch
+      await queryClient.refetchQueries({ queryKey: ["/api/tasks"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/notifications"] });
     } catch (error) {
       // Silently handle conversion errors
     } finally {
@@ -125,9 +129,13 @@ export function NotificationFeed() {
         await Promise.all(promises);
       }
 
-      // Refresh tasks and notifications - match the exact query key patterns
-      queryClient.invalidateQueries({ queryKey: ["/api/tasks", { userId: "demo-user" }] });
-      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+      // Refresh tasks and notifications with proper query key patterns
+      await queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+      
+      // Force immediate refetch
+      await queryClient.refetchQueries({ queryKey: ["/api/tasks"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/notifications"] });
     } catch (error) {
       console.error("Error converting notifications to tasks:", error);
     } finally {
