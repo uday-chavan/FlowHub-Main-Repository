@@ -16,24 +16,27 @@ import { Badge } from "@/components/ui/badge";
 const priorityConfig = {
   urgent: {
     color: "border-red-500",
+    bgColor: "bg-red-50/20",
+    textColor: "text-red-600",
     dotColor: "bg-red-500",
-    class: "pulse-urgent",
-    label: "Urgent",
-    bgColor: "bg-red-50/20"
+    label: "URGENT",
+    sectionBg: "bg-red-500/10",
   },
   important: {
     color: "border-orange-500",
+    bgColor: "bg-orange-50/20",
+    textColor: "text-orange-600",
     dotColor: "bg-orange-500",
-    class: "",
-    label: "Imp",
-    bgColor: "bg-orange-50/20"
+    label: "IMPORTANT",
+    sectionBg: "bg-orange-500/10",
   },
   normal: {
-    color: "border-blue-500",
-    dotColor: "bg-blue-500",
-    class: "",
-    label: "Normal",
-    bgColor: "bg-blue-50/20"
+    color: "border-green-500",
+    bgColor: "bg-green-50/20",
+    textColor: "text-green-600",
+    dotColor: "bg-green-500",
+    label: "NORMAL",
+    sectionBg: "bg-blue-500/10",
   },
 };
 
@@ -590,27 +593,13 @@ export function WorkflowRiver() {
     deleteTaskMutation.mutate(taskId);
   };
 
-  // Placeholder for profile name update fix.
-  // In a real scenario, this would involve updating user state or profile data.
-  // If the profile section is managed by another component or context,
-  // you would typically trigger an update there or use a shared state management solution.
-  // Example of a hypothetical update function:
-  // const handleUpdateProfileName = async (userId: string, newName: string) => {
-  //   try {
-  //     // Assume an API call to update the user's profile
-  //     const response = await fetch(`/api/users/${userId}`, {
-  //       method: 'PUT',
-  //       headers: { 'Content-Type': 'application/json' },
-  //       body: JSON.stringify({ name: newName }),
-  //     });
-  //     if (!response.ok) throw new Error('Failed to update name');
-  //     queryClient.invalidateQueries({ queryKey: ['userProfile', userId] }); // Invalidate cache if applicable
-  //     toast({ title: "Profile updated", description: "Your name has been updated successfully." });
-  //   } catch (error) {
-  //     console.error("Error updating profile name:", error);
-  //     toast({ title: "Error", description: "Failed to update profile name. Please try again.", variant: "destructive" });
-  //   }
-  // };
+  // Placeholder for handling the "404 Page Not Found" error on scroll.
+  // This is an unusual error to associate directly with scrolling.
+  // Common causes might include:
+  // - Infinite scroll implementation issues: If new content fails to load and triggers a 404, it might be reported during scroll.
+  // - Routing errors: If scrolling triggers a navigation event that leads to a 404.
+  // - Dynamic component loading failures.
+  // Without more context, specific code changes are difficult. If this occurs, investigate network requests made during scrolling or any routing logic tied to scroll events.
 
   const handleCreateAITask = async () => {
     if (!newTaskInput.trim() || createTaskFromTextMutation.isPending) return;
@@ -813,14 +802,6 @@ export function WorkflowRiver() {
     );
   }
 
-  // Placeholder for handling the "404 Page Not Found" error on scroll.
-  // This is an unusual error to associate directly with scrolling.
-  // Common causes might include:
-  // - Infinite scroll implementation issues: If new content fails to load and triggers a 404, it might be reported during scroll.
-  // - Routing errors: If scrolling triggers a navigation event that leads to a 404.
-  // - Dynamic component loading failures.
-  // Without more context, specific code changes are difficult. If this occurs, investigate network requests made during scrolling or any routing logic tied to scroll events.
-
   return (
     <div className="glass-card rounded-lg p-6 h-full animate-in slide-in-from-bottom-5 duration-700 flex flex-col" data-testid="card-workflow-river">
       {/* Fixed Header Section */}
@@ -903,8 +884,12 @@ export function WorkflowRiver() {
               const priorityTasks = tasksByPriority[priority];
               const config = priorityConfig[priority];
 
+              if (!priorityTasks || priorityTasks.length === 0) {
+                return null;
+              }
+
               return (
-                <div key={priority} className="flex flex-col h-full max-h-full">
+                <div key={priority} className={`flex flex-col h-full max-h-full rounded-lg ${config.sectionBg} p-3`}>
                   {/* Fixed Header */}
                   <div className={`flex items-center space-x-2 mb-3 pb-2 border-b border-muted/20 flex-shrink-0 transition-all duration-500 ${
                     visibleSections.has(priority) 
@@ -918,7 +903,7 @@ export function WorkflowRiver() {
                   </div>
 
                   {/* Scrollable Task Content */}
-                  <div className="flex-1 overflow-y-auto min-h-0 space-y-3 pr-2 max-h-full">
+                  <div className="flex-1 overflow-y-auto min-h-0 space-y-3 pr-2" style={{ maxHeight: 'calc(100vh - 300px)' }}>
                   {priorityTasks.map((task) => {
                     // Ensure task has a valid priority, default to 'normal' if not set
                     const taskPriority = task.priority || 'normal';
