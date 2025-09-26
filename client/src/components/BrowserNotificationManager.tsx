@@ -22,16 +22,20 @@ export function WindowsNotificationManager({ userId }: WindowsNotificationManage
     const isDesktop = !isMobile && !isTablet;
     
     if ('Notification' in window && isDesktop) {
+      console.log('[NotificationManager] Current permission status:', Notification.permission);
+      
       if (Notification.permission === 'granted') {
         setPermissionGranted(true);
-      } else if (Notification.permission === 'default' && !permissionRequested) {
-        setPermissionRequested(true);
-        Notification.requestPermission().then((permission) => {
-          setPermissionGranted(permission === 'granted');
-        });
+        console.log('[NotificationManager] Notifications already granted');
+      } else if (Notification.permission === 'denied') {
+        console.log('[NotificationManager] Notifications denied by user');
+      } else {
+        console.log('[NotificationManager] Notifications in default state');
       }
+    } else {
+      console.log('[NotificationManager] Not a desktop device or Notification API not supported');
     }
-  }, [permissionRequested]);
+  }, []);
 
   // Poll for Windows notifications
   const { data: notifications } = useQuery({
@@ -81,19 +85,30 @@ export function WindowsNotificationManager({ userId }: WindowsNotificationManage
 
         try {
           // Show Windows notification directly
+          console.log(`[WindowsNotification] Creating notification: ${notification.title}`);
+          
           const windowsNotification = new Notification(notification.title, {
             body: notification.description,
             icon: '/favicon.ico',
             tag: `task-reminder-${notification.metadata.taskId}`,
-            requireInteraction: true,
+            requireInteraction: false,
             silent: false,
             renotify: true
           });
 
           // Handle notification click
           windowsNotification.onclick = () => {
+            console.log(`[WindowsNotification] Notification clicked for task: ${notification.metadata.taskId}`);
             window.focus();
             windowsNotification.close();
+          };
+
+          windowsNotification.onshow = () => {
+            console.log(`[WindowsNotification] Notification displayed for task: ${notification.metadata.taskId}`);
+          };
+
+          windowsNotification.onerror = (error) => {
+            console.error(`[WindowsNotification] Notification error for task ${notification.metadata.taskId}:`, error);
           };
 
           // Auto-close after 10 seconds
@@ -101,10 +116,10 @@ export function WindowsNotificationManager({ userId }: WindowsNotificationManage
             windowsNotification.close();
           }, 10000);
 
-          console.log(`[WindowsNotification] Windows notification shown for task: ${notification.metadata.taskId} from tab: ${tabId.current}`);
+          console.log(`[WindowsNotification] Windows notification created for task: ${notification.metadata.taskId} from tab: ${tabId.current}`);
 
         } catch (error) {
-          console.error('Windows notification failed:', error);
+          console.error(`[WindowsNotification] Failed to create notification for task ${notification.metadata.taskId}:`, error);
         }
 
         // Immediately mark this notification as dismissed so it doesn't show again
@@ -167,18 +182,46 @@ export function WindowsNotificationManager({ userId }: WindowsNotificationManage
         <div className="space-y-2">
           <button
             onClick={async () => {
+              console.log('[NotificationManager] Enable button clicked');
               setPermissionRequested(true);
-              const permission = await Notification.requestPermission();
-              setPermissionGranted(permission === 'granted');
+              
+              try {
+                const permission = await Notification.requestPermission();
+                console.log('[NotificationManager] Permission result:', permission);
+                
+                setPermissionGranted(permission === 'granted');
 
-              // Test notification immediately if granted
-              if (permission === 'granted') {
-                new Notification('FlowHub Windows Notifications Enabled! 🎉', {
-                  body: 'You will now receive Windows notifications for your task deadlines in the Windows notification center.',
-                  icon: '/favicon.ico',
-                  requireInteraction: true,
-                  tag: 'flowhub-test'
-                });
+                // Test notification immediately if granted
+                if (permission === 'granted') {
+                  console.log('[NotificationManager] Creating test notification');
+                  
+                  const testNotification = new Notification('FlowHub Windows Notifications Enabled! 🎉', {
+                    body: 'You will now receive Windows notifications for your task deadlines in the Windows notification center.',
+                    icon: '/favicon.ico',
+                    requireInteraction: false,
+                    tag: 'flowhub-test',
+                    silent: false
+                  });
+
+                  testNotification.onclick = () => {
+                    console.log('[NotificationManager] Test notification clicked');
+                    window.focus();
+                    testNotification.close();
+                  };
+
+                  // Auto-close test notification after 5 seconds
+                  setTimeout(() => {
+                    testNotification.close();
+                  }, 5000);
+                  
+                  console.log('[NotificationManager] Test notification created successfully');
+                } else if (permission === 'denied') {
+                  console.log('[NotificationManager] User denied notification permission');
+                } else {
+                  console.log('[NotificationManager] Permission request was dismissed');
+                }
+              } catch (error) {
+                console.error('[NotificationManager] Error requesting permission:', error);
               }
             }}
             className="w-full bg-white text-blue-600 px-3 py-2 rounded text-sm font-medium hover:bg-gray-100"
