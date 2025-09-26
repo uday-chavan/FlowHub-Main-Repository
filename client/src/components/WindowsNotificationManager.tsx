@@ -62,7 +62,47 @@ export function WindowsNotificationManager({ userId }: WindowsNotificationManage
       } else if (Notification.permission === 'denied') {
         console.log('[WindowsNotificationManager] Notifications denied by user');
       } else {
-        console.log('[WindowsNotificationManager] Notifications in default state');
+        console.log('[WindowsNotificationManager] Notifications in default state - requesting permission');
+        // Request permission if in default state
+        Notification.requestPermission().then((permission) => {
+          console.log('[WindowsNotificationManager] Permission request result:', permission);
+          if (permission === 'granted') {
+            setPermissionGranted(true);
+            console.log('[WindowsNotificationManager] Permission granted - notifications enabled');
+            
+            // Create instant login notification
+            setTimeout(() => {
+              console.log('[WindowsNotificationManager] Creating login notification after permission granted');
+              const loginNotification = new Notification('🔔 Welcome to FlowHub!', {
+                body: 'You are now logged in. Windows notifications are active and will appear in your notification center.',
+                icon: '/favicon.ico',
+                tag: 'flowhub-login',
+                requireInteraction: true,
+                silent: false
+              });
+
+              loginNotification.onclick = () => {
+                console.log('[WindowsNotificationManager] Login notification clicked');
+                window.focus();
+                loginNotification.close();
+              };
+
+              loginNotification.onshow = () => {
+                console.log('[WindowsNotificationManager] Login notification shown in Windows notification center');
+              };
+
+              loginNotification.onerror = (error) => {
+                console.error('[WindowsNotificationManager] Login notification error:', error);
+              };
+
+              setTimeout(() => loginNotification.close(), 10000);
+            }, 1000);
+          } else {
+            console.log('[WindowsNotificationManager] Permission denied or dismissed');
+          }
+        }).catch((error) => {
+          console.error('[WindowsNotificationManager] Error requesting permission:', error);
+        });
       }
     } else {
       console.log('[WindowsNotificationManager] Not a desktop device or Notification API not supported');
@@ -78,7 +118,7 @@ export function WindowsNotificationManager({ userId }: WindowsNotificationManage
       return response.json();
     },
     refetchInterval: 2000, // Poll every 2 seconds for faster notification detection
-    enabled: permissionGranted && 'Notification' in window
+    enabled: 'Notification' in window // Enable polling regardless of permission to detect notifications
   });
 
   useEffect(() => {
