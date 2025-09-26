@@ -248,7 +248,7 @@ export function WindowsNotificationManager({ userId }: WindowsNotificationManage
                 console.error('[NotificationManager] Error requesting permission:', error);
                 alert('Error requesting notification permission. Please check browser console for details.');
               }
-            }
+            }}
             className="w-full bg-white text-blue-600 px-3 py-2 rounded text-sm font-medium hover:bg-gray-100"
           >
             Enable Windows Notifications
