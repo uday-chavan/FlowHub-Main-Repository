@@ -62,7 +62,6 @@ class CalendarService {
       const calendar = google.calendar({ version: 'v3', auth: freshClient });
 
       const dueDate = new Date(task.dueAt);
-      const startTime = new Date(dueDate.getTime() - (task.estimatedMinutes || 30) * 60 * 1000);
 
       // Let Google Calendar auto-generate the event ID to avoid validation issues
       const event: CalendarEvent = {
@@ -70,10 +69,6 @@ class CalendarService {
         summary: `📋 ${task.title}`,
         description: `FlowHub Task: ${task.description || ''}\n\nPriority: ${task.priority}\nEstimated time: ${task.estimatedMinutes || 30} minutes\n\nManage this task: https://flowhub.app/dashboard`,
         start: {
-          dateTime: startTime.toISOString(),
-          timeZone: 'Asia/Kolkata'
-        },
-        end: {
           dateTime: dueDate.toISOString(),
           timeZone: 'Asia/Kolkata'
         },
@@ -118,16 +113,11 @@ class CalendarService {
       const calendar = google.calendar({ version: 'v3', auth: freshClient });
 
       const dueDate = new Date(task.dueAt);
-      const startTime = new Date(dueDate.getTime() - (task.estimatedMinutes || 30) * 60 * 1000);
 
       const updatedEvent = {
         summary: `📋 ${task.title}`,
-        description: `FlowHub Task: ${task.description || ''}\n\nPriority: ${task.priority}\nEstimated time: ${task.estimatedMinutes || 30} minutes\n\nStatus: ${task.status}\n\nManage this task: https://flowhub.app/dashboard`,
+        description: `FlowHub Task: ${task.description || ''}\n\nPriority: ${task.priority}\nStatus: ${task.status}\n\nManage this task: https://flowhub-production-409c.up.railway.app/dashboard`,
         start: {
-          dateTime: startTime.toISOString(),
-          timeZone: 'Asia/Kolkata'
-        },
-        end: {
           dateTime: dueDate.toISOString(),
           timeZone: 'Asia/Kolkata'
         }
