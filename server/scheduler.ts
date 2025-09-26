@@ -137,11 +137,16 @@ export class SmartTaskScheduler {
       for (const task of activePendingTasks) {
         const oldDueAt = task.dueAt ? new Date(task.dueAt) : null;
         
-        // **CRITICAL FIX**: Skip tasks that already have a due date set
-        // This prevents countdown timer corruption when completing other tasks
+        // Only skip tasks with due dates if they're very recent (less than 5 minutes old)
+        // This allows reminder scheduling while preventing excessive rescheduling
         if (oldDueAt && oldDueAt > currentTime) {
-          // Task already has a valid future due date - skip rescheduling
-          continue;
+          const timeSinceScheduled = currentTime.getTime() - (task.updatedAt ? new Date(task.updatedAt).getTime() : 0);
+          const minutesSinceScheduled = timeSinceScheduled / (1000 * 60);
+          
+          // Skip only if scheduled very recently (within 2 minutes) to prevent churn
+          if (minutesSinceScheduled < 2) {
+            continue;
+          }
         }
         
         // Calculate adjusted estimated time using historical accuracy
