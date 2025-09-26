@@ -68,15 +68,42 @@ export function WindowsNotificationManager({ userId }: WindowsNotificationManage
 
   // Process Windows notifications
   useEffect(() => {
-    if (!permissionGranted || !notifications || !('Notification' in window)) return;
+    console.log('[WindowsNotificationManager] Processing effect triggered');
+    console.log('[WindowsNotificationManager] permissionGranted:', permissionGranted);
+    console.log('[WindowsNotificationManager] notifications:', notifications?.length || 0);
+    console.log('[WindowsNotificationManager] Notification API available:', 'Notification' in window);
+    
+    if (!permissionGranted || !notifications || !('Notification' in window)) {
+      console.log('[WindowsNotificationManager] Exiting early - missing requirements');
+      return;
+    }
 
     console.log('[WindowsNotificationManager] Processing notifications:', notifications.length);
+    
+    // Debug: Log all notifications
+    notifications.forEach((notification: any, index: number) => {
+      console.log(`[WindowsNotificationManager] Notification ${index}:`, {
+        id: notification.id,
+        title: notification.title,
+        type: notification.type,
+        metadata: notification.metadata,
+        isDismissed: notification.isDismissed,
+        browserNotification: notification.metadata?.browserNotification
+      });
+    });
 
     // Filter for Windows notifications that haven't been processed
     const windowsNotifications = notifications.filter((notification: any) => {
       const isWindowsNotification = notification.metadata?.browserNotification === true;
       const notProcessed = !processedNotifications.current.has(notification.id);
       const notDismissed = !notification.isDismissed;
+
+      console.log(`[WindowsNotificationManager] Filtering notification ${notification.id}:`, {
+        isWindowsNotification,
+        notProcessed,
+        notDismissed,
+        willProcess: isWindowsNotification && notProcessed && notDismissed
+      });
 
       return isWindowsNotification && notProcessed && notDismissed;
     });
