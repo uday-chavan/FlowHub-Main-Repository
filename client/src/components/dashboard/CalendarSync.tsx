@@ -20,9 +20,15 @@ export function CalendarSync({ isGmailConnected = false }: CalendarSyncProps) {
   useEffect(() => {
     const checkCalendarStatus = async () => {
       try {
-        const response = await apiRequest("GET", "/api/calendar/status");
-        const data = await response.json();
-        setIsConnected(data.connected || false);
+        const response = await fetch("/api/calendar/status", {
+          credentials: 'include',
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setIsConnected(data.connected || false);
+        } else {
+          setIsConnected(false);
+        }
       } catch (error) {
         setIsConnected(false);
       }
@@ -35,7 +41,16 @@ export function CalendarSync({ isGmailConnected = false }: CalendarSyncProps) {
 
   const syncCalendarMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("POST", "/api/calendar/sync");
+      const response = await fetch("/api/calendar/sync", {
+        method: "POST",
+        credentials: 'include',
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      if (!response.ok) {
+        throw new Error("Failed to sync calendar");
+      }
       return response.json();
     },
     onSuccess: () => {
