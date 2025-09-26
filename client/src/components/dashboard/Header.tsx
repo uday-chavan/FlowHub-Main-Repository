@@ -48,7 +48,7 @@ export function Header() {
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const isDashboard = location === '/dashboard';
 
-  const activeNotifications = notifications?.filter(n => !n.isDismissed && n.type !== 'browser_notification' && n.type !== 'email_converted') || [];
+  const activeNotifications = notifications?.filter(n => !n.isDismissed && !n.metadata?.browserNotification && n.type !== 'email_converted') || [];
   const unreadCount = activeNotifications.filter(n => !n.isRead).length;
 
   const handleMarkRead = (notificationId: string) => {
