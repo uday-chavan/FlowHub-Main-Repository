@@ -4,7 +4,7 @@ import { storage } from './storage';
 import type { Task } from '../shared/schema';
 
 export interface CalendarEvent {
-  id: string;
+  id?: string;
   summary: string;
   description?: string;
   start: {
@@ -64,13 +64,9 @@ class CalendarService {
       const dueDate = new Date(task.dueAt);
       const startTime = new Date(dueDate.getTime() - (task.estimatedMinutes || 30) * 60 * 1000);
 
-      // Generate Google Calendar compatible event ID (lowercase letters, numbers, underscores only)
-      const sanitizedTaskId = task.id.replace(/[^a-z0-9]/gi, '').toLowerCase();
-      const timestamp = Date.now().toString();
-      const calendarEventId = `flowhub_${sanitizedTaskId}_${timestamp}`;
-
+      // Let Google Calendar auto-generate the event ID to avoid validation issues
       const event: CalendarEvent = {
-        id: calendarEventId, // Google Calendar compatible event ID
+        // Remove the id field entirely - Google will auto-generate one
         summary: `📋 ${task.title}`,
         description: `FlowHub Task: ${task.description || ''}\n\nPriority: ${task.priority}\nEstimated time: ${task.estimatedMinutes || 30} minutes\n\nManage this task: https://flowhub.app/dashboard`,
         start: {
@@ -97,7 +93,7 @@ class CalendarService {
       });
 
       console.log(`[Calendar] Created event for task: ${task.title}, event ID: ${response.data.id}`);
-      return calendarEventId;
+      return response.data.id || null;
 
     } catch (error) {
       console.error(`[Calendar] Error creating event for task ${task.id}:`, error);
