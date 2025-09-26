@@ -131,8 +131,12 @@ class TaskNotificationScheduler {
     for (const reminder of reminderTimes) {
       const reminderTime = new Date(dueDate.getTime() - reminder.minutes * 60 * 1000);
       
-      // Only schedule if reminder time is in the future
-      if (reminderTime > now) {
+      // If reminder time is in the past, send immediately
+      if (reminderTime <= now) {
+        console.log(`[TaskScheduler] Task "${task.title}" is within ${reminder.label} of deadline - sending immediate reminder`);
+        await this.sendTaskReminder(task.id, reminder.label);
+      } else {
+        // Schedule for future
         reminders.push({
           taskId: task.id,
           reminderTime,
@@ -175,9 +179,10 @@ class TaskNotificationScheduler {
     try {
       console.log('[TaskScheduler] Checking for priority promotions...');
       
-      // Get all important tasks across all users that are not completed
+      // Get urgent and important tasks across all users that are not completed
+      const urgentTasks = await storage.getTasksByPriority("urgent");
       const importantTasks = await storage.getTasksByPriority("important");
-      console.log(`[TaskScheduler] Found ${importantTasks.length} important tasks`);
+      console.log(`[TaskScheduler] Found ${urgentTasks.length} urgent tasks, ${importantTasks.length} important tasks`);
       
       const activeTasks = importantTasks.filter(task => 
         task.status !== "completed" && 
