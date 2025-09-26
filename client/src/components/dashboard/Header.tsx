@@ -274,29 +274,7 @@ export function Header() {
               </PopoverContent>
             </Popover>
 
-            {/* Test Windows Notification Button */}
-            <Button
-              onClick={async () => {
-                try {
-                  const response = await fetch('/api/test-notification', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include'
-                  });
-                  const result = await response.json();
-                  if (result.success) {
-                    console.log('Test notification created successfully');
-                  }
-                } catch (error) {
-                  console.error('Failed to create test notification:', error);
-                }
-              }}
-              className="bg-red-600 hover:bg-red-700 text-white"
-              size="sm"
-            >
-              <Bell className="w-4 h-4 md:mr-2" />
-              <span className="hidden md:inline">Test Windows Notification</span>
-            </Button>
+            
 
             {/* Upgrade to Premium Button */}
             <Button
