@@ -12,7 +12,7 @@ export function WindowsNotificationManager({ userId }: WindowsNotificationManage
   const processedNotifications = useRef(new Set<string>());
   const tabId = useRef(`tab-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
 
-  // Request Windows notification permission - only on desktop devices
+  // Request Windows notification permission and create login notification - only on desktop devices
   useEffect(() => {
     // Simplified mobile detection - only exclude actual mobile devices
     const isMobile = /Mobi|Android|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -27,6 +27,38 @@ export function WindowsNotificationManager({ userId }: WindowsNotificationManage
       if (Notification.permission === 'granted') {
         setPermissionGranted(true);
         console.log('[NotificationManager] Notifications already granted');
+        
+        // Create instant login notification that appears in Windows notification center
+        setTimeout(() => {
+          console.log('[NotificationManager] Creating login notification');
+          const loginNotification = new Notification('🔔 Welcome back to FlowHub!', {
+            body: 'You are now logged in. Windows notifications are active and will appear in your notification center.',
+            icon: '/favicon.ico',
+            tag: 'flowhub-login',
+            requireInteraction: true, // Keep visible longer
+            silent: false
+          });
+
+          loginNotification.onclick = () => {
+            console.log('[NotificationManager] Login notification clicked');
+            window.focus();
+            loginNotification.close();
+          };
+
+          loginNotification.onshow = () => {
+            console.log('[NotificationManager] Login notification shown in Windows notification center');
+          };
+
+          loginNotification.onerror = (error) => {
+            console.error('[NotificationManager] Login notification error:', error);
+          };
+
+          // Auto-close after 10 seconds
+          setTimeout(() => {
+            loginNotification.close();
+          }, 10000);
+        }, 2000); // Wait 2 seconds after page load to show login notification
+        
       } else if (Notification.permission === 'denied') {
         console.log('[NotificationManager] Notifications denied by user');
       } else {
@@ -152,7 +184,7 @@ export function WindowsNotificationManager({ userId }: WindowsNotificationManage
         </p>
         <div className="space-y-2">
           <button
-            onClick={async () => {
+            onClick={() => {
               console.log('[NotificationManager] Enable button clicked');
               console.log('[NotificationManager] Notification API support:', 'Notification' in window);
               console.log('[NotificationManager] Current permission:', Notification.permission);
@@ -164,41 +196,52 @@ export function WindowsNotificationManager({ userId }: WindowsNotificationManage
               
               setPermissionRequested(true);
               
-              try {
-                // Request permission using the browser's native popup
-                const permission = await Notification.requestPermission();
+              // Directly request permission - this will show the browser's native popup
+              Notification.requestPermission().then(permission => {
                 console.log('[NotificationManager] Permission result:', permission);
                 
                 if (permission === 'granted') {
                   setPermissionGranted(true);
                   console.log('[NotificationManager] Permission granted, creating test notification');
                   
-                  // Create immediate test notification
+                  // Create immediate test notification that will appear in Windows notification center
                   const testNotification = new Notification('✅ FlowHub Notifications Enabled!', {
-                    body: 'You will now receive Windows notifications for task deadlines.',
+                    body: 'You will now receive Windows notifications for task deadlines. This notification should appear in your Windows notification center.',
                     icon: '/favicon.ico',
-                    tag: 'flowhub-test',
-                    requireInteraction: false
+                    tag: 'flowhub-enabled',
+                    requireInteraction: true, // Keep it visible longer
+                    silent: false
                   });
 
                   testNotification.onclick = () => {
+                    console.log('[NotificationManager] Test notification clicked');
                     window.focus();
                     testNotification.close();
                   };
 
-                  // Auto-close after 5 seconds
-                  setTimeout(() => testNotification.close(), 5000);
+                  testNotification.onshow = () => {
+                    console.log('[NotificationManager] Test notification shown in Windows notification center');
+                  };
+
+                  testNotification.onerror = (error) => {
+                    console.error('[NotificationManager] Test notification error:', error);
+                  };
+
+                  // Auto-close after 8 seconds
+                  setTimeout(() => {
+                    testNotification.close();
+                  }, 8000);
                   
                 } else if (permission === 'denied') {
                   console.log('[NotificationManager] Permission denied');
-                  alert('Notifications blocked. Please enable them in browser settings.');
+                  alert('Notifications blocked. Please click the lock icon in your browser address bar to enable notifications.');
                 } else {
                   console.log('[NotificationManager] Permission dismissed');
                 }
-              } catch (error) {
-                console.error('[NotificationManager] Permission error:', error);
-                alert('Error requesting notification permission');
-              }
+              }).catch(error => {
+                console.error('[NotificationManager] Permission request error:', error);
+                alert('Error requesting notification permission. Please try again.');
+              });
             }}
             className="w-full bg-white text-blue-600 px-3 py-2 rounded text-sm font-medium hover:bg-gray-100"
           >
