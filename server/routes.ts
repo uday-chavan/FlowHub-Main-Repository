@@ -491,6 +491,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test task deadline endpoint - creates a task with 2 minute deadline for testing
+  app.post("/api/test-task-deadline", authenticateToken, async (req: AuthenticatedRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const userId = req.user.id;
+      
+      // Create a test task due in 2 minutes
+      const dueAt = new Date(Date.now() + 2 * 60 * 1000); // 2 minutes from now
+      
+      const task = await storage.createTask({
+        userId: userId,
+        title: "Test Deadline Task",
+        description: "This is a test task to verify deadline notifications are working. It's due in 2 minutes.",
+        priority: "urgent",
+        status: "pending",
+        estimatedMinutes: 30,
+        dueAt: dueAt,
+        sourceApp: "manual",
+        metadata: {
+          testTask: true,
+          createdForTesting: true
+        }
+      });
+
+      // Schedule reminders for this test task
+      await taskNotificationScheduler.scheduleTaskReminders(task);
+
+      console.log(`[TestTask] Created test task with deadline: ${task.title}, due at: ${dueAt.toISOString()}`);
+      res.json({ 
+        success: true, 
+        message: "Test task with 2-minute deadline created successfully", 
+        task: {
+          id: task.id,
+          title: task.title,
+          dueAt: task.dueAt,
+          timeUntilDue: "2 minutes"
+        }
+      });
+    } catch (error) {
+      console.error("Failed to create test task:", error);
+      res.status(500).json({ error: "Failed to create test task" });
+    }
+  });
+
   // User routes
   app.get("/api/users/:id", async (req, res) => {
     try {
