@@ -428,8 +428,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Waitlist route removed - now using Google Forms directly
 
   // Health check endpoint
-  app.get("/health", (req, res) => {
+  app.get("/api/health", (req, res) => {
     res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
+  // Test notification endpoint
+  app.post("/api/test-notification", async (req, res) => {
+    try {
+      await storage.createNotification({
+        userId: "demo-user",
+        title: "Test Notification",
+        description: "This is a test notification to verify Windows notifications are working properly.",
+        type: "browser_notification",
+        sourceApp: "system",
+        aiSummary: "Test notification for Windows notification system",
+        actionableInsights: ["Test completed"],
+        metadata: {
+          taskId: "test-task",
+          reminderType: "test",
+          sourceType: "manual",
+          browserNotification: true
+        }
+      });
+
+      res.json({ success: true, message: "Test notification created" });
+    } catch (error) {
+      console.error("Failed to create test notification:", error);
+      res.status(500).json({ error: "Failed to create test notification" });
+    }
   });
 
   // User routes
