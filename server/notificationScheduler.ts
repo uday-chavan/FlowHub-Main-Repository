@@ -253,19 +253,27 @@ class TaskNotificationScheduler {
     try {
       console.log('[TaskScheduler] Backfilling reminders for existing tasks...');
       
-      // Get all tasks with future due dates
-      const allTasks = await storage.getTasksByPriority("urgent");
-      const importantTasks = await storage.getTasksByPriority("important");
-      const normalTasks = await storage.getTasksByPriority("normal");
+      // Get all users and their tasks
+      const allUsers = await storage.getAllUsers();
+      let totalTasksWithReminders = 0;
       
-      const tasksWithDueDates = [...allTasks, ...importantTasks, ...normalTasks]
-        .filter(task => task.dueAt && task.status !== 'completed' && new Date(task.dueAt) > new Date());
-      
-      for (const task of tasksWithDueDates) {
-        await this.scheduleTaskReminders(task);
+      for (const user of allUsers) {
+        const userTasks = await storage.getUserTasks(user.id);
+        const tasksWithDueDates = userTasks.filter(task => 
+          task.dueAt && 
+          task.status !== 'completed' && 
+          new Date(task.dueAt) > new Date()
+        );
+        
+        console.log(`[TaskScheduler] Found ${tasksWithDueDates.length} tasks with due dates for user ${user.id}`);
+        
+        for (const task of tasksWithDueDates) {
+          await this.scheduleTaskReminders(task);
+          totalTasksWithReminders++;
+        }
       }
       
-      console.log(`[TaskScheduler] Backfilled reminders for ${tasksWithDueDates.length} tasks`);
+      console.log(`[TaskScheduler] Backfilled reminders for ${totalTasksWithReminders} tasks across all users`);
     } catch (error) {
       console.error('Error backfilling task reminders:', error);
     }
