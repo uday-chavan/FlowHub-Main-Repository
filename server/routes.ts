@@ -433,25 +433,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Test notification endpoint
-  app.post("/api/test-notification", async (req, res) => {
+  app.post("/api/test-notification", optionalAuth, async (req: AuthenticatedRequest, res) => {
     try {
+      const userId = req.user?.id || "demo-user";
+      
       await storage.createNotification({
-        userId: "demo-user",
-        title: "Test Notification",
-        description: "This is a test notification to verify Windows notifications are working properly.",
+        userId: userId,
+        title: "🔔 Windows Notification Test",
+        description: "This is a test notification to verify Windows notifications are working properly. You should see this in your Windows notification center.",
         type: "browser_notification",
         sourceApp: "system",
-        aiSummary: "Test notification for Windows notification system",
-        actionableInsights: ["Test completed"],
+        aiSummary: "Test notification for Windows notification system verification",
+        actionableInsights: ["Windows notifications are working", "Check notification center", "System is ready"],
         metadata: {
-          taskId: "test-task",
+          taskId: `test-task-${Date.now()}`,
           reminderType: "test",
           sourceType: "manual",
-          browserNotification: true
+          browserNotification: true,
+          testNotification: true,
+          timestamp: new Date().toISOString()
         }
       });
 
-      res.json({ success: true, message: "Test notification created" });
+      console.log(`[TestNotification] Created test notification for user: ${userId}`);
+      res.json({ success: true, message: "Test notification created successfully", userId });
     } catch (error) {
       console.error("Failed to create test notification:", error);
       res.status(500).json({ error: "Failed to create test notification" });
