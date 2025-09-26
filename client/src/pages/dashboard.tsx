@@ -7,20 +7,17 @@ import { GmailConnect } from "@/components/dashboard/GmailConnect";
 import { WindowsNotificationManager } from "@/components/WindowsNotificationManager";
 import { CalendarSync } from "@/components/dashboard/CalendarSync"; // Import CalendarSync component
 
-import { RealTimeMetrics } from "@/components/dashboard/RealTimeMetrics";
-import { WellnessPanel } from "@/components/dashboard/WellnessPanel";
-import { AIInsights } from "@/components/dashboard/AIInsights";
-import { UserProfile } from "@/components/dashboard/UserProfile";
+
 import { useNotifications } from "@/hooks/useNotifications";
 
 // TaskList functionality is handled by WorkflowRiver component
-import { useMetrics } from "@/hooks/useMetrics"; // Added useMetrics import
+
 import { useIsMobile } from "@/hooks/use-mobile"; // Added useIsMobile hook
 import { useAuth } from "@/hooks/useAuth"; // Added useAuth import
 import { useState } from "react"; // Import useState for isGmailConnected
 
 export default function Dashboard() {
-  const { data: metrics } = useMetrics();
+  
   const isMobile = useIsMobile();
   const { user } = useAuth(); // Get actual authenticated user
   const [isGmailConnected, setIsGmailConnected] = useState(false); // State to track Gmail connection
@@ -47,13 +44,7 @@ export default function Dashboard() {
             {/* Main Content - Tasks */}
             <WorkflowRiver />
 
-            {/* Additional Mobile Content */}
-            <div className="space-y-4">
-              <UserProfile />
-              {metrics && <RealTimeMetrics metrics={metrics} />}
-              <WellnessPanel />
-              <AIInsights />
-            </div>
+            {/* Additional Mobile Content - Removed sidebar components */}
           </div>
         ) : (
           /* Desktop Layout */
@@ -63,21 +54,9 @@ export default function Dashboard() {
               <NotificationFeed />
             </div>
 
-            {/* Main Column - Tasks with Extended Width */}
-            <div className="flex-[3] px-2 h-full">
+            {/* Main Column - Tasks with Full Remaining Width */}
+            <div className="flex-1 px-2 h-full">
               <WorkflowRiver />
-            </div>
-
-            {/* Right Column - Dashboard Widgets */}
-            <div className="w-80 flex-shrink-0 px-2 h-full">
-              <div className="space-y-4 h-full overflow-y-auto">
-                <GmailConnect onConnectionChange={setIsGmailConnected} />
-                <CalendarSync isGmailConnected={isGmailConnected} />
-                <UserProfile />
-                {metrics && <RealTimeMetrics metrics={metrics} />}
-                <WellnessPanel />
-                <AIInsights />
-              </div>
             </div>
           </div>
         )}
