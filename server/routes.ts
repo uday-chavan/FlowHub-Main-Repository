@@ -1070,6 +1070,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Notification routes with authentication
   app.get("/api/notifications", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
+      // Disable caching to prevent 304 responses that break Windows notifications
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
+      res.removeHeader('ETag');
+      
       const requestedUserId = req.query.userId as string;
       const authenticatedUserId = req.user?.id;
 
