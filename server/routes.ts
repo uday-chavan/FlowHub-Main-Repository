@@ -597,152 +597,182 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/tasks", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
-      if (!req.user) {
-        return res.status(401).json({ message: "Authentication required" });
-      }
+      const task = insertTaskSchema.parse(req.body);
+      const userId = req.user?.id || task.userId || "demo-user"; // Use authenticated user's ID
+      const taskWithUser = { ...task, userId };
 
-      // Use authenticated user's ID
-      const taskData = insertTaskSchema.parse({ ...req.body, userId: req.user.id });
-      const task = await storage.createTask(taskData);
+      const createdTask = await storage.createTask(taskWithUser);
 
-      // Schedule reminders for the new task
-      await taskNotificationScheduler.scheduleTaskReminders(task);
-      
-      // Create calendar event for the task
-      if (task.dueAt) {
-        const calendarEventId = await calendarService.createTaskEvent(task);
-        if (calendarEventId) {
-          await storage.updateTask(task.id, {
-            metadata: {
-              ...task.metadata,
-              calendarEventId
-            }
-          });
-          console.log(`[Task] Created calendar event for task: ${task.title}`);
+      // Create calendar event if user has calendar connected and task has due date
+      if (createdTask.dueAt && calendarService.hasUserClient(userId)) {
+        try {
+          const calendarEventId = await calendarService.createTaskEvent(createdTask);
+          if (calendarEventId) {
+            await storage.updateTask(createdTask.id, {
+              metadata: {
+                ...createdTask.metadata,
+                calendarEventId
+              }
+            });
+            console.log(`[Calendar] Created event for task: ${createdTask.title}`);
+          }
+        } catch (calendarError) {
+          console.error("[Calendar] Failed to create event for task:", calendarError);
+          // Continue without failing the task creation
         }
       }
 
-      res.json(task);
+      res.json(createdTask);
     } catch (error) {
-      res.status(500).json({ message: "Failed to create task" });
+      console.error("Error creating task:", error);
+      res.status(500).json({ message: "Failed to create task", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
   // Update task
   app.patch("/api/tasks/:id", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
-      if (!req.user) {
-        return res.status(401).json({ message: "Authentication required" });
-      }
-
-      const taskId = req.params.id;
+      const { id } = req.params;
       const updates = req.body;
+      const userId = req.user?.id || updates.userId || "demo-user";
 
       // Verify task belongs to user
-      const existingTask = await storage.getTaskById(taskId);
-      if (!existingTask || existingTask.userId !== req.user.id) {
+      const existingTask = await storage.getTaskById(id);
+      if (!existingTask || existingTask.userId !== req.user?.id) {
+        return res.status(404).json({ message: "Task not found or access denied" });
+      }
+
+      const updatedTask = await storage.updateTask(id, updates);
+      if (!updatedTask) {
         return res.status(404).json({ message: "Task not found" });
       }
 
-      const updatedTask = await storage.updateTask(taskId, updates);
+      // Handle calendar event updates if user has calendar connected
+      if (calendarService.hasUserClient(userId)) {
+        const calendarEventId = existingTask.metadata?.calendarEventId;
 
-      // If task has a due date, schedule reminders
-      if (updatedTask && updatedTask.dueAt) {
-        taskNotificationScheduler.removeTaskReminders(taskId);
-        await taskNotificationScheduler.scheduleTaskReminders(updatedTask);
-        console.log(`[TaskUpdate] Scheduled reminders for updated task: ${updatedTask.title}`);
-        
-        // Update calendar event if it exists
-        const calendarEventId = updatedTask.metadata?.calendarEventId;
-        if (calendarEventId) {
-          const success = await calendarService.updateTaskEvent(updatedTask, calendarEventId);
-          if (success) {
-            console.log(`[TaskUpdate] Updated calendar event for task: ${updatedTask.title}`);
-          }
-        } else if (updatedTask.dueAt) {
-          // Create new calendar event if task now has a due date
-          const newCalendarEventId = await calendarService.createTaskEvent(updatedTask);
-          if (newCalendarEventId) {
-            await storage.updateTask(taskId, {
+        try {
+          if (calendarEventId && updatedTask.dueAt) {
+            // Update existing calendar event
+            await calendarService.updateTaskEvent(updatedTask, calendarEventId);
+            console.log(`[Calendar] Updated event for task: ${updatedTask.title}`);
+          } else if (!calendarEventId && updatedTask.dueAt) {
+            // Create new calendar event if task now has due date
+            const newCalendarEventId = await calendarService.createTaskEvent(updatedTask);
+            if (newCalendarEventId) {
+              await storage.updateTask(updatedTask.id, {
+                metadata: {
+                  ...updatedTask.metadata,
+                  calendarEventId: newCalendarEventId
+                }
+              });
+              console.log(`[Calendar] Created new event for updated task: ${updatedTask.title}`);
+            }
+          } else if (calendarEventId && !updatedTask.dueAt) {
+            // Delete calendar event if due date was removed
+            await calendarService.deleteTaskEvent(userId, calendarEventId);
+            await storage.updateTask(updatedTask.id, {
               metadata: {
                 ...updatedTask.metadata,
-                calendarEventId: newCalendarEventId
+                calendarEventId: undefined
               }
             });
-            console.log(`[TaskUpdate] Created new calendar event for updated task: ${updatedTask.title}`);
+            console.log(`[Calendar] Deleted event for task: ${updatedTask.title}`);
           }
+        } catch (calendarError) {
+          console.error("[Calendar] Failed to update calendar event:", calendarError);
+          // Continue without failing the task update
         }
       }
 
       res.json(updatedTask);
     } catch (error) {
       console.error("Error updating task:", error);
-      res.status(500).json({ message: "Failed to update task" });
+      res.status(500).json({ message: "Failed to update task", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
-  app.post("/api/tasks/:id/start", async (req, res) => {
+  app.post("/api/tasks/:id/start", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
       const task = await storage.updateTask(req.params.id, {
-        status: "in_progress" as any,
+        status: "in_progress",
         startedAt: new Date(),
       });
 
       // Trigger smart rescheduling when starting a task
       try {
-        await smartScheduler.rescheduleUserTasks(task.userId);
+        await smartScheduler.rescheduleUserTasks(userId, req.params.id);
       } catch (scheduleError) {
         // Auto-rescheduling failed, but task started successfully
       }
 
       res.json(task);
     } catch (error) {
-      res.status(500).json({ message: "Failed to start task" });
+      console.error("Error starting task:", error);
+      res.status(500).json({ message: "Failed to start task", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
-  app.post("/api/tasks/:id/stop", async (req, res) => {
+  app.post("/api/tasks/:id/stop", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
-      // Calculate actual minutes spent on task
-      const existingTask = await storage.getTaskById(req.params.id);
-      let actualMinutes = undefined;
+      const { id } = req.params;
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
 
-      if (existingTask?.startedAt) {
-        const startTime = new Date(existingTask.startedAt);
+      const task = await storage.getTaskById(id);
+      if (!task || task.userId !== userId) {
+        return res.status(404).json({ message: "Task not found or access denied" });
+      }
+
+      // Calculate actual minutes spent on task
+      let actualMinutes = undefined;
+      if (task.startedAt) {
+        const startTime = new Date(task.startedAt);
         const endTime = new Date();
         actualMinutes = Math.ceil((endTime.getTime() - startTime.getTime()) / (1000 * 60));
       }
 
-      const task = await storage.updateTask(req.params.id, {
-        status: "completed" as any,
+      const completedTask = await storage.updateTask(id, {
+        status: "completed",
         completedAt: new Date(),
         actualMinutes,
       });
 
       // Remove reminders for completed task
       taskNotificationScheduler.removeTaskReminders(req.params.id);
-      
+
       // Delete calendar event for completed task
       const calendarEventId = task.metadata?.calendarEventId;
       if (calendarEventId) {
-        const success = await calendarService.deleteTaskEvent(task.userId, calendarEventId);
-        if (success) {
-          console.log(`[TaskComplete] Deleted calendar event for completed task: ${task.title}`);
+        try {
+          const success = await calendarService.deleteTaskEvent(userId, calendarEventId);
+          if (success) {
+            console.log(`[TaskComplete] Deleted calendar event for completed task: ${task.title}`);
+          }
+        } catch (calendarError) {
+          console.error("[TaskComplete] Failed to delete calendar event:", calendarError);
         }
       }
 
       // Trigger smart rescheduling after task completion
       try {
-        const reschedulingResult = await smartScheduler.rescheduleUserTasks(task.userId, req.params.id);
+        const reschedulingResult = await smartScheduler.rescheduleUserTasks(userId, req.params.id);
 
         // Create AI insight about the rescheduling if tasks were rescheduled
         if (reschedulingResult.rescheduledTasks.length > 0) {
           await storage.createAiInsight({
-            userId: task.userId,
+            userId: userId,
             type: "task_rescheduling",
             title: "Tasks Auto-Rescheduled",
             description: `Completed task influenced rescheduling of ${reschedulingResult.rescheduledTasks.length} upcoming tasks. ${reschedulingResult.insights.join(' ')}`,
-            priority: "normal" as any,
+            priority: "normal",
             metadata: {
               rescheduledTasks: reschedulingResult.rescheduledTasks,
               completedTaskId: req.params.id,
@@ -754,34 +784,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Auto-rescheduling failed, but task completed successfully
       }
 
-      res.json(task);
+      res.json(completedTask);
     } catch (error) {
-      res.status(500).json({ message: "Failed to stop task" });
+      console.error("Error stopping task:", error);
+      res.status(500).json({ message: "Failed to stop task", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
-  app.delete("/api/tasks/:id", async (req, res) => {
+  app.delete("/api/tasks/:id", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
-      await storage.deleteTask(req.params.id);
-      res.json({ success: true });
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const taskId = req.params.id;
+      const task = await storage.getTaskById(taskId);
+
+      if (!task) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+
+      if (task.userId !== userId) {
+        return res.status(403).json({ message: "Access denied: cannot delete tasks that do not belong to you" });
+      }
+
+      // Delete calendar event if it exists
+      const calendarEventId = task.metadata?.calendarEventId;
+      if (calendarEventId) {
+        try {
+          await calendarService.deleteTaskEvent(userId, calendarEventId);
+          console.log(`[TaskDelete] Deleted calendar event for task: ${task.title}`);
+        } catch (calendarError) {
+          console.error("[TaskDelete] Failed to delete calendar event:", calendarError);
+        }
+      }
+
+      await storage.deleteTask(taskId);
+      res.json({ success: true, message: "Task deleted successfully" });
     } catch (error) {
-      res.status(500).json({ message: "Failed to delete task" });
+      console.error("Error deleting task:", error);
+      res.status(500).json({ message: "Failed to delete task", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
   // Create task manually without AI
 
   // Create task from natural language input
-  app.post("/api/tasks/create-from-text", async (req, res) => {
+  app.post("/api/tasks/create-from-text", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
       const { userId, naturalLanguageInput } = req.body;
+      const authenticatedUserId = req.user?.id;
 
-      if (!userId || !naturalLanguageInput) {
-        return res.status(400).json({ message: "userId and naturalLanguageInput are required" });
+      if (!authenticatedUserId) {
+        return res.status(401).json({ message: "Authentication required" });
       }
 
+      // Ensure user can only create tasks for themselves
+      if (userId && userId !== authenticatedUserId) {
+        return res.status(403).json({ message: "Access denied: cannot create tasks for other users" });
+      }
+
+      const currentUserId = authenticatedUserId;
+
       // Check AI task limits before proceeding
-      const limitCheck = await storage.checkAiTaskLimit(userId);
+      const limitCheck = await storage.checkAiTaskLimit(currentUserId);
       if (!limitCheck.withinLimit) {
         return res.status(429).json({
           message: "AI task limit exceeded",
@@ -808,14 +875,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Use AI results if available, otherwise use fallback
       const taskData: InsertTask = {
-        userId,
+        userId: currentUserId,
         title: aiAnalysis?.title || naturalLanguageInput.slice(0, 60).trim() || "New Task",
         description: aiAnalysis?.description || naturalLanguageInput,
         priority: (aiAnalysis?.priority as any) || "important",
-        status: "pending" as any,
+        status: "pending",
         estimatedMinutes: aiAnalysis?.estimatedMinutes || 30,
         dueAt: aiAnalysis?.dueAt || null,
-        sourceApp: "manual" as any,
+        sourceApp: "manual",
         metadata: {
           aiGenerated: !!aiAnalysis?.title, // True if AI provided a title
           originalInput: naturalLanguageInput,
@@ -836,18 +903,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Schedule reminders for the task
       await taskNotificationScheduler.scheduleTaskReminders(task);
-      
+
       // Create calendar event for the task if it has a due date
-      if (task.dueAt) {
-        const calendarEventId = await calendarService.createTaskEvent(task);
-        if (calendarEventId) {
-          await storage.updateTask(task.id, {
-            metadata: {
-              ...task.metadata,
-              calendarEventId
-            }
-          });
-          console.log(`[NaturalLanguageTask] Created calendar event for task: ${task.title}`);
+      if (task.dueAt && calendarService.hasUserClient(currentUserId)) {
+        try {
+          const calendarEventId = await calendarService.createTaskEvent(task);
+          if (calendarEventId) {
+            await storage.updateTask(task.id, {
+              metadata: {
+                ...task.metadata,
+                calendarEventId
+              }
+            });
+            console.log(`[NaturalLanguageTask] Created calendar event for task: ${task.title}`);
+          }
+        } catch (calendarError) {
+          console.error("[NaturalLanguageTask] Failed to create calendar event:", calendarError);
+          // Continue without failing the task creation
         }
       }
 
@@ -857,23 +929,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true, task });
 
     } catch (error) {
-      console.error("Task creation error:", error);
-      res.status(500).json({ message: "Failed to create task from natural language" });
+      console.error("Task creation from text error:", error);
+      res.status(500).json({ message: "Failed to create task from natural language", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
   // Convert notification to task using Gemini AI
-  app.post("/api/notifications/:id/convert-to-task", async (req, res) => {
+  app.post("/api/notifications/:id/convert-to-task", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
       const notificationId = req.params.id;
-      const notification = await storage.getNotificationById(notificationId);
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
 
-      if (!notification) {
-        return res.status(404).json({ message: "Notification not found" });
+      const notification = await storage.getNotificationById(notificationId);
+      if (!notification || notification.userId !== userId) {
+        return res.status(404).json({ message: "Notification not found or access denied" });
       }
 
       // Check AI task limits before proceeding
-      const limitCheck = await storage.checkAiTaskLimit(notification.userId);
+      const limitCheck = await storage.checkAiTaskLimit(userId);
       if (!limitCheck.withinLimit) {
         return res.status(429).json({
           message: "AI task limit exceeded",
@@ -904,11 +980,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const finalPriority = notification.metadata?.isPriorityPerson ? "urgent" : aiAnalysis.priority;
 
         const taskData: InsertTask = {
-          userId: notification.userId,
+          userId: userId,
           title: aiAnalysis.title,
           description: fullContent || aiAnalysis.description, // Use full content as description
           priority: finalPriority as any,
-          status: "pending" as any,
+          status: "pending",
           estimatedMinutes: aiAnalysis.estimatedMinutes,
           dueAt: aiAnalysis.dueAt,
           sourceApp: notification.sourceApp as any,
@@ -940,18 +1016,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Schedule reminders for each task
         await taskNotificationScheduler.scheduleTaskReminders(task);
-        
+
         // Create calendar event for the task
-        if (task.dueAt) {
-          const calendarEventId = await calendarService.createTaskEvent(task);
-          if (calendarEventId) {
-            await storage.updateTask(task.id, {
-              metadata: {
-                ...task.metadata,
-                calendarEventId
-              }
-            });
-            console.log(`[ConvertedTask] Created calendar event for converted task: ${task.title}`);
+        if (task.dueAt && calendarService.hasUserClient(userId)) {
+          try {
+            const calendarEventId = await calendarService.createTaskEvent(task);
+            if (calendarEventId) {
+              await storage.updateTask(task.id, {
+                metadata: {
+                  ...task.metadata,
+                  calendarEventId
+                }
+              });
+              console.log(`[ConvertedTask] Created calendar event for converted task: ${task.title}`);
+            }
+          } catch (calendarError) {
+            console.error("[ConvertedTask] Failed to create calendar event:", calendarError);
+            // Continue without failing the task creation
           }
         }
       }
@@ -964,7 +1045,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           : `Email converted to task: ${createdTasks[0].title}`;
 
         await storage.createNotification({
-          userId: notification.userId,
+          userId: userId,
           title: `Email converted: ${notification.title}`,
           description: taskDescription,
           type: "email_converted",
@@ -995,14 +1076,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         multiTask: createdTasks.length > 1
       });
     } catch (error) {
-      res.status(500).json({ message: "Failed to convert notification to task" });
+      console.error("Error converting notification to task:", error);
+      res.status(500).json({ message: "Failed to convert notification to task", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
   // Batch convert multiple notifications to tasks
-  app.post("/api/notifications/batch-convert-to-tasks", async (req, res) => {
+  app.post("/api/notifications/batch-convert-to-tasks", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
-      const { userId, notifications } = req.body;
+      const { notifications } = req.body;
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
 
       if (!notifications || !Array.isArray(notifications)) {
         return res.status(400).json({ message: "Invalid notifications array" });
@@ -1034,8 +1120,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const batchPromises = batch.map(async (notificationData: any) => {
           try {
             const notification = await storage.getNotificationById(notificationData.id);
-            if (!notification) {
-              errors.push({ id: notificationData.id, error: "Notification not found" });
+            if (!notification || notification.userId !== userId) {
+              errors.push({ id: notificationData.id, error: "Notification not found or access denied" });
               return null;
             }
 
@@ -1054,11 +1140,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             // Create task from AI analysis, preserving full email content
             const taskData: InsertTask = {
-              userId: notification.userId,
+              userId: userId,
               title: aiAnalysis.title,
               description: fullContent || aiAnalysis.description, // Use full content as description
               priority: finalPriority as any,
-              status: "pending" as any,
+              status: "pending",
               estimatedMinutes: aiAnalysis.estimatedMinutes,
               dueAt: aiAnalysis.dueAt,
               sourceApp: notification.sourceApp as any,
@@ -1084,25 +1170,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             // Schedule reminders for batch-converted task
             await taskNotificationScheduler.scheduleTaskReminders(task);
-            
+
             // Create calendar event for the batch-converted task
-            if (task.dueAt) {
-              const calendarEventId = await calendarService.createTaskEvent(task);
-              if (calendarEventId) {
-                await storage.updateTask(task.id, {
-                  metadata: {
-                    ...task.metadata,
-                    calendarEventId
-                  }
-                });
-                console.log(`[BatchConvertedTask] Created calendar event for batch task: ${task.title}`);
+            if (task.dueAt && calendarService.hasUserClient(userId)) {
+              try {
+                const calendarEventId = await calendarService.createTaskEvent(task);
+                if (calendarEventId) {
+                  await storage.updateTask(task.id, {
+                    metadata: {
+                      ...task.metadata,
+                      calendarEventId
+                    }
+                  });
+                  console.log(`[BatchConvertedTask] Created calendar event for batch task: ${task.title}`);
+                }
+              } catch (calendarError) {
+                console.error("[BatchConvertedTask] Failed to create calendar event:", calendarError);
+                // Continue without failing the task creation
               }
             }
 
             // Create email conversion tracking record for batch-converted emails BEFORE dismissing
             if (notification.sourceApp === "gmail") {
               await storage.createNotification({
-                userId: notification.userId,
+                userId: userId,
                 title: `Email converted: ${notification.title}`,
                 description: `Batch converted email to task: ${aiAnalysis.title}`,
                 type: "email_converted",
@@ -1150,7 +1241,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("Batch conversion error:", error);
-      res.status(500).json({ message: "Failed to batch convert notifications to tasks" });
+      res.status(500).json({ message: "Failed to batch convert notifications to tasks", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
@@ -1162,7 +1253,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.set('Pragma', 'no-cache');
       res.set('Expires', '0');
       res.removeHeader('ETag');
-      
+
       const requestedUserId = req.query.userId as string;
       const authenticatedUserId = req.user?.id;
 
@@ -1189,27 +1280,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(notifications);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch notifications" });
+      console.error("Error fetching notifications:", error);
+      res.status(500).json({ message: "Failed to fetch notifications", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
-  app.post("/api/notifications", async (req, res) => {
+  app.post("/api/notifications", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
-      const notificationData = insertNotificationSchema.parse(req.body);
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      const notificationData = insertNotificationSchema.parse({ ...req.body, userId });
       const notification = await storage.createNotification(notificationData);
       res.json(notification);
     } catch (error) {
-      res.status(500).json({ message: "Failed to create notification" });
+      console.error("Error creating notification:", error);
+      res.status(500).json({ message: "Failed to create notification", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
-  app.post("/api/notifications/analyze", async (req, res) => {
+  app.post("/api/notifications/analyze", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
-      const { title, content, sourceApp, userId } = req.body;
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      const { title, content, sourceApp } = req.body;
 
-      if (!title || !content || !sourceApp || !userId) {
+      if (!title || !content || !sourceApp) {
         return res.status(400).json({
-          message: "title, content, sourceApp, and userId are required"
+          message: "title, content, and sourceApp are required"
         });
       }
 
@@ -1228,36 +1329,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({ notification, analysis });
     } catch (error) {
-      res.status(500).json({ message: "Failed to analyze notification" });
+      console.error("Error analyzing notification:", error);
+      res.status(500).json({ message: "Failed to analyze notification", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
-  app.patch("/api/notifications/:id/read", async (req, res) => {
+  app.patch("/api/notifications/:id/read", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
-      await storage.markNotificationRead(req.params.id);
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      const notificationId = req.params.id;
+
+      // Optionally verify ownership if needed, though typically read status is user-specific
+      // const notification = await storage.getNotificationById(notificationId);
+      // if (!notification || notification.userId !== userId) {
+      //   return res.status(404).json({ message: "Notification not found or access denied" });
+      // }
+
+      await storage.markNotificationRead(notificationId);
       res.json({ success: true });
     } catch (error) {
-      res.status(500).json({ message: "Failed to mark notification as read" });
+      console.error("Error marking notification read:", error);
+      res.status(500).json({ message: "Failed to mark notification as read", error: error instanceof Error ? error.message : 'Unknown error' });
     }
-
+  });
 
   // Calendar sync endpoint
   app.post("/api/calendar/sync", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
-      if (!req.user) {
+      const userId = req.user?.id;
+      if (!userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
 
-      await calendarService.syncCalendarEvents(req.user.id);
-      
-      res.json({ 
-        success: true, 
-        message: "Calendar sync completed successfully" 
+      await calendarService.syncCalendarEvents(userId);
+
+      res.json({
+        success: true,
+        message: "Calendar sync completed successfully"
       });
     } catch (error) {
       console.error("Calendar sync error:", error);
-      res.status(500).json({ 
-        message: "Failed to sync calendar events" 
+      res.status(500).json({
+        message: "Failed to sync calendar events", error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   });
@@ -1265,76 +1381,115 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get calendar integration status
   app.get("/api/calendar/status", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
-      if (!req.user) {
+      const userId = req.user?.id;
+      if (!userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
 
-      const hasCalendarAccess = calendarService.hasUserClient(req.user.id);
-      
+      const hasCalendarAccess = calendarService.hasUserClient(userId);
+
       res.json({
         connected: hasCalendarAccess,
         message: hasCalendarAccess ? "Calendar integration active" : "Calendar not connected"
       });
     } catch (error) {
-      res.status(500).json({ 
+      console.error("Error checking calendar status:", error);
+      res.status(500).json({
         connected: false,
-        message: "Failed to check calendar status" 
+        message: "Failed to check calendar status", error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   });
 
-
-  });
-
-  app.patch("/api/notifications/:id/dismiss", async (req, res) => {
+  app.patch("/api/notifications/:id/dismiss", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
-      await storage.dismissNotification(req.params.id);
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      const notificationId = req.params.id;
+
+      // Optionally verify ownership if needed
+      // const notification = await storage.getNotificationById(notificationId);
+      // if (!notification || notification.userId !== userId) {
+      //   return res.status(404).json({ message: "Notification not found or access denied" });
+      // }
+
+      await storage.dismissNotification(notificationId);
       res.json({ success: true });
     } catch (error) {
-      res.status(500).json({ message: "Failed to dismiss notification" });
+      console.error("Error dismissing notification:", error);
+      res.status(500).json({ message: "Failed to dismiss notification", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
   // Bulk delete notifications for Emails Converted page
-  app.post('/api/notifications/bulk-delete', async (req, res) => {
+  app.post('/api/notifications/bulk-delete', authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
       const { ids } = req.body;
       if (!Array.isArray(ids)) {
         return res.status(400).json({ error: 'Invalid request format' });
       }
 
-      for (const id of ids) {
+      // Add check to ensure notifications belong to the user
+      const userNotifications = await storage.getUserNotifications(userId);
+      const userNotificationIds = new Set(userNotifications.map(n => n.id));
+
+      const deletableIds = ids.filter(id => userNotificationIds.has(id));
+      const nonDeletableIds = ids.filter(id => !userNotificationIds.has(id));
+
+      if (nonDeletableIds.length > 0) {
+        console.warn(`[BulkDelete] User ${userId} attempted to delete notifications they don't own: ${nonDeletableIds.join(', ')}`);
+        // Proceed with deleting only the ones that belong to the user
+      }
+
+      for (const id of deletableIds) {
         await storage.dismissNotification(id);
       }
 
-      res.json({ success: true, deletedCount: ids.length });
+      res.json({ success: true, deletedCount: deletableIds.length, ignoredCount: nonDeletableIds.length });
     } catch (error) {
       console.error('Error bulk deleting notifications:', error);
-      res.status(500).json({ error: 'Failed to delete notifications' });
+      res.status(500).json({ error: 'Failed to delete notifications', error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
   // Retrieve emails back to notification section
-  app.post('/api/notifications/retrieve-emails', async (req, res) => {
+  app.post('/api/notifications/retrieve-emails', authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
       const { ids } = req.body;
       if (!Array.isArray(ids)) {
         return res.status(400).json({ error: 'Invalid request format' });
       }
 
       const retrievedEmails = [];
+      const userNotifications = await storage.getUserNotifications(userId);
+      const userNotificationIds = new Set(userNotifications.map(n => n.id));
 
       for (const id of ids) {
+        if (!userNotificationIds.has(id)) {
+          console.warn(`[RetrieveEmail] User ${userId} attempted to retrieve notification ${id} they don't own.`);
+          continue; // Skip if the notification doesn't belong to the user
+        }
+
         // Get the converted email notification
         const convertedEmail = await storage.getNotificationById(id);
-        if (!convertedEmail) continue;
+        if (!convertedEmail) continue; // Should not happen if already in userNotificationIds, but good safety check
 
         // Create a new notification in the notification feed with original email data
         const originalNotification = await storage.createNotification({
-          userId: convertedEmail.userId,
+          userId: userId,
           title: convertedEmail.metadata?.subject || convertedEmail.title,
           description: convertedEmail.metadata?.originalContent || convertedEmail.description,
-          type: "urgent",
+          type: "urgent", // Defaulting to urgent for retrieved emails
           sourceApp: "gmail",
           aiSummary: `Retrieved email from: ${convertedEmail.metadata?.from || 'unknown sender'}`,
           actionableInsights: ["Convert to task", "Mark as read"],
@@ -1356,7 +1511,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true, retrievedCount: retrievedEmails.length, emails: retrievedEmails });
     } catch (error) {
       console.error('Error retrieving emails:', error);
-      res.status(500).json({ error: 'Failed to retrieve emails' });
+      res.status(500).json({ error: 'Failed to retrieve emails', error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
@@ -1381,14 +1536,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(apps);
     } catch (error) {
       // Error fetching connected apps
-      res.status(500).json({ message: "Failed to fetch connected apps" });
+      console.error("Error fetching connected apps:", error);
+      res.status(500).json({ message: "Failed to fetch connected apps", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
   // User Usage Analytics endpoint for plan limits
-  app.get("/api/usage", async (req, res) => {
+  app.get("/api/usage", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
-      const userId = req.query.userId as string || "demo-user";
+      const userId = req.query.userId as string || req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
       const limitCheck = await storage.checkAiTaskLimit(userId);
 
       res.json({
@@ -1397,18 +1557,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         planType: limitCheck.planType,
         withinLimit: limitCheck.withinLimit,
         remainingTasks: Math.max(0, limitCheck.limit - limitCheck.currentCount),
-        usagePercentage: Math.round((limitCheck.currentCount / limitCheck.limit) * 100)
+        usagePercentage: limitCheck.limit > 0 ? Math.round((limitCheck.currentCount / limitCheck.limit) * 100) : 0
       });
     } catch (error) {
       console.error("Error fetching user usage:", error);
-      res.status(500).json({ message: "Failed to fetch usage data" });
+      res.status(500).json({ message: "Failed to fetch usage data", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
   // Time Saved Analytics endpoint
-  app.get("/api/analytics/time-saved", async (req, res) => {
+  app.get("/api/analytics/time-saved", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
-      const userId = req.query.userId as string || "demo-user";
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
 
       // Get all tasks and notifications for analytics
       const tasks = await storage.getUserTasks(userId);
@@ -1416,7 +1579,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Calculate statistics
       const emailConversions = notifications.filter(n =>
-        n.sourceApp === "gmail" && n.metadata?.convertedFromEmail
+        n.sourceApp === "gmail" && n.type === "email_converted"
       ).length;
 
       const naturalLanguageTasks = tasks.filter(t =>
@@ -1450,60 +1613,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(stats);
     } catch (error) {
       console.error("Error calculating time saved stats:", error);
-      res.status(500).json({ message: "Failed to fetch time saved analytics" });
+      res.status(500).json({ message: "Failed to fetch time saved analytics", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
   // User Metrics routes
-  app.get("/api/metrics", async (req, res) => {
+  app.get("/api/metrics", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
-      const userId = req.query.userId as string;
+      const userId = req.query.userId as string || req.user?.id;
       const date = req.query.date ? new Date(req.query.date as string) : undefined;
 
       if (!userId) {
-        return res.status(400).json({ message: "userId is required" });
+        return res.status(401).json({ message: "Authentication required" });
       }
 
       const metrics = await storage.getUserMetrics(userId, date);
       res.json(metrics);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch metrics" });
+      console.error("Error fetching metrics:", error);
+      res.status(500).json({ message: "Failed to fetch metrics", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
-  app.post("/api/metrics", async (req, res) => {
+  app.post("/api/metrics", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
-      const metricsData = insertUserMetricsSchema.parse(req.body);
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      const metricsData = insertUserMetricsSchema.parse({ ...req.body, userId });
       const metrics = await storage.createUserMetrics(metricsData);
       res.json(metrics);
     } catch (error) {
-      res.status(500).json({ message: "Failed to create metrics" });
+      console.error("Error creating metrics:", error);
+      res.status(500).json({ message: "Failed to create metrics", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
   // AI Insights routes
-  app.get("/api/ai-insights", async (req, res) => {
+  app.get("/api/ai-insights", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
-      const userId = req.query.userId as string;
+      const userId = req.query.userId as string || req.user?.id;
       const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
 
       if (!userId) {
-        return res.status(400).json({ message: "userId is required" });
+        return res.status(401).json({ message: "Authentication required" });
       }
 
       const insights = await storage.getUserAiInsights(userId, limit);
       res.json(insights);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch AI insights" });
+      console.error("Error fetching AI insights:", error);
+      res.status(500).json({ message: "Failed to fetch AI insights", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
-  app.post("/api/workflow/optimize", async (req, res) => {
+  app.post("/api/workflow/optimize", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
-      const { userId } = req.body;
-
+      const userId = req.user?.id;
       if (!userId) {
-        return res.status(400).json({ message: "userId is required" });
+        return res.status(401).json({ message: "Authentication required" });
       }
 
       // Get user's pending tasks
@@ -1533,7 +1702,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         type: "workflow_optimization",
         title: "Workflow Optimized",
         description: `AI has intelligently reorganized ${optimization.optimizedTasks.length} tasks. ${optimization.insights.join(' ')} Estimated time saving: ${optimization.estimatedTimeSaving} minutes.`,
-        priority: "high" as any,
+        priority: "high",
         metadata: {
           optimizedTasks: optimization.optimizedTasks,
           insights: optimization.insights,
@@ -1547,17 +1716,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...optimization
       });
     } catch (error) {
-      res.status(500).json({ message: "Failed to optimize workflow" });
+      console.error("Error optimizing workflow:", error);
+      res.status(500).json({ message: "Failed to optimize workflow", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
   // Auto-reschedule tasks based on completion patterns and system time
-  app.post("/api/workflow/auto-reschedule", async (req, res) => {
+  app.post("/api/workflow/auto-reschedule", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
-      const { userId } = req.body;
-
+      const userId = req.user?.id;
       if (!userId) {
-        return res.status(400).json({ message: "userId is required" });
+        return res.status(401).json({ message: "Authentication required" });
       }
 
       const reschedulingResult = await smartScheduler.rescheduleUserTasks(userId);
@@ -1569,7 +1738,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           type: "smart_rescheduling",
           title: "Smart Task Rescheduling Applied",
           description: `Auto-rescheduled ${reschedulingResult.rescheduledTasks.length} tasks based on your work patterns and current system time. ${reschedulingResult.insights.join(' ')}`,
-          priority: "normal" as any,
+          priority: "normal",
           metadata: {
             rescheduledTasks: reschedulingResult.rescheduledTasks,
             timeSaved: reschedulingResult.totalTimeSaved
@@ -1585,16 +1754,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...reschedulingResult
       });
     } catch (error) {
-      res.status(500).json({ message: "Failed to auto-reschedule tasks" });
+      console.error("Error auto-rescheduling tasks:", error);
+      res.status(500).json({ message: "Failed to auto-reschedule tasks", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
-  app.post("/api/wellness/insights", async (req, res) => {
+  app.post("/api/wellness/insights", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
-      const { userId } = req.body;
-
+      const userId = req.user?.id;
       if (!userId) {
-        return res.status(400).json({ message: "userId is required" });
+        return res.status(401).json({ message: "Authentication required" });
       }
 
       const metrics = await storage.getUserMetrics(userId);
@@ -1618,29 +1787,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(insights);
     } catch (error) {
-      res.status(500).json({ message: "Failed to generate wellness insights" });
+      console.error("Error generating wellness insights:", error);
+      res.status(500).json({ message: "Failed to generate wellness insights", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
-  app.post("/api/ai-insights/:id/apply", async (req, res) => {
+  app.post("/api/ai-insights/:id/apply", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
       await storage.applyAiInsight(req.params.id);
       res.json({ success: true });
     } catch (error) {
-      res.status(500).json({ message: "Failed to apply AI insight" });
+      console.error("Error applying AI insight:", error);
+      res.status(500).json({ message: "Failed to apply AI insight", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
-  app.post("/api/ai-insights/:id/dismiss", async (req, res) => {
+  app.post("/api/ai-insights/:id/dismiss", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
       await storage.dismissAiInsight(req.params.id);
       res.json({ success: true });
     } catch (error) {
-      res.status(500).json({ message: "Failed to dismiss AI insight" });
+      console.error("Error dismissing AI insight:", error);
+      res.status(500).json({ message: "Failed to dismiss AI insight", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
-
-
 
   // Priority Emails routes
   app.get("/api/priority-emails", optionalAuth, async (req: AuthenticatedRequest, res) => {
@@ -1650,7 +1828,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(priorityEmails);
     } catch (error) {
       console.error("Error fetching priority emails:", error);
-      res.status(500).json({ message: "Failed to fetch priority emails" });
+      res.status(500).json({ message: "Failed to fetch priority emails", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
@@ -1680,17 +1858,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error.code === '23505') { // Unique constraint violation
         return res.status(409).json({ message: "This email is already in your priority list" });
       }
-      res.status(500).json({ message: "Failed to create priority email" });
+      res.status(500).json({ message: "Failed to create priority email", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
-  app.delete("/api/priority-emails/:id", async (req, res) => {
+  app.delete("/api/priority-emails/:id", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
-      await storage.deletePriorityEmail(req.params.id);
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      const priorityEmailId = req.params.id;
+
+      // Check if the priority email belongs to the user before deleting
+      const priorityEmail = await storage.getPriorityEmailById(priorityEmailId);
+      if (!priorityEmail || priorityEmail.userId !== userId) {
+        return res.status(403).json({ message: "Access denied: cannot delete priority emails that do not belong to you" });
+      }
+
+      await storage.deletePriorityEmail(priorityEmailId);
       res.json({ success: true });
     } catch (error) {
       console.error("Error deleting priority email:", error);
-      res.status(500).json({ message: "Failed to delete priority email" });
+      res.status(500).json({ message: "Failed to delete priority email", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
@@ -1788,17 +1978,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Feedback submission error:', error);
       res.status(500).json({
         success: false,
-        error: 'Failed to submit feedback'
+        error: 'Failed to submit feedback', error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   });
 
   // User App Links routes
-  app.get("/api/user-app-links", async (req, res) => {
+  app.get("/api/user-app-links", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
-      const userId = req.query.userId as string;
+      const userId = req.query.userId as string || req.user?.id;
       if (!userId) {
-        return res.status(400).json({ message: "userId is required" });
+        return res.status(401).json({ message: "Authentication required" });
       }
 
       let links = await storage.getUserAppLinks(userId);
@@ -1826,26 +2016,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(links);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch user app links" });
+      console.error("Error fetching user app links:", error);
+      res.status(500).json({ message: "Failed to fetch user app links", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
-  app.post("/api/user-app-links", async (req, res) => {
+  app.post("/api/user-app-links", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
-      const linkData = insertUserAppLinkSchema.parse(req.body);
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      const linkData = insertUserAppLinkSchema.parse({ ...req.body, userId });
       const link = await storage.createUserAppLink(linkData);
       res.json(link);
     } catch (error) {
-      res.status(500).json({ message: "Failed to create user app link" });
+      console.error("Error creating user app link:", error);
+      res.status(500).json({ message: "Failed to create user app link", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
-  app.delete("/api/user-app-links/:id", async (req, res) => {
+  app.delete("/api/user-app-links/:id", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
-      await storage.deleteUserAppLink(req.params.id);
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      const linkId = req.params.id;
+
+      // Check ownership before deleting
+      const link = await storage.getUserAppLink(linkId);
+      if (!link || link.userId !== userId) {
+        return res.status(403).json({ message: "Access denied: cannot delete app links that do not belong to you" });
+      }
+
+      await storage.deleteUserAppLink(linkId);
       res.json({ success: true });
     } catch (error) {
-      res.status(500).json({ message: "Failed to delete user app link" });
+      console.error("Error deleting user app link:", error);
+      res.status(500).json({ message: "Failed to delete user app link", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
@@ -1896,7 +2105,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({ authUrl });
     } catch (error) {
-      res.status(500).json({ message: "Failed to start Gmail connection" });
+      console.error("Error generating Gmail connect URL:", error);
+      res.status(500).json({ message: "Failed to start Gmail connection", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
@@ -1928,20 +2138,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = state as string;
 
       // Create a COMPLETELY FRESH OAuth2Client using google.auth.OAuth2 (not separately imported OAuth2Client)
-      const oauth2Client = new google.auth.OAuth2(
+      const freshOAuth2Client = new google.auth.OAuth2(
         process.env.GOOGLE_CLIENT_ID,
         process.env.GOOGLE_CLIENT_SECRET,
         GOOGLE_REDIRECT_URI
       );
 
       // Exchange code for tokens
-      const { tokens } = await oauth2Client.getToken(code as string);
+      const { tokens } = await freshOAuth2Client.getToken(code as string);
 
       // Set credentials on the client
-      oauth2Client.setCredentials(tokens);
+      freshOAuth2Client.setCredentials(tokens);
 
       // Get the user's email from Google Profile using the authenticated client
-      const oauth2 = google.oauth2({ version: 'v2', auth: oauth2Client });
+      const oauth2 = google.oauth2({ version: 'v2', auth: freshOAuth2Client });
       const { data: profile } = await oauth2.userinfo.get();
 
       // Create user client for long-term storage with the same tokens
@@ -1988,9 +2198,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Store user client and email mappings ONLY for the current user
       userGmailClients.set(user.id, userClient);
       userEmails.set(user.id, userEmail); // Store the real connected email
-      
+
       // Set calendar service client for calendar operations
       calendarService.setUserClient(user.id, userClient);
+      console.log(`[Calendar] Calendar service connected for user: ${user.id}`);
 
       // Generate authentication tokens for the authenticated user
       const { accessToken, refreshToken } = generateTokens({
@@ -2030,7 +2241,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Start fetching emails directly with authenticated user info
       startRealGmailFetching(user.id, userClient, userEmail);
-      
+
       // Start calendar sync for the user
       setTimeout(() => {
         calendarService.syncCalendarEvents(user.id);
@@ -2074,23 +2285,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Disconnect Gmail
-  app.post("/api/gmail/disconnect", async (req, res) => {
+  app.post("/api/gmail/disconnect", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
-      // Disconnect all Gmail connections for simplicity in demo
-      const userIds = Array.from(userGmailClients.keys());
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
 
-      userIds.forEach(userId => {
-        userGmailClients.delete(userId);
-        calendarService.removeUserClient(userId);
-        if (userGmailIntervals.has(userId)) {
-          clearInterval(userGmailIntervals.get(userId));
-          userGmailIntervals.delete(userId);
-        }
-      });
+      // Clear specific user's data
+      clearUserData(userId);
+
+      console.log(`[Gmail] Disconnected Gmail for user: ${userId}`);
 
       res.json({ success: true, message: "Gmail disconnected successfully" });
     } catch (error) {
-      res.status(500).json({ message: "Failed to disconnect Gmail" });
+      console.error("Error disconnecting Gmail:", error);
+      res.status(500).json({ message: "Failed to disconnect Gmail", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
@@ -2104,7 +2314,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         console.log(`[Gmail] Fetching emails for user ${userId} (${userEmail})`);
         console.log(`[Gmail] Last check time: ${lastCheckTime.toISOString()}`);
-        // Create a COMPLETELY FRESH OAuth2Client for each request to ensure proper auth headers
+        // Create a COMPLETELY FRESH OAuth2Client using google.auth.OAuth2 for each request to ensure proper auth headers
         const freshOAuth2Client = new google.auth.OAuth2(
           process.env.GOOGLE_CLIENT_ID,
           process.env.GOOGLE_CLIENT_SECRET,
@@ -2117,6 +2327,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Ensure we have valid credentials
         if (!credentials.access_token) {
+          console.log(`[Gmail] No valid access token for user ${userId}. Stopping fetch.`);
           return;
         }
 
@@ -2126,13 +2337,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           refresh_token: credentials.refresh_token,
           expiry_date: credentials.expiry_date,
           token_type: 'Bearer',
-          scope: 'https://www.googleapis.com/auth/gmail.readonly'
+          scope: 'https://www.googleapis.com/auth/gmail.readonly' // Scope needed for reading messages
         });
 
         // Create Gmail API instance with fresh authenticated client
         const gmail = google.gmail({ version: 'v1', auth: freshOAuth2Client });
 
         // Get ALL unread messages from primary inbox since last check (don't filter by priority)
+        // Convert lastCheckTime to Unix timestamp (seconds)
         const query = `is:unread category:primary after:${Math.floor(lastCheckTime.getTime() / 1000)}`;
 
         const response = await gmail.users.messages.list({
@@ -2159,7 +2371,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             processedEmailIds.get(userId)!.add(message.id!);
 
             // Check if notification already exists with this email ID to prevent database duplicates
-            const existingNotifications = await storage.getUserNotifications(userId, 100);
+            const existingNotifications = await storage.getUserNotifications(userId, 100); // Fetch recent notifications
             const emailAlreadyExists = existingNotifications.some(notification =>
               notification.metadata?.emailId === message.id
             );
@@ -2191,6 +2403,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const textPart = msg.payload.parts.find(part => part.mimeType === 'text/plain');
               if (textPart?.body?.data) {
                 body = Buffer.from(textPart.body.data, 'base64').toString();
+              } else {
+                // Try finding HTML part if text/plain is not available
+                const htmlPart = msg.payload.parts.find(part => part.mimeType === 'text/html');
+                if (htmlPart?.body?.data) {
+                  // Basic HTML to text conversion (can be improved)
+                  body = Buffer.from(htmlPart.body.data, 'base64').toString().replace(/<[^>]*>/g, '');
+                }
               }
             }
 
@@ -2289,13 +2508,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           lastCheckTime = new Date();
         }
 
-
       } catch (error) {
         // Error fetching Gmail
+        console.error(`[Gmail] Error fetching emails for user ${userId}:`, error);
 
         // If token is expired, try to refresh
         if ((error as any)?.code === 401) {
           try {
+            console.log(`[Gmail] Access token expired for user ${userId}. Attempting to refresh.`);
             const refreshResponse = await authClient.refreshAccessToken();
 
             // Set the full credentials including access_token and refresh_token
@@ -2381,6 +2601,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     const textPart = msg.payload.parts.find(part => part.mimeType === 'text/plain');
                     if (textPart?.body?.data) {
                       body = Buffer.from(textPart.body.data, 'base64').toString();
+                    } else {
+                      const htmlPart = msg.payload.parts.find(part => part.mimeType === 'text/html');
+                      if (htmlPart?.body?.data) {
+                        body = Buffer.from(htmlPart.body.data, 'base64').toString().replace(/<[^>]*>/g, '');
+                      }
                     }
                   }
 
@@ -2388,13 +2613,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
                   // Extract email address consistently for priority checking
                   let fromEmail = from.toLowerCase().trim();
-
-                  // Try to extract email from angle brackets first (e.g., "Name <email@domain.com>")
                   const emailMatch = from.match(/<([^>]+)>/);
                   if (emailMatch) {
                     fromEmail = emailMatch[1].toLowerCase().trim();
                   } else if (from.includes('@')) {
-                    // If no angle brackets but contains @, extract the email part
                     const emailRegex = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/;
                     const match = from.match(emailRegex);
                     if (match) {
@@ -2424,17 +2646,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
                       priority = taskAnalysis.priority as "urgent" | "important" | "informational";
                     } catch (error) {
                       console.log(`[Gmail] AI analysis failed for email from ${fromEmail} during retry, using fallback logic`);
-                      // Fallback to simple keyword matching if AI fails
                       const casualKeywords = ['hi', 'hello', 'hey', 'wassup', 'what\'s up', 'how are you', 'how r u', 'good morning', 'good afternoon', 'good evening', 'hangout', 'chat', 'let\'s play', 'game'];
                       const urgentKeywords = ['urgent', 'asap', 'emergency', 'critical', 'immediately', 'in 5 min', 'in 10 min', 'in 30 min'];
                       const importantKeywords = ['important', 'meeting', 'deadline', 'review', 'approval', 'join', 'schedule', 'conference', 'call', 'in 1 hour', 'in 2 hours', 'in 3 hours', 'today', 'tomorrow'];
-
                       const fullText = (subject + ' ' + body).toLowerCase();
                       if (casualKeywords.some(keyword => fullText.includes(keyword))) {
-                        priority = "informational";  // Use informational for casual messages (maps to normal in UI)
+                        priority = "informational";
                       } else if (urgentKeywords.some(keyword => fullText.includes(keyword))) {
                         priority = "urgent";
-                      } else if(importantKeywords.some(keyword => fullText.includes(keyword))) {
+                      } else if (importantKeywords.some(keyword => fullText.includes(keyword))) {
                         priority = "important";
                       }
                       console.log(`[Gmail] Fallback analysis result (retry): ${priority} for email from ${fromEmail}`);
@@ -2454,11 +2674,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
                       fullEmailContent: `Subject: ${subject}\n\n${body}`,
                       emailSubject: subject,
                       emailFrom: from,
-                      emailDate: headers.find(h => h.name === 'Date')?.value || '', // Add date to metadata
-                      emailId: message.id, // Store email ID for deduplication
-                      isPriorityPerson: isPriorityPerson, // Mark if from priority contact
+                      emailDate: headers.find(h => h.name === 'Date')?.value || '',
+                      emailId: message.id,
+                      isPriorityPerson: isPriorityPerson,
                       priorityReason: isPriorityPerson ? "Priority Contact" : "Normal Email",
-                      fromEmail: fromEmail // Store extracted email for debugging
+                      fromEmail: fromEmail
                     },
                     actionableInsights: ["Reply to email", "Mark as read", "Archive email"],
                   });
@@ -2476,19 +2696,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
 
             } catch (retryError) {
-              // Error in retry fetch after token refresh
+              console.error(`[Gmail] Error during retry fetch after token refresh for user ${userId}:`, retryError);
+              // If retry fetch fails, we might still need to handle token refresh failure below
             }
 
           } catch (refreshError) {
             // Failed to refresh token
+            console.error(`[Gmail] Failed to refresh token for user ${userId}:`, refreshError);
             // Create a notification about the connection issue
             await storage.createNotification({
               userId,
               title: "Gmail Connection Lost",
-              description: "Your Gmail connection has expired. Please reconnect to continue receiving email notifications.",
+              description: "Your Gmail connection has expired or become invalid. Please reconnect to continue receiving email notifications.",
               type: "important",
               sourceApp: "gmail",
-              aiSummary: "Gmail OAuth token expired",
+              aiSummary: "Gmail OAuth token refresh failed",
               actionableInsights: ["Reconnect Gmail", "Check authentication"],
             });
 
@@ -2497,7 +2719,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               clearInterval(userGmailIntervals.get(userId));
               userGmailIntervals.delete(userId);
             }
-            userGmailClients.delete(userId);
+            userGmailClients.delete(userId); // Remove the client so it's not used again until reconnected
           }
         }
       }
