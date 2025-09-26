@@ -22,15 +22,15 @@ export function WindowsNotificationManager({ userId }: WindowsNotificationManage
     const isDesktop = !isMobile && !isTablet;
     
     if ('Notification' in window && isDesktop) {
-      console.log('[NotificationManager] Current permission status:', Notification.permission);
+      console.log('[WindowsNotificationManager] Current permission status:', Notification.permission);
       
       if (Notification.permission === 'granted') {
         setPermissionGranted(true);
-        console.log('[NotificationManager] Notifications already granted');
+        console.log('[WindowsNotificationManager] Notifications already granted');
         
         // Create instant login notification that appears in Windows notification center
         setTimeout(() => {
-          console.log('[NotificationManager] Creating login notification');
+          console.log('[WindowsNotificationManager] Creating login notification');
           const loginNotification = new Notification('🔔 Welcome back to FlowHub!', {
             body: 'You are now logged in. Windows notifications are active and will appear in your notification center.',
             icon: '/favicon.ico',
@@ -40,17 +40,17 @@ export function WindowsNotificationManager({ userId }: WindowsNotificationManage
           });
 
           loginNotification.onclick = () => {
-            console.log('[NotificationManager] Login notification clicked');
+            console.log('[WindowsNotificationManager] Login notification clicked');
             window.focus();
             loginNotification.close();
           };
 
           loginNotification.onshow = () => {
-            console.log('[NotificationManager] Login notification shown in Windows notification center');
+            console.log('[WindowsNotificationManager] Login notification shown in Windows notification center');
           };
 
           loginNotification.onerror = (error) => {
-            console.error('[NotificationManager] Login notification error:', error);
+            console.error('[WindowsNotificationManager] Login notification error:', error);
           };
 
           // Auto-close after 10 seconds
@@ -60,12 +60,12 @@ export function WindowsNotificationManager({ userId }: WindowsNotificationManage
         }, 2000); // Wait 2 seconds after page load to show login notification
         
       } else if (Notification.permission === 'denied') {
-        console.log('[NotificationManager] Notifications denied by user');
+        console.log('[WindowsNotificationManager] Notifications denied by user');
       } else {
-        console.log('[NotificationManager] Notifications in default state');
+        console.log('[WindowsNotificationManager] Notifications in default state');
       }
     } else {
-      console.log('[NotificationManager] Not a desktop device or Notification API not supported');
+      console.log('[WindowsNotificationManager] Not a desktop device or Notification API not supported');
     }
   }, []);
 
@@ -84,29 +84,29 @@ export function WindowsNotificationManager({ userId }: WindowsNotificationManage
   useEffect(() => {
     if (!permissionGranted || !notifications || !('Notification' in window)) return;
 
-    console.log('[WindowsNotification] Processing notifications:', notifications.length);
+    console.log('[WindowsNotificationManager] Processing notifications:', notifications.length);
 
     // Filter for Windows notifications that haven't been processed
     const windowsNotifications = notifications.filter((notification: any) => {
-      const isBrowserNotification = notification.type === 'browser_notification' && 
+      const isWindowsNotification = notification.type === 'browser_notification' && 
                                    notification.metadata?.browserNotification;
       const notProcessed = !processedNotifications.current.has(notification.id);
       
-      if (isBrowserNotification && notProcessed) {
-        console.log(`[WindowsNotification] Found unprocessed notification: ${notification.title}`);
+      if (isWindowsNotification && notProcessed) {
+        console.log(`[WindowsNotificationManager] Found unprocessed notification: ${notification.title}`);
       }
       
-      return isBrowserNotification && notProcessed;
+      return isWindowsNotification && notProcessed;
     });
 
-    console.log('[WindowsNotification] Found', windowsNotifications.length, 'unprocessed browser notifications');
+    console.log('[WindowsNotificationManager] Found', windowsNotifications.length, 'unprocessed Windows notifications');
 
     for (const notification of windowsNotifications) {
       // Mark as processed immediately to prevent duplicates
       processedNotifications.current.add(notification.id);
 
       try {
-        console.log(`[WindowsNotification] Creating Windows notification: ${notification.title}`);
+        console.log(`[WindowsNotificationManager] Creating Windows notification: ${notification.title}`);
         
         // Create Windows notification with simplified options
         const windowsNotification = new Notification(notification.title, {
@@ -119,17 +119,17 @@ export function WindowsNotificationManager({ userId }: WindowsNotificationManage
 
         // Handle notification events
         windowsNotification.onshow = () => {
-          console.log(`[WindowsNotification] Notification shown: ${notification.title}`);
+          console.log(`[WindowsNotificationManager] Notification shown: ${notification.title}`);
         };
 
         windowsNotification.onclick = () => {
-          console.log(`[WindowsNotification] Notification clicked: ${notification.title}`);
+          console.log(`[WindowsNotificationManager] Notification clicked: ${notification.title}`);
           window.focus();
           windowsNotification.close();
         };
 
         windowsNotification.onerror = (error) => {
-          console.error(`[WindowsNotification] Notification error:`, error);
+          console.error(`[WindowsNotificationManager] Notification error:`, error);
         };
 
         // Auto-close after 8 seconds
@@ -144,14 +144,14 @@ export function WindowsNotificationManager({ userId }: WindowsNotificationManage
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' }
             });
-            console.log(`[WindowsNotification] Dismissed notification: ${notification.id}`);
+            console.log(`[WindowsNotificationManager] Dismissed notification: ${notification.id}`);
           } catch (error) {
             console.error(`Failed to dismiss notification ${notification.id}:`, error);
           }
         }, 1000);
 
       } catch (error) {
-        console.error(`[WindowsNotification] Failed to create notification:`, error);
+        console.error(`[WindowsNotificationManager] Failed to create notification:`, error);
       }
     }
   }, [notifications, permissionGranted]);
@@ -185,9 +185,9 @@ export function WindowsNotificationManager({ userId }: WindowsNotificationManage
         <div className="space-y-2">
           <button
             onClick={async () => {
-              console.log('[NotificationManager] Enable button clicked');
-              console.log('[NotificationManager] Notification API support:', 'Notification' in window);
-              console.log('[NotificationManager] Current permission:', Notification.permission);
+              console.log('[WindowsNotificationManager] Enable button clicked');
+              console.log('[WindowsNotificationManager] Notification API support:', 'Notification' in window);
+              console.log('[WindowsNotificationManager] Current permission:', Notification.permission);
               
               if (!('Notification' in window)) {
                 alert('This browser does not support notifications');
@@ -197,11 +197,11 @@ export function WindowsNotificationManager({ userId }: WindowsNotificationManage
               try {
                 // Directly request permission - this will show the browser's native popup immediately
                 const permission = await Notification.requestPermission();
-                console.log('[NotificationManager] Permission result:', permission);
+                console.log('[WindowsNotificationManager] Permission result:', permission);
                 
                 if (permission === 'granted') {
                   setPermissionGranted(true);
-                  console.log('[NotificationManager] Permission granted, creating test notification');
+                  console.log('[WindowsNotificationManager] Permission granted, creating test notification');
                   
                   // Create immediate test notification that will appear in Windows notification center
                   const testNotification = new Notification('✅ FlowHub Notifications Enabled!', {
@@ -213,17 +213,17 @@ export function WindowsNotificationManager({ userId }: WindowsNotificationManage
                   });
 
                   testNotification.onclick = () => {
-                    console.log('[NotificationManager] Test notification clicked');
+                    console.log('[WindowsNotificationManager] Test notification clicked');
                     window.focus();
                     testNotification.close();
                   };
 
                   testNotification.onshow = () => {
-                    console.log('[NotificationManager] Test notification shown in Windows notification center');
+                    console.log('[WindowsNotificationManager] Test notification shown in Windows notification center');
                   };
 
                   testNotification.onerror = (error) => {
-                    console.error('[NotificationManager] Test notification error:', error);
+                    console.error('[WindowsNotificationManager] Test notification error:', error);
                   };
 
                   // Auto-close after 8 seconds
@@ -232,13 +232,13 @@ export function WindowsNotificationManager({ userId }: WindowsNotificationManage
                   }, 8000);
                   
                 } else if (permission === 'denied') {
-                  console.log('[NotificationManager] Permission denied');
+                  console.log('[WindowsNotificationManager] Permission denied');
                   alert('Notifications blocked. Please click the lock icon in your browser address bar to enable notifications.');
                 } else {
-                  console.log('[NotificationManager] Permission dismissed');
+                  console.log('[WindowsNotificationManager] Permission dismissed');
                 }
               } catch (error) {
-                console.error('[NotificationManager] Permission request error:', error);
+                console.error('[WindowsNotificationManager] Permission request error:', error);
                 alert('Error requesting notification permission. Please try again.');
               }
             }}
@@ -264,6 +264,3 @@ export function WindowsNotificationManager({ userId }: WindowsNotificationManage
   // Component doesn't render anything in normal operation
   return null;
 }
-
-// Export with the old name for compatibility
-export { WindowsNotificationManager as BrowserNotificationManager };
