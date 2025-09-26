@@ -12,16 +12,26 @@ export function WindowsNotificationManager({ userId }: WindowsNotificationManage
   const processedNotifications = useRef(new Set<string>());
   const tabId = useRef(`tab-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
 
-  // Check for existing notification permission on all devices
+  // Request Windows notification permission - only on desktop devices
   useEffect(() => {
-    if ('Notification' in window) {
+    // Simplified mobile detection - only exclude actual mobile devices
+    const isMobile = /Mobi|Android|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const isTablet = /iPad/i.test(navigator.userAgent);
+    
+    // Allow notifications on Windows/Mac desktop (including touch-enabled desktops)
+    const isDesktop = !isMobile && !isTablet;
+    
+    if ('Notification' in window && isDesktop) {
       if (Notification.permission === 'granted') {
         setPermissionGranted(true);
+      } else if (Notification.permission === 'default' && !permissionRequested) {
+        setPermissionRequested(true);
+        Notification.requestPermission().then((permission) => {
+          setPermissionGranted(permission === 'granted');
+        });
       }
-      // DO NOT automatically request permission - modern browsers block this
-      // Permission will be requested only when user clicks the enable button
     }
-  }, []);
+  }, [permissionRequested]);
 
   // Poll for Windows notifications
   const { data: notifications } = useQuery({
@@ -141,13 +151,18 @@ export function WindowsNotificationManager({ userId }: WindowsNotificationManage
     return () => clearInterval(cleanup);
   }, []);
 
-  // Show permission request UI on all devices that support notifications
-  if ('Notification' in window && Notification.permission !== 'granted') {
+  // Simplified mobile/desktop detection for UI display
+  const isMobile = /Mobi|Android|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  const isTablet = /iPad/i.test(navigator.userAgent);
+  const isDesktop = !isMobile && !isTablet;
+  
+  // Show permission request UI only on desktop devices
+  if ('Notification' in window && Notification.permission !== 'granted' && isDesktop) {
     return (
       <div className="fixed bottom-4 right-4 bg-blue-600 text-white p-4 rounded-lg shadow-lg max-w-sm z-50">
-        <h4 className="font-semibold mb-2">Enable Browser Notifications</h4>
+        <h4 className="font-semibold mb-2">Enable Windows Notifications</h4>
         <p className="text-sm mb-3">
-          Get native browser notifications for task deadlines that appear in your device's notification center.
+          Get native Windows notifications for task deadlines that appear in your Windows notification center.
         </p>
         <div className="space-y-2">
           <button
@@ -158,8 +173,8 @@ export function WindowsNotificationManager({ userId }: WindowsNotificationManage
 
               // Test notification immediately if granted
               if (permission === 'granted') {
-                new Notification('FlowHub Browser Notifications Enabled! 🎉', {
-                  body: 'You will now receive browser notifications for your task deadlines in your device\'s notification center.',
+                new Notification('FlowHub Windows Notifications Enabled! 🎉', {
+                  body: 'You will now receive Windows notifications for your task deadlines in the Windows notification center.',
                   icon: '/favicon.ico',
                   requireInteraction: true,
                   tag: 'flowhub-test'
@@ -168,11 +183,11 @@ export function WindowsNotificationManager({ userId }: WindowsNotificationManage
             }}
             className="w-full bg-white text-blue-600 px-3 py-2 rounded text-sm font-medium hover:bg-gray-100"
           >
-            Enable Browser Notifications
+            Enable Windows Notifications
           </button>
           {Notification.permission === 'denied' && (
             <p className="text-xs text-blue-200">
-              Notifications are blocked. Please enable them in your browser settings for notifications to work.
+              Notifications are blocked. Please enable them in your browser settings for Windows notifications to work.
             </p>
           )}
         </div>
