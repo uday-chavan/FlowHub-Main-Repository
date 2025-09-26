@@ -45,112 +45,83 @@ export function WindowsNotificationManager({ userId }: WindowsNotificationManage
       if (!response.ok) throw new Error('Failed to fetch notifications');
       return response.json();
     },
-    refetchInterval: 5000, // Poll every 5 seconds
-    enabled: permissionGranted
+    refetchInterval: 2000, // Poll every 2 seconds for faster notification detection
+    enabled: permissionGranted && 'Notification' in window
   });
 
   useEffect(() => {
     if (!permissionGranted || !notifications || !('Notification' in window)) return;
 
-    const processWindowsNotifications = async () => {
-      // Filter for Windows notifications that haven't been processed
-      const windowsNotifications = notifications.filter((notification: any) => 
-        notification.type === 'browser_notification' && 
-        notification.metadata?.browserNotification &&
-        !processedNotifications.current.has(notification.id)
-      );
+    console.log('[WindowsNotification] Processing notifications:', notifications.length);
 
-      for (const notification of windowsNotifications) {
-        // Cross-tab coordination using localStorage to prevent duplicates
-        const lockKey = `notification-lock-${notification.id}`;
-        const existingLock = localStorage.getItem(lockKey);
-
-        // If another tab already claimed this notification, skip it
-        if (existingLock && existingLock !== tabId.current) {
-          processedNotifications.current.add(notification.id);
-          continue;
-        }
-
-        // Claim the notification for this tab
-        localStorage.setItem(lockKey, tabId.current);
-
-        // Double-check that we won the race
-        if (localStorage.getItem(lockKey) !== tabId.current) {
-          processedNotifications.current.add(notification.id);
-          continue;
-        }
-
-        // Mark as processed to avoid duplicate notifications
-        processedNotifications.current.add(notification.id);
-
-        try {
-          // Show Windows notification directly
-          console.log(`[WindowsNotification] Creating notification: ${notification.title}`);
-          
-          const windowsNotification = new Notification(notification.title, {
-            body: notification.description,
-            icon: '/favicon.ico',
-            tag: `task-reminder-${notification.metadata.taskId}`,
-            requireInteraction: false,
-            silent: false,
-            renotify: true
-          });
-
-          // Handle notification click
-          windowsNotification.onclick = () => {
-            console.log(`[WindowsNotification] Notification clicked for task: ${notification.metadata.taskId}`);
-            window.focus();
-            windowsNotification.close();
-          };
-
-          windowsNotification.onshow = () => {
-            console.log(`[WindowsNotification] Notification displayed for task: ${notification.metadata.taskId}`);
-          };
-
-          windowsNotification.onerror = (error) => {
-            console.error(`[WindowsNotification] Notification error for task ${notification.metadata.taskId}:`, error);
-          };
-
-          // Auto-close after 10 seconds
-          setTimeout(() => {
-            windowsNotification.close();
-          }, 10000);
-
-          console.log(`[WindowsNotification] Windows notification created for task: ${notification.metadata.taskId} from tab: ${tabId.current}`);
-
-        } catch (error) {
-          console.error(`[WindowsNotification] Failed to create notification for task ${notification.metadata.taskId}:`, error);
-        }
-
-        // Immediately mark this notification as dismissed so it doesn't show again
-        try {
-          const dismissResponse = await fetch(`/api/notifications/${notification.id}/dismiss`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' }
-          });
-
-          if (!dismissResponse.ok) {
-            throw new Error(`HTTP ${dismissResponse.status}`);
-          }
-
-          console.log(`[WindowsNotification] Dismissed notification: ${notification.id}`);
-        } catch (error) {
-          console.error(`Failed to dismiss notification ${notification.id}:`, error);
-          // Keep the lock longer if dismiss fails to prevent duplicates
-          setTimeout(() => {
-            localStorage.removeItem(lockKey);
-          }, 15000);
-          continue; // Skip the normal cleanup
-        }
-
-        // Clean up the lock after a delay
-        setTimeout(() => {
-          localStorage.removeItem(lockKey);
-        }, 5000);
+    // Filter for Windows notifications that haven't been processed
+    const windowsNotifications = notifications.filter((notification: any) => {
+      const isBrowserNotification = notification.type === 'browser_notification' && 
+                                   notification.metadata?.browserNotification;
+      const notProcessed = !processedNotifications.current.has(notification.id);
+      
+      if (isBrowserNotification && notProcessed) {
+        console.log(`[WindowsNotification] Found unprocessed notification: ${notification.title}`);
       }
-    };
+      
+      return isBrowserNotification && notProcessed;
+    });
 
-    processWindowsNotifications();
+    console.log('[WindowsNotification] Found', windowsNotifications.length, 'unprocessed browser notifications');
+
+    for (const notification of windowsNotifications) {
+      // Mark as processed immediately to prevent duplicates
+      processedNotifications.current.add(notification.id);
+
+      try {
+        console.log(`[WindowsNotification] Creating Windows notification: ${notification.title}`);
+        
+        // Create Windows notification with simplified options
+        const windowsNotification = new Notification(notification.title, {
+          body: notification.description || 'Task reminder',
+          icon: '/favicon.ico',
+          tag: `task-${notification.metadata?.taskId || notification.id}`,
+          requireInteraction: false,
+          silent: false
+        });
+
+        // Handle notification events
+        windowsNotification.onshow = () => {
+          console.log(`[WindowsNotification] Notification shown: ${notification.title}`);
+        };
+
+        windowsNotification.onclick = () => {
+          console.log(`[WindowsNotification] Notification clicked: ${notification.title}`);
+          window.focus();
+          windowsNotification.close();
+        };
+
+        windowsNotification.onerror = (error) => {
+          console.error(`[WindowsNotification] Notification error:`, error);
+        };
+
+        // Auto-close after 8 seconds
+        setTimeout(() => {
+          windowsNotification.close();
+        }, 8000);
+
+        // Dismiss the notification in the database after showing
+        setTimeout(async () => {
+          try {
+            await fetch(`/api/notifications/${notification.id}/dismiss`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' }
+            });
+            console.log(`[WindowsNotification] Dismissed notification: ${notification.id}`);
+          } catch (error) {
+            console.error(`Failed to dismiss notification ${notification.id}:`, error);
+          }
+        }, 1000);
+
+      } catch (error) {
+        console.error(`[WindowsNotification] Failed to create notification:`, error);
+      }
+    }
   }, [notifications, permissionGranted]);
 
   // Clean up old processed notifications to prevent memory leaks
@@ -181,72 +152,52 @@ export function WindowsNotificationManager({ userId }: WindowsNotificationManage
         </p>
         <div className="space-y-2">
           <button
-            onClick={async (e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              
+            onClick={async () => {
               console.log('[NotificationManager] Enable button clicked');
               console.log('[NotificationManager] Notification API support:', 'Notification' in window);
               console.log('[NotificationManager] Current permission:', Notification.permission);
               
+              if (!('Notification' in window)) {
+                alert('This browser does not support notifications');
+                return;
+              }
+              
               setPermissionRequested(true);
               
               try {
-                // Force request permission even if already asked
+                // Request permission using the browser's native popup
                 const permission = await Notification.requestPermission();
-                console.log('[NotificationManager] Permission result after request:', permission);
+                console.log('[NotificationManager] Permission result:', permission);
                 
-                setPermissionGranted(permission === 'granted');
-
-                // Test notification immediately if granted
                 if (permission === 'granted') {
+                  setPermissionGranted(true);
                   console.log('[NotificationManager] Permission granted, creating test notification');
                   
-                  try {
-                    const testNotification = new Notification('✅ FlowHub Windows Notifications Enabled!', {
-                      body: 'Perfect! You will now receive Windows notifications for your task deadlines. Check your Windows notification center.',
-                      icon: window.location.origin + '/favicon.ico',
-                      requireInteraction: true,
-                      tag: 'flowhub-test-notification',
-                      silent: false,
-                      renotify: true
-                    });
+                  // Create immediate test notification
+                  const testNotification = new Notification('✅ FlowHub Notifications Enabled!', {
+                    body: 'You will now receive Windows notifications for task deadlines.',
+                    icon: '/favicon.ico',
+                    tag: 'flowhub-test',
+                    requireInteraction: false
+                  });
 
-                    testNotification.onclick = () => {
-                      console.log('[NotificationManager] Test notification clicked');
-                      window.focus();
-                      testNotification.close();
-                    };
+                  testNotification.onclick = () => {
+                    window.focus();
+                    testNotification.close();
+                  };
 
-                    testNotification.onshow = () => {
-                      console.log('[NotificationManager] Test notification displayed successfully');
-                    };
-
-                    testNotification.onerror = (error) => {
-                      console.error('[NotificationManager] Test notification error:', error);
-                    };
-
-                    // Auto-close test notification after 8 seconds
-                    setTimeout(() => {
-                      testNotification.close();
-                      console.log('[NotificationManager] Test notification auto-closed');
-                    }, 8000);
-                    
-                    console.log('[NotificationManager] Test notification created and should be visible');
-                    
-                  } catch (notifError) {
-                    console.error('[NotificationManager] Error creating test notification:', notifError);
-                  }
+                  // Auto-close after 5 seconds
+                  setTimeout(() => testNotification.close(), 5000);
+                  
                 } else if (permission === 'denied') {
-                  console.log('[NotificationManager] User denied notification permission');
-                  alert('Notifications were blocked. Please enable them in your browser settings (click the lock icon in the address bar) for Windows notifications to work.');
+                  console.log('[NotificationManager] Permission denied');
+                  alert('Notifications blocked. Please enable them in browser settings.');
                 } else {
-                  console.log('[NotificationManager] Permission request was dismissed or default');
-                  alert('Permission request was dismissed. Please click the button again to enable Windows notifications.');
+                  console.log('[NotificationManager] Permission dismissed');
                 }
               } catch (error) {
-                console.error('[NotificationManager] Error requesting permission:', error);
-                alert('Error requesting notification permission. Please check browser console for details.');
+                console.error('[NotificationManager] Permission error:', error);
+                alert('Error requesting notification permission');
               }
             }}
             className="w-full bg-white text-blue-600 px-3 py-2 rounded text-sm font-medium hover:bg-gray-100"
