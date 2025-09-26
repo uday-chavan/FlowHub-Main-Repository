@@ -64,14 +64,19 @@ class CalendarService {
       const calendar = google.calendar({ version: 'v3', auth: freshClient });
 
       const dueDate = new Date(task.dueAt);
-
-      // Let Google Calendar auto-generate the event ID to avoid validation issues
+      const endDate = new Date(dueDate.getTime() + 24 * 60 * 60 * 1000); // Add 24 hours
+      
       const event: CalendarEvent = {
         // Remove the id field entirely - Google will auto-generate one
         summary: `📋 ${task.title}`,
-        description: `FlowHub Task: ${task.description || ''}\n\nPriority: ${task.priority}\n\nManage this task: https://flowhub-production-409c.up.railway.app/dashboard`,
+        description: `FlowHub Task: ${task.description || ''}\n\nPriority: ${task.priority}\n\nValid till: ${endDate.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}\n\nManage this task: https://flowhub-production-409c.up.railway.app/dashboard`,
         start: {
-          date: dueDate.toISOString().split('T')[0]
+          dateTime: dueDate.toISOString(),
+          timeZone: 'Asia/Kolkata'
+        },
+        end: {
+          dateTime: endDate.toISOString(),
+          timeZone: 'Asia/Kolkata'
         },
         reminders: {
           useDefault: false,
@@ -114,12 +119,18 @@ class CalendarService {
       const calendar = google.calendar({ version: 'v3', auth: freshClient });
 
       const dueDate = new Date(task.dueAt);
-
+      const endDate = new Date(dueDate.getTime() + 24 * 60 * 60 * 1000); // Add 24 hours
+      
       const updatedEvent = {
         summary: `📋 ${task.title}`,
-        description: `FlowHub Task: ${task.description || ''}\n\nPriority: ${task.priority}\nStatus: ${task.status}\n\nManage this task: https://flowhub-production-409c.up.railway.app/dashboard`,
+        description: `FlowHub Task: ${task.description || ''}\n\nPriority: ${task.priority}\nStatus: ${task.status}\n\nValid till: ${endDate.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}\n\nManage this task: https://flowhub-production-409c.up.railway.app/dashboard`,
         start: {
-          date: dueDate.toISOString().split('T')[0]
+          dateTime: dueDate.toISOString(),
+          timeZone: 'Asia/Kolkata'
+        },
+        end: {
+          dateTime: endDate.toISOString(),
+          timeZone: 'Asia/Kolkata'
         }
       };
 
