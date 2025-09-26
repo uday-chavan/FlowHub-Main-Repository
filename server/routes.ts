@@ -20,6 +20,7 @@ import { google } from "googleapis";
 import { OAuth2Client } from "google-auth-library";
 import { smartScheduler } from "./scheduler";
 import { taskNotificationScheduler } from "./notificationScheduler";
+import { calendarService } from "./calendarService";
 import { Resend } from 'resend';
 import cookieParser from 'cookie-parser';
 import {
@@ -606,6 +607,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Schedule reminders for the new task
       await taskNotificationScheduler.scheduleTaskReminders(task);
+      
+      // Create calendar event for the task
+      if (task.dueAt) {
+        const calendarEventId = await calendarService.createTaskEvent(task);
+        if (calendarEventId) {
+          await storage.updateTask(task.id, {
+            metadata: {
+              ...task.metadata,
+              calendarEventId
+            }
+          });
+          console.log(`[Task] Created calendar event for task: ${task.title}`);
+        }
+      }
 
       res.json(task);
     } catch (error) {
@@ -636,6 +651,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         taskNotificationScheduler.removeTaskReminders(taskId);
         await taskNotificationScheduler.scheduleTaskReminders(updatedTask);
         console.log(`[TaskUpdate] Scheduled reminders for updated task: ${updatedTask.title}`);
+        
+        // Update calendar event if it exists
+        const calendarEventId = updatedTask.metadata?.calendarEventId;
+        if (calendarEventId) {
+          const success = await calendarService.updateTaskEvent(updatedTask, calendarEventId);
+          if (success) {
+            console.log(`[TaskUpdate] Updated calendar event for task: ${updatedTask.title}`);
+          }
+        } else if (updatedTask.dueAt) {
+          // Create new calendar event if task now has a due date
+          const newCalendarEventId = await calendarService.createTaskEvent(updatedTask);
+          if (newCalendarEventId) {
+            await storage.updateTask(taskId, {
+              metadata: {
+                ...updatedTask.metadata,
+                calendarEventId: newCalendarEventId
+              }
+            });
+            console.log(`[TaskUpdate] Created new calendar event for updated task: ${updatedTask.title}`);
+          }
+        }
       }
 
       res.json(updatedTask);
@@ -685,6 +721,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Remove reminders for completed task
       taskNotificationScheduler.removeTaskReminders(req.params.id);
+      
+      // Delete calendar event for completed task
+      const calendarEventId = task.metadata?.calendarEventId;
+      if (calendarEventId) {
+        const success = await calendarService.deleteTaskEvent(task.userId, calendarEventId);
+        if (success) {
+          console.log(`[TaskComplete] Deleted calendar event for completed task: ${task.title}`);
+        }
+      }
 
       // Trigger smart rescheduling after task completion
       try {
@@ -791,6 +836,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Schedule reminders for the task
       await taskNotificationScheduler.scheduleTaskReminders(task);
+      
+      // Create calendar event for the task if it has a due date
+      if (task.dueAt) {
+        const calendarEventId = await calendarService.createTaskEvent(task);
+        if (calendarEventId) {
+          await storage.updateTask(task.id, {
+            metadata: {
+              ...task.metadata,
+              calendarEventId
+            }
+          });
+          console.log(`[NaturalLanguageTask] Created calendar event for task: ${task.title}`);
+        }
+      }
 
       console.log(`Task ${task.id} created with AI analysis: ${task.title}`);
 
@@ -881,6 +940,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Schedule reminders for each task
         await taskNotificationScheduler.scheduleTaskReminders(task);
+        
+        // Create calendar event for the task
+        if (task.dueAt) {
+          const calendarEventId = await calendarService.createTaskEvent(task);
+          if (calendarEventId) {
+            await storage.updateTask(task.id, {
+              metadata: {
+                ...task.metadata,
+                calendarEventId
+              }
+            });
+            console.log(`[ConvertedTask] Created calendar event for converted task: ${task.title}`);
+          }
+        }
       }
 
       // Create email conversion tracking record for Emails Converted page BEFORE dismissing
@@ -1011,6 +1084,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             // Schedule reminders for batch-converted task
             await taskNotificationScheduler.scheduleTaskReminders(task);
+            
+            // Create calendar event for the batch-converted task
+            if (task.dueAt) {
+              const calendarEventId = await calendarService.createTaskEvent(task);
+              if (calendarEventId) {
+                await storage.updateTask(task.id, {
+                  metadata: {
+                    ...task.metadata,
+                    calendarEventId
+                  }
+                });
+                console.log(`[BatchConvertedTask] Created calendar event for batch task: ${task.title}`);
+              }
+            }
 
             // Create email conversion tracking record for batch-converted emails BEFORE dismissing
             if (notification.sourceApp === "gmail") {
@@ -1152,6 +1239,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       res.status(500).json({ message: "Failed to mark notification as read" });
     }
+
+
+  // Calendar sync endpoint
+  app.post("/api/calendar/sync", authenticateToken, async (req: AuthenticatedRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      await calendarService.syncCalendarEvents(req.user.id);
+      
+      res.json({ 
+        success: true, 
+        message: "Calendar sync completed successfully" 
+      });
+    } catch (error) {
+      console.error("Calendar sync error:", error);
+      res.status(500).json({ 
+        message: "Failed to sync calendar events" 
+      });
+    }
+  });
+
+  // Get calendar integration status
+  app.get("/api/calendar/status", authenticateToken, async (req: AuthenticatedRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const hasCalendarAccess = calendarService.hasUserClient(req.user.id);
+      
+      res.json({
+        connected: hasCalendarAccess,
+        message: hasCalendarAccess ? "Calendar integration active" : "Calendar not connected"
+      });
+    } catch (error) {
+      res.status(500).json({ 
+        connected: false,
+        message: "Failed to check calendar status" 
+      });
+    }
+  });
+
+
   });
 
   app.patch("/api/notifications/:id/dismiss", async (req, res) => {
@@ -1735,6 +1867,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (userGmailClients.has(userId)) {
       userGmailClients.delete(userId);
     }
+    calendarService.removeUserClient(userId);
     if (userGmailIntervals.has(userId)) {
       clearInterval(userGmailIntervals.get(userId));
       userGmailIntervals.delete(userId);
@@ -1746,10 +1879,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user?.id || "guest-user"; // Use authenticated user ID or guest
 
-      // Generate OAuth URL for real Gmail API
+      // Generate OAuth URL for real Gmail API and Google Calendar
       const scopes = [
         'https://www.googleapis.com/auth/gmail.readonly',
-        'https://www.googleapis.com/auth/userinfo.email'
+        'https://www.googleapis.com/auth/userinfo.email',
+        'https://www.googleapis.com/auth/calendar',
+        'https://www.googleapis.com/auth/calendar.events'
       ];
 
       const authUrl = oauth2Client.generateAuthUrl({
@@ -1853,6 +1988,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Store user client and email mappings ONLY for the current user
       userGmailClients.set(user.id, userClient);
       userEmails.set(user.id, userEmail); // Store the real connected email
+      
+      // Set calendar service client for calendar operations
+      calendarService.setUserClient(user.id, userClient);
 
       // Generate authentication tokens for the authenticated user
       const { accessToken, refreshToken } = generateTokens({
@@ -1892,6 +2030,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Start fetching emails directly with authenticated user info
       startRealGmailFetching(user.id, userClient, userEmail);
+      
+      // Start calendar sync for the user
+      setTimeout(() => {
+        calendarService.syncCalendarEvents(user.id);
+      }, 2000); // Wait 2 seconds for initial setup
 
       res.send(`
         <script>
@@ -1938,6 +2081,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       userIds.forEach(userId => {
         userGmailClients.delete(userId);
+        calendarService.removeUserClient(userId);
         if (userGmailIntervals.has(userId)) {
           clearInterval(userGmailIntervals.get(userId));
           userGmailIntervals.delete(userId);
