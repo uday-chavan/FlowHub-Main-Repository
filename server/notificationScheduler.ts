@@ -214,11 +214,11 @@ class TaskNotificationScheduler {
         sourceType = "Mail Converted";
       }
 
-      // Store notification data for browser notification API
+      // Store notification data for browser notification API with proper type
       await storage.createNotification({
         userId: task.userId,
-        title: `Task Due in ${reminderType}`,
-        description: `${sourceType} task "${task.title}" is due in ${reminderType}. ${task.description || ''}`,
+        title: `⏰ Task Due in ${reminderType}`,
+        description: `${sourceType} task "${task.title}" is due in ${reminderType}. ${task.description || 'Click to view task details.'}`,
         type: "browser_notification",
         sourceApp: "system",
         aiSummary: `Reminder for ${sourceType.toLowerCase()} task due in ${reminderType}`,
@@ -227,13 +227,17 @@ class TaskNotificationScheduler {
           taskId: task.id,
           reminderType,
           sourceType,
-          browserNotification: true
+          browserNotification: true,
+          taskTitle: task.title,
+          taskPriority: task.priority,
+          dueAt: task.dueAt?.toISOString(),
+          reminderTimestamp: new Date().toISOString()
         }
       });
 
       console.log(`[TaskScheduler] Created browser notification for task "${task.title}" due in ${reminderType}`);
 
-      // SEND EMAIL REMINDER - This was missing!
+      // SEND EMAIL REMINDER
       await this.sendTaskReminderEmail(task, reminderType);
 
     } catch (error) {
