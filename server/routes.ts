@@ -433,9 +433,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Test notification endpoint
-  app.post("/api/test-notification", optionalAuth, async (req: AuthenticatedRequest, res) => {
+  app.post("/api/test-notification", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
-      const userId = req.user?.id || "demo-user";
+      if (!req.user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const userId = req.user.id;
       
       await storage.createNotification({
         userId: userId,
