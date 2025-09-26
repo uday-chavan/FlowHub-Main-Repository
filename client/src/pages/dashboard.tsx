@@ -17,13 +17,14 @@ import { WindowsNotificationManager } from "@/components/WindowsNotificationMana
 // TaskList functionality is handled by WorkflowRiver component
 import { useMetrics } from "@/hooks/useMetrics"; // Added useMetrics import
 import { useIsMobile } from "@/hooks/use-mobile"; // Added useIsMobile hook
+import { useAuth } from "@/hooks/useAuth"; // Added useAuth import
 
 export default function Dashboard() {
   const { data: metrics } = useMetrics();
   const isMobile = useIsMobile();
+  const { user } = useAuth(); // Get actual authenticated user
   // const { data: notifications } = useNotifications();
   // const activeNotifications = notifications?.filter(n => !n.isRead) || [];
-  const userId = "user123"; // Placeholder for actual user ID
 
   return (
     <div className="min-h-screen bg-background text-foreground dashboard-container flex flex-col">
@@ -61,7 +62,7 @@ export default function Dashboard() {
       </main>
 
       {/* Windows Notification Manager */}
-      <WindowsNotificationManager userId="demo-user" />
+      {user && <WindowsNotificationManager userId={user.id} />}
     </div>
   );
 }
