@@ -5,6 +5,7 @@ import { NotificationFeed } from "@/components/dashboard/NotificationFeed";
 
 import { GmailConnect } from "@/components/dashboard/GmailConnect";
 import { WindowsNotificationManager } from "@/components/WindowsNotificationManager";
+import { CalendarSync } from "@/components/CalendarSync"; // Import CalendarSync component
 
 // Assuming RealTimeMetrics, WellnessPanel, AIInsights, UserProfile, and useNotifications are imported elsewhere
 // and are available in this scope. For the purpose of this edit, we'll assume their existence.
@@ -18,11 +19,13 @@ import { WindowsNotificationManager } from "@/components/WindowsNotificationMana
 import { useMetrics } from "@/hooks/useMetrics"; // Added useMetrics import
 import { useIsMobile } from "@/hooks/use-mobile"; // Added useIsMobile hook
 import { useAuth } from "@/hooks/useAuth"; // Added useAuth import
+import { useState } from "react"; // Import useState for isGmailConnected
 
 export default function Dashboard() {
   const { data: metrics } = useMetrics();
   const isMobile = useIsMobile();
   const { user } = useAuth(); // Get actual authenticated user
+  const [isGmailConnected, setIsGmailConnected] = useState(false); // State to track Gmail connection
   // const { data: notifications } = useNotifications();
   // const activeNotifications = notifications?.filter(n => !n.isRead) || [];
 
@@ -53,7 +56,12 @@ export default function Dashboard() {
 
             {/* Main Column - Tasks with Extended Width */}
             <div className="flex-[3] px-2 h-full">
-              <WorkflowRiver />
+              {/* Placeholder for potential future dashboard widgets */}
+              <div className="space-y-4">
+                <GmailConnect onConnectionChange={setIsGmailConnected} />
+                <CalendarSync isGmailConnected={isGmailConnected} />
+                <UserProfile />
+              </div>
             </div>
           </div>
         )}
@@ -62,8 +70,8 @@ export default function Dashboard() {
 
       {/* Windows Notification Manager */}
       {user && <WindowsNotificationManager userId={user.id} />}
-      
-      
+
+
     </div>
   );
 }
