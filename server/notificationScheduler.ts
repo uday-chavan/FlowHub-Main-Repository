@@ -280,4 +280,4 @@ class TaskNotificationScheduler {
   }
 }
 
-export const taskNotificationScheduler = new TaskNotificationScheduler();
+export const taskNotificationScheduler = new TaskNotificationScheduler(); 
