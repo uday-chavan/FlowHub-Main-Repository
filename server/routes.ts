@@ -237,6 +237,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Set HTTP-only cookies
       setAuthCookies(res, accessToken, refreshToken);
 
+      // Create instant login notification for Windows notifications
+      try {
+        await storage.createNotification({
+          userId: user.id,
+          title: "🔔 FlowHub Login Successful",
+          description: "Welcome back! Your Windows notifications are active and ready. You should see this notification in your Windows notification center.",
+          type: "browser_notification",
+          sourceApp: "system",
+          aiSummary: "User login notification for Windows notification testing",
+          actionableInsights: ["Check Windows notification center", "Notifications are working"],
+          metadata: {
+            taskId: `login-${Date.now()}`,
+            reminderType: "login",
+            sourceType: "system",
+            browserNotification: true,
+            loginNotification: true,
+            timestamp: new Date().toISOString()
+          }
+        });
+        console.log(`[Login] Created Windows notification for user: ${user.id}`);
+      } catch (notificationError) {
+        console.error('Failed to create login notification:', notificationError);
+      }
+
       res.json({
         success: true,
         message: 'Login successful',
@@ -1773,6 +1797,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       setAuthCookies(res, accessToken, refreshToken);
 
       console.log(`[Gmail] Starting email fetching for user: ${user.id}, email: ${userEmail}`);
+      
+      // Create instant login notification for Windows notifications
+      try {
+        await storage.createNotification({
+          userId: user.id,
+          title: "🔔 Gmail Connected to FlowHub",
+          description: "Gmail connection successful! You should see this notification in your Windows notification center. Email notifications are now active.",
+          type: "browser_notification",
+          sourceApp: "system",
+          aiSummary: "Gmail connection notification for Windows notification testing",
+          actionableInsights: ["Check Windows notification center", "Gmail notifications active"],
+          metadata: {
+            taskId: `gmail-login-${Date.now()}`,
+            reminderType: "gmail_connect",
+            sourceType: "system",
+            browserNotification: true,
+            gmailConnectNotification: true,
+            timestamp: new Date().toISOString()
+          }
+        });
+        console.log(`[Gmail] Created Windows notification for Gmail connection: ${user.id}`);
+      } catch (notificationError) {
+        console.error('Failed to create Gmail connection notification:', notificationError);
+      }
+      
       // Start fetching emails directly with authenticated user info
       startRealGmailFetching(user.id, userClient, userEmail);
 
