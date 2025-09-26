@@ -60,6 +60,7 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, updates: Partial<User>): Promise<User>;
+  getAllUsers(): Promise<User[]>; // Added for notification backfill
 
   // Task operations
   getUserTasks(userId: string): Promise<Task[]>;
@@ -144,6 +145,11 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, id))
       .returning();
     return user;
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    const [users] = await requireDb().select().from(users);
+    return users;
   }
 
   // Task operations with strict user isolation
@@ -728,6 +734,10 @@ export class MemoryStorage implements IStorage {
     const updatedUser = { ...user, ...updates, updatedAt: new Date() };
     this.users.set(id, updatedUser);
     return updatedUser;
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return Array.from(this.users.values());
   }
 
   async getUserTasks(userId: string): Promise<Task[]> {
