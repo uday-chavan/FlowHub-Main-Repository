@@ -1,4 +1,3 @@
-
 import { google } from 'googleapis';
 import { OAuth2Client } from 'google-auth-library';
 import { storage } from './storage';
@@ -65,8 +64,13 @@ class CalendarService {
       const dueDate = new Date(task.dueAt);
       const startTime = new Date(dueDate.getTime() - (task.estimatedMinutes || 30) * 60 * 1000);
 
+      // Generate Google Calendar compatible event ID (lowercase letters, numbers, underscores only)
+      const sanitizedTaskId = task.id.replace(/[^a-z0-9]/gi, '').toLowerCase();
+      const timestamp = Date.now().toString();
+      const calendarEventId = `flowhub_${sanitizedTaskId}_${timestamp}`;
+
       const event: CalendarEvent = {
-        id: `flowhub-task-${task.id}`,
+        id: calendarEventId, // Google Calendar compatible event ID
         summary: `📋 ${task.title}`,
         description: `FlowHub Task: ${task.description || ''}\n\nPriority: ${task.priority}\nEstimated time: ${task.estimatedMinutes || 30} minutes\n\nManage this task: https://flowhub.app/dashboard`,
         start: {
@@ -93,7 +97,7 @@ class CalendarService {
       });
 
       console.log(`[Calendar] Created event for task: ${task.title}, event ID: ${response.data.id}`);
-      return response.data.id || null;
+      return calendarEventId;
 
     } catch (error) {
       console.error(`[Calendar] Error creating event for task ${task.id}:`, error);
