@@ -43,7 +43,7 @@ const userEmails = new Map<string, string>();
 const processedEmailIds = new Map<string, Set<string>>();
 
 // Define the redirect URI for Google OAuth
-const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || 'https://flowhub-production-409c.railway.app/auth/gmail/callback';
+const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || 'https://flowhub-production-409c.up.railway.app/auth/gmail/callback';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Add cookie parser middleware
@@ -2360,40 +2360,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const interval = setInterval(fetchUnreadEmails, 10000);
     userGmailIntervals.set(userId, interval);
   }
-
-  // Test Windows notification endpoint - creates immediate notification
-  app.post("/api/test-windows-notification", async (req, res) => {
-    try {
-      // Use a hardcoded test user ID for immediate testing
-      const userId = "user-Y2hhdmFudWRheTU4"; // Your actual user ID from logs
-      console.log(`[TestNotification] Creating immediate Windows notification for user: ${userId}`);
-
-      // Create immediate Windows notification
-      await storage.createNotification({
-        userId: userId,
-        title: "🔔 Windows Notification Test",
-        description: "This is a test notification to verify Windows notifications are working properly. You should see this in your Windows notification center.",
-        type: "browser_notification",
-        sourceApp: "system",
-        aiSummary: "Test notification for Windows notification system verification",
-        actionableInsights: ["Windows notifications are working", "Check notification center", "System is ready"],
-        metadata: {
-          taskId: `test-task-${Date.now()}`,
-          reminderType: "test",
-          sourceType: "manual",
-          browserNotification: true,
-          testNotification: true,
-          timestamp: new Date().toISOString()
-        }
-      });
-
-      console.log(`[TestNotification] Created test notification for user: ${userId}`);
-      res.json({ success: true, message: "Test notification created successfully", userId });
-    } catch (error) {
-      console.error("Failed to create test notification:", error);
-      res.status(500).json({ error: "Failed to create test notification" });
-    }
-  });
 
   const httpServer = createServer(app);
   return httpServer;
