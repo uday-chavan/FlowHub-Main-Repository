@@ -12,7 +12,7 @@ export function WindowsNotificationManager({ userId }: WindowsNotificationManage
   const processedNotifications = useRef(new Set<string>());
   const tabId = useRef(`tab-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
 
-  // Request Windows notification permission - only on desktop devices
+  // Check for existing notification permission on desktop devices
   useEffect(() => {
     // Simplified mobile detection - only exclude actual mobile devices
     const isMobile = /Mobi|Android|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -24,14 +24,11 @@ export function WindowsNotificationManager({ userId }: WindowsNotificationManage
     if ('Notification' in window && isDesktop) {
       if (Notification.permission === 'granted') {
         setPermissionGranted(true);
-      } else if (Notification.permission === 'default' && !permissionRequested) {
-        setPermissionRequested(true);
-        Notification.requestPermission().then((permission) => {
-          setPermissionGranted(permission === 'granted');
-        });
       }
+      // DO NOT automatically request permission - modern browsers block this
+      // Permission will be requested only when user clicks the enable button
     }
-  }, [permissionRequested]);
+  }, []);
 
   // Poll for Windows notifications
   const { data: notifications } = useQuery({
