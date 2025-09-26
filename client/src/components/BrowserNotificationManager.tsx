@@ -184,7 +184,7 @@ export function WindowsNotificationManager({ userId }: WindowsNotificationManage
         </p>
         <div className="space-y-2">
           <button
-            onClick={() => {
+            onClick={async () => {
               console.log('[NotificationManager] Enable button clicked');
               console.log('[NotificationManager] Notification API support:', 'Notification' in window);
               console.log('[NotificationManager] Current permission:', Notification.permission);
@@ -194,10 +194,9 @@ export function WindowsNotificationManager({ userId }: WindowsNotificationManage
                 return;
               }
               
-              setPermissionRequested(true);
-              
-              // Directly request permission - this will show the browser's native popup
-              Notification.requestPermission().then(permission => {
+              try {
+                // Directly request permission - this will show the browser's native popup immediately
+                const permission = await Notification.requestPermission();
                 console.log('[NotificationManager] Permission result:', permission);
                 
                 if (permission === 'granted') {
@@ -238,10 +237,10 @@ export function WindowsNotificationManager({ userId }: WindowsNotificationManage
                 } else {
                   console.log('[NotificationManager] Permission dismissed');
                 }
-              }).catch(error => {
+              } catch (error) {
                 console.error('[NotificationManager] Permission request error:', error);
                 alert('Error requesting notification permission. Please try again.');
-              });
+              }
             }}
             className="w-full bg-white text-blue-600 px-3 py-2 rounded text-sm font-medium hover:bg-gray-100"
           >
