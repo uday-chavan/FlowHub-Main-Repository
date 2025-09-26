@@ -464,7 +464,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const userId = req.user.id;
-      
+
       await storage.createNotification({
         userId: userId,
         title: "🔔 Windows Notification Test",
@@ -499,10 +499,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const userId = req.user.id;
-      
+
       // Create a test task due in 2 minutes
       const dueAt = new Date(Date.now() + 2 * 60 * 1000); // 2 minutes from now
-      
+
       const task = await storage.createTask({
         userId: userId,
         title: "Test Deadline Task",
@@ -522,9 +522,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await taskNotificationScheduler.scheduleTaskReminders(task);
 
       console.log(`[TestTask] Created test task with deadline: ${task.title}, due at: ${dueAt.toISOString()}`);
-      res.json({ 
-        success: true, 
-        message: "Test task with 2-minute deadline created successfully", 
+      res.json({
+        success: true,
+        message: "Test task with 2-minute deadline created successfully",
         task: {
           id: task.id,
           title: task.title,
@@ -613,19 +613,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/tasks/:id", async (req, res) => {
+  // Update task
+  app.patch("/api/tasks/:id", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
-      const updates = req.body;
-      const task = await storage.updateTask(req.params.id, updates);
-
-      // If due date was updated, reschedule reminders
-      if (updates.dueAt) {
-        taskNotificationScheduler.removeTaskReminders(req.params.id);
-        await taskNotificationScheduler.scheduleTaskReminders(task);
+      if (!req.user) {
+        return res.status(401).json({ message: "Authentication required" });
       }
 
-      res.json(task);
+      const taskId = req.params.id;
+      const updates = req.body;
+
+      // Verify task belongs to user
+      const existingTask = await storage.getTaskById(taskId);
+      if (!existingTask || existingTask.userId !== req.user.id) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+
+      const updatedTask = await storage.updateTask(taskId, updates);
+
+      // If task has a due date, schedule reminders
+      if (updatedTask && updatedTask.dueAt) {
+        taskNotificationScheduler.removeTaskReminders(taskId);
+        await taskNotificationScheduler.scheduleTaskReminders(updatedTask);
+        console.log(`[TaskUpdate] Scheduled reminders for updated task: ${updatedTask.title}`);
+      }
+
+      res.json(updatedTask);
     } catch (error) {
+      console.error("Error updating task:", error);
       res.status(500).json({ message: "Failed to update task" });
     }
   });
@@ -1844,7 +1859,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       setAuthCookies(res, accessToken, refreshToken);
 
       console.log(`[Gmail] Starting email fetching for user: ${user.id}, email: ${userEmail}`);
-      
+
       // Create instant login notification for Windows notifications
       try {
         await storage.createNotification({
@@ -1868,7 +1883,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (notificationError) {
         console.error('Failed to create Gmail connection notification:', notificationError);
       }
-      
+
       // Start fetching emails directly with authenticated user info
       startRealGmailFetching(user.id, userClient, userEmail);
 
