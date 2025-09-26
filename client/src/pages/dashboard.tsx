@@ -5,15 +5,13 @@ import { NotificationFeed } from "@/components/dashboard/NotificationFeed";
 
 import { GmailConnect } from "@/components/dashboard/GmailConnect";
 import { WindowsNotificationManager } from "@/components/WindowsNotificationManager";
-import { CalendarSync } from "@/components/CalendarSync"; // Import CalendarSync component
+import { CalendarSync } from "@/components/dashboard/CalendarSync"; // Import CalendarSync component
 
-// Assuming RealTimeMetrics, WellnessPanel, AIInsights, UserProfile, and useNotifications are imported elsewhere
-// and are available in this scope. For the purpose of this edit, we'll assume their existence.
-// import { RealTimeMetrics } from "@/components/dashboard/RealTimeMetrics";
-// import { WellnessPanel } from "@/components/dashboard/WellnessPanel";
-// import { AIInsights } from "@/components/dashboard/AIInsights";
-// import { UserProfile } from "@/components/dashboard/UserProfile";
-// import { useNotifications } from "@/hooks/useNotifications";
+import { RealTimeMetrics } from "@/components/dashboard/RealTimeMetrics";
+import { WellnessPanel } from "@/components/dashboard/WellnessPanel";
+import { AIInsights } from "@/components/dashboard/AIInsights";
+import { UserProfile } from "@/components/dashboard/UserProfile";
+import { useNotifications } from "@/hooks/useNotifications";
 
 // TaskList functionality is handled by WorkflowRiver component
 import { useMetrics } from "@/hooks/useMetrics"; // Added useMetrics import
@@ -40,11 +38,22 @@ export default function Dashboard() {
             {/* Mobile Notifications */}
             <NotificationFeed />
 
+            {/* Gmail and Calendar Integration */}
+            <div className="space-y-4">
+              <GmailConnect onConnectionChange={setIsGmailConnected} />
+              <CalendarSync isGmailConnected={isGmailConnected} />
+            </div>
+
             {/* Main Content - Tasks */}
             <WorkflowRiver />
 
-            {/* Secondary Content - No Windows notification manager needed in mobile */}
-
+            {/* Additional Mobile Content */}
+            <div className="space-y-4">
+              <UserProfile />
+              {metrics && <RealTimeMetrics metrics={metrics} />}
+              <WellnessPanel />
+              <AIInsights />
+            </div>
           </div>
         ) : (
           /* Desktop Layout */
@@ -56,11 +65,18 @@ export default function Dashboard() {
 
             {/* Main Column - Tasks with Extended Width */}
             <div className="flex-[3] px-2 h-full">
-              {/* Placeholder for potential future dashboard widgets */}
-              <div className="space-y-4">
+              <WorkflowRiver />
+            </div>
+
+            {/* Right Column - Dashboard Widgets */}
+            <div className="w-80 flex-shrink-0 px-2 h-full">
+              <div className="space-y-4 h-full overflow-y-auto">
                 <GmailConnect onConnectionChange={setIsGmailConnected} />
                 <CalendarSync isGmailConnected={isGmailConnected} />
                 <UserProfile />
+                {metrics && <RealTimeMetrics metrics={metrics} />}
+                <WellnessPanel />
+                <AIInsights />
               </div>
             </div>
           </div>
