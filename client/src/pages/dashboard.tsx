@@ -40,8 +40,7 @@ export default function Dashboard() {
             {/* Main Content - Tasks */}
             <WorkflowRiver />
 
-            {/* Secondary Content */}
-            <WindowsNotificationManager userId={userId} />
+            {/* Secondary Content - No Windows notification manager needed in mobile */}
 
           </div>
         ) : (
@@ -63,6 +62,30 @@ export default function Dashboard() {
 
       {/* Windows Notification Manager */}
       {user && <WindowsNotificationManager userId={user.id} />}
+      
+      {/* Test Notification Button - Remove after testing */}
+      <div className="fixed top-4 right-4 z-50">
+        <button
+          onClick={async () => {
+            try {
+              console.log('Testing Windows notification...');
+              const response = await fetch('/api/test-windows-notification', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+              });
+              const result = await response.json();
+              console.log('Test notification result:', result);
+              alert('Test notification created! Check your Windows notification center.');
+            } catch (error) {
+              console.error('Test notification failed:', error);
+              alert('Test notification failed. Check console for details.');
+            }
+          }}
+          className="bg-red-600 text-white px-4 py-2 rounded shadow-lg hover:bg-red-700"
+        >
+          🔔 Test Windows Notification
+        </button>
+      </div>
     </div>
   );
 }
