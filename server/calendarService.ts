@@ -8,12 +8,14 @@ export interface CalendarEvent {
   summary: string;
   description?: string;
   start: {
-    dateTime: string;
-    timeZone: string;
+    date?: string;
+    dateTime?: string;
+    timeZone?: string;
   };
-  end: {
-    dateTime: string;
-    timeZone: string;
+  end?: {
+    date?: string;
+    dateTime?: string;
+    timeZone?: string;
   };
   reminders: {
     useDefault: boolean;
@@ -67,10 +69,9 @@ class CalendarService {
       const event: CalendarEvent = {
         // Remove the id field entirely - Google will auto-generate one
         summary: `📋 ${task.title}`,
-        description: `FlowHub Task: ${task.description || ''}\n\nPriority: ${task.priority}\nEstimated time: ${task.estimatedMinutes || 30} minutes\n\nManage this task: https://flowhub.app/dashboard`,
+        description: `FlowHub Task: ${task.description || ''}\n\nPriority: ${task.priority}\n\nManage this task: https://flowhub-production-409c.up.railway.app/dashboard`,
         start: {
-          dateTime: dueDate.toISOString(),
-          timeZone: 'Asia/Kolkata'
+          date: dueDate.toISOString().split('T')[0]
         },
         reminders: {
           useDefault: false,
@@ -118,8 +119,7 @@ class CalendarService {
         summary: `📋 ${task.title}`,
         description: `FlowHub Task: ${task.description || ''}\n\nPriority: ${task.priority}\nStatus: ${task.status}\n\nManage this task: https://flowhub-production-409c.up.railway.app/dashboard`,
         start: {
-          dateTime: dueDate.toISOString(),
-          timeZone: 'Asia/Kolkata'
+          date: dueDate.toISOString().split('T')[0]
         }
       };
 
