@@ -4,8 +4,7 @@ import { WorkflowRiver } from "@/components/dashboard/WorkflowRiver";
 import { NotificationFeed } from "@/components/dashboard/NotificationFeed";
 
 import { GmailConnect } from "@/components/dashboard/GmailConnect";
-import { WindowsNotificationManager } from "@/components/BrowserNotificationManager";
-import { BrowserNotificationManager } from "@/components/BrowserNotificationManager";
+import { WindowsNotificationManager } from "@/components/WindowsNotificationManager";
 
 // Assuming RealTimeMetrics, WellnessPanel, AIInsights, UserProfile, and useNotifications are imported elsewhere
 // and are available in this scope. For the purpose of this edit, we'll assume their existence.
@@ -62,7 +61,7 @@ export default function Dashboard() {
       </main>
 
       {/* Windows Notification Manager */}
-      <BrowserNotificationManager userId="demo-user" />
+      <WindowsNotificationManager userId="demo-user" />
     </div>
   );
 }
