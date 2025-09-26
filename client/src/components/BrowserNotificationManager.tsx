@@ -181,57 +181,87 @@ export function WindowsNotificationManager({ userId }: WindowsNotificationManage
         </p>
         <div className="space-y-2">
           <button
-            onClick={async () => {
+            onClick={async (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              
               console.log('[NotificationManager] Enable button clicked');
+              console.log('[NotificationManager] Notification API support:', 'Notification' in window);
+              console.log('[NotificationManager] Current permission:', Notification.permission);
+              
               setPermissionRequested(true);
               
               try {
+                // Force request permission even if already asked
                 const permission = await Notification.requestPermission();
-                console.log('[NotificationManager] Permission result:', permission);
+                console.log('[NotificationManager] Permission result after request:', permission);
                 
                 setPermissionGranted(permission === 'granted');
 
                 // Test notification immediately if granted
                 if (permission === 'granted') {
-                  console.log('[NotificationManager] Creating test notification');
+                  console.log('[NotificationManager] Permission granted, creating test notification');
                   
-                  const testNotification = new Notification('FlowHub Windows Notifications Enabled! 🎉', {
-                    body: 'You will now receive Windows notifications for your task deadlines in the Windows notification center.',
-                    icon: '/favicon.ico',
-                    requireInteraction: false,
-                    tag: 'flowhub-test',
-                    silent: false
-                  });
+                  try {
+                    const testNotification = new Notification('✅ FlowHub Windows Notifications Enabled!', {
+                      body: 'Perfect! You will now receive Windows notifications for your task deadlines. Check your Windows notification center.',
+                      icon: window.location.origin + '/favicon.ico',
+                      requireInteraction: true,
+                      tag: 'flowhub-test-notification',
+                      silent: false,
+                      renotify: true
+                    });
 
-                  testNotification.onclick = () => {
-                    console.log('[NotificationManager] Test notification clicked');
-                    window.focus();
-                    testNotification.close();
-                  };
+                    testNotification.onclick = () => {
+                      console.log('[NotificationManager] Test notification clicked');
+                      window.focus();
+                      testNotification.close();
+                    };
 
-                  // Auto-close test notification after 5 seconds
-                  setTimeout(() => {
-                    testNotification.close();
-                  }, 5000);
-                  
-                  console.log('[NotificationManager] Test notification created successfully');
+                    testNotification.onshow = () => {
+                      console.log('[NotificationManager] Test notification displayed successfully');
+                    };
+
+                    testNotification.onerror = (error) => {
+                      console.error('[NotificationManager] Test notification error:', error);
+                    };
+
+                    // Auto-close test notification after 8 seconds
+                    setTimeout(() => {
+                      testNotification.close();
+                      console.log('[NotificationManager] Test notification auto-closed');
+                    }, 8000);
+                    
+                    console.log('[NotificationManager] Test notification created and should be visible');
+                    
+                  } catch (notifError) {
+                    console.error('[NotificationManager] Error creating test notification:', notifError);
+                  }
                 } else if (permission === 'denied') {
                   console.log('[NotificationManager] User denied notification permission');
+                  alert('Notifications were blocked. Please enable them in your browser settings (click the lock icon in the address bar) for Windows notifications to work.');
                 } else {
-                  console.log('[NotificationManager] Permission request was dismissed');
+                  console.log('[NotificationManager] Permission request was dismissed or default');
+                  alert('Permission request was dismissed. Please click the button again to enable Windows notifications.');
                 }
               } catch (error) {
                 console.error('[NotificationManager] Error requesting permission:', error);
+                alert('Error requesting notification permission. Please check browser console for details.');
               }
-            }}
+            }
             className="w-full bg-white text-blue-600 px-3 py-2 rounded text-sm font-medium hover:bg-gray-100"
           >
             Enable Windows Notifications
           </button>
           {Notification.permission === 'denied' && (
-            <p className="text-xs text-blue-200">
-              Notifications are blocked. Please enable them in your browser settings for Windows notifications to work.
-            </p>
+            <div className="text-xs text-blue-200 bg-blue-700/20 p-2 rounded">
+              <strong>Notifications Blocked:</strong> Please click the lock icon (🔒) in your browser's address bar and allow notifications, then refresh the page.
+            </div>
+          )}
+          {permissionRequested && Notification.permission === 'default' && (
+            <div className="text-xs text-blue-200 bg-blue-700/20 p-2 rounded">
+              Permission request was dismissed. Click "Enable Windows Notifications" again to try.
+            </div>
           )}
         </div>
       </div>
