@@ -348,7 +348,15 @@ export async function analyzeNotificationForTask(
       - important: ALL work-related tasks including meetings, deadlines within days/hours, reviews, submissions, reports, business emails, professional communications. ANY work task with time mentions like "in 1 hour", "in 2 hours", "in 3 hours", "today", "tomorrow", "this week". Also tasks without deadlines that are work-related should be important.
       - normal: ONLY for casual/social conversations, entertainment, personal messages like "hi", "hello", "wassup", "let's play game", non-work content
 
-      CRITICAL: If the email mentions work, business, meetings, deadlines, or professional context, it should be "important" unless it's within 1 hour (then "urgent").
+      NON-ACTIONABLE EMAIL DETECTION:
+      If the email contains any of these patterns, classify as "skip" instead of creating a task:
+      - Security alerts, verification codes, login attempts, password resets
+      - System notifications, automated confirmations, receipts
+      - Newsletter content, promotional material, unsubscribe messages
+      - Account activity notifications, suspicious activity alerts
+      - Welcome emails, signup confirmations, email verifications
+
+      CRITICAL: If the email mentions work, business, meetings, deadlines, or professional context, it should be "important" unless it's within 1 hour (then "urgent"). However, if it's a security/system notification, it should be skipped entirely.
 
       TIME PARSING INSTRUCTIONS:
       Current time: ${new Date().toISOString()} (Server timezone: Indian Standard Time - UTC+5:30)
@@ -781,7 +789,38 @@ function getFallbackTaskFromNotification(notification: {
   // Priority detection based on time and context - MOVED to analyze the FULL text including description
   const allText = (notification.title + ' ' + (notification.description || '')).toLowerCase();
   
-  // Check for casual/social patterns FIRST (highest specificity) - Check DESCRIPTION content primarily
+  // Check for non-actionable patterns FIRST (security, system, promotional)
+  const nonActionablePatterns = [
+    /security alert/i,
+    /code verification/i,
+    /verification code/i,
+    /two.?factor authentication/i,
+    /login attempt/i,
+    /password reset/i,
+    /account activity/i,
+    /suspicious activity/i,
+    /verify your/i,
+    /confirm your email/i,
+    /email verification/i,
+    /welcome to/i,
+    /thank you for signing up/i,
+    /receipt for your/i,
+    /payment confirmation/i,
+    /newsletter/i,
+    /unsubscribe/i
+  ];
+
+  if (nonActionablePatterns.some(pattern => pattern.test(allText))) {
+    // Return null or skip task creation for non-actionable emails
+    return {
+      title: "Skip",
+      description: "Non-actionable email filtered out",
+      priority: "normal",
+      estimatedMinutes: 0
+    };
+  }
+
+  // Check for casual/social patterns SECOND - Check DESCRIPTION content primarily
   if (lowerContent.match(/\b(?:hi|hello|hey|wassup|what's up|how are you|how r u|good morning|good afternoon|good evening|hangout|chat|let's play|game|social|casual)\b/) ||
       lowerContent.match(/^(?:hi|hello|hey)\s*[!.]*\s*$/) ||
       allText.match(/\b(?:hi|hello|hey|wassup|what's up|how are you|how r u|good morning|good afternoon|good evening|hangout|chat|let's play|game|social|casual)\b/) ||
