@@ -31,6 +31,7 @@ export const paymentStatusEnum = pgEnum("payment_status", ["pending", "completed
 export const paymentProviderEnum = pgEnum("payment_provider", ["razorpay", "cashfree", "phonepe", "paytm", "manual"]);
 export const paymentMethodEnum = pgEnum("payment_method", ["upi", "card", "netbanking", "wallet"]);
 export const subscriptionStatusEnum = pgEnum("subscription_status", ["active", "pending", "canceled", "paused"]);
+export const convertedEmailStatusEnum = pgEnum("converted_email_status", ["new", "converted", "archived"]);
 
 // Users table
 export const users = pgTable("users", {
@@ -239,6 +240,28 @@ export const priorityEmails = pgTable("priority_emails", {
   userEmailUnique: unique("priority_emails_user_email_unique").on(table.userId, table.email),
 }));
 
+// Converted Emails table for proper tracking of email conversions
+export const convertedEmails = pgTable("converted_emails", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  gmailMessageId: text("gmail_message_id").notNull(),
+  gmailThreadId: text("gmail_thread_id"),
+  subject: text("subject").notNull(),
+  sender: text("sender").notNull(),
+  senderEmail: text("sender_email").notNull(),
+  receivedAt: timestamp("received_at").notNull(),
+  convertedAt: timestamp("converted_at").defaultNow(),
+  rawSnippet: text("raw_snippet"),
+  status: convertedEmailStatusEnum("status").default("new"),
+  taskIds: jsonb("task_ids"), // Array of task IDs created from this email
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  userGmailIdUnique: unique("converted_emails_user_gmail_id_unique").on(table.userId, table.gmailMessageId),
+  userIdIdx: index("converted_emails_user_id_idx").on(table.userId),
+  statusIdx: index("converted_emails_status_idx").on(table.status),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -327,6 +350,12 @@ export const insertPriorityEmailSchema = createInsertSchema(priorityEmails).omit
   createdAt: true,
 });
 
+export const insertConvertedEmailSchema = createInsertSchema(convertedEmails).omit({
+  id: true,
+  createdAt: true,
+  convertedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
@@ -369,3 +398,6 @@ export type InsertUserUsage = z.infer<typeof insertUserUsageSchema>;
 
 export type PriorityEmail = typeof priorityEmails.$inferSelect;
 export type InsertPriorityEmail = z.infer<typeof insertPriorityEmailSchema>;
+
+export type ConvertedEmail = typeof convertedEmails.$inferSelect;
+export type InsertConvertedEmail = z.infer<typeof insertConvertedEmailSchema>;
