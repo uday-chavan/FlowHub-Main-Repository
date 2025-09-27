@@ -789,35 +789,65 @@ function getFallbackTaskFromNotification(notification: {
   // Priority detection based on time and context - MOVED to analyze the FULL text including description
   const allText = (notification.title + ' ' + (notification.description || '')).toLowerCase();
   
-  // Check for non-actionable patterns FIRST (security, system, promotional)
-  const nonActionablePatterns = [
-    /security alert/i,
-    /code verification/i,
-    /verification code/i,
-    /two.?factor authentication/i,
-    /login attempt/i,
-    /password reset/i,
-    /account activity/i,
-    /suspicious activity/i,
-    /verify your/i,
-    /confirm your email/i,
-    /email verification/i,
-    /welcome to/i,
-    /thank you for signing up/i,
-    /receipt for your/i,
-    /payment confirmation/i,
-    /newsletter/i,
-    /unsubscribe/i
+  // Check for work email patterns FIRST - prioritize work content
+  const workPatterns = [
+    /action required/i,
+    /deadline/i,
+    /deliverable/i,
+    /task/i,
+    /project/i,
+    /meeting/i,
+    /campaign/i,
+    /vendor/i,
+    /coordinate/i,
+    /assist/i,
+    /prepare/i,
+    /draft/i,
+    /confirm/i,
+    /negotiate/i,
+    /training/i,
+    /conference/i,
+    /calendar/i,
+    /schedule/i,
+    /analysis/i,
+    /strategy/i,
+    /review/i,
+    /approval/i,
+    /budget/i,
+    /timeline/i,
+    /milestone/i,
+    /presentation/i,
+    /proposal/i,
+    /contract/i,
+    /client/i,
+    /customer/i,
+    /stakeholder/i,
+    /team/i,
+    /department/i
   ];
 
-  if (nonActionablePatterns.some(pattern => pattern.test(allText))) {
-    // Return null or skip task creation for non-actionable emails
-    return {
-      title: "Skip",
-      description: "Non-actionable email filtered out",
-      priority: "normal",
-      estimatedMinutes: 0
-    };
+  const isWorkEmail = workPatterns.some(pattern => pattern.test(allText));
+
+  // Check for non-actionable patterns ONLY if it's not clearly a work email
+  if (!isWorkEmail) {
+    const nonActionablePatterns = [
+      /security alert/i,
+      /verification code.*\d{4,}/i, // Only skip if contains actual verification code
+      /two.?factor authentication.*code/i,
+      /login verification.*code/i,
+      /confirm your email.*click here/i,
+      /welcome to.*verify/i,
+      /thank you for signing up.*confirm/i
+    ];
+
+    if (nonActionablePatterns.some(pattern => pattern.test(allText))) {
+      return {
+        title: "Skip",
+        description: "Non-actionable email filtered out",
+        priority: "normal",
+        estimatedMinutes: 0
+      };
+    }
   }
 
   // Check for casual/social patterns SECOND - Check DESCRIPTION content primarily
