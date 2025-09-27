@@ -16,7 +16,13 @@ import { z } from "zod";
 
 // Enums
 export const taskPriorityEnum = pgEnum("task_priority", ["urgent", "important", "normal"]);
-export const notificationTypeEnum = pgEnum("notification_type", ["urgent", "important", "informational"]);
+export const notificationTypeEnum = pgEnum("notification_type", [
+  "urgent",
+  "important", 
+  "informational",
+  "browser_notification",
+  "email_converted"
+]);
 export const taskStatusEnum = pgEnum("task_status", ["pending", "in_progress", "completed", "paused"]);
 export const appTypeEnum = pgEnum("app_type", ["gmail", "slack", "notion", "trello", "zoom", "calendar", "manual"]);
 export const credentialTypeEnum = pgEnum("credential_type", ["oauth_token", "api_key", "password", "certificate"]);
