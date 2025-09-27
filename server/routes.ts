@@ -772,7 +772,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             type: "task_rescheduling",
             title: "Tasks Auto-Rescheduled",
             description: `Completed task influenced rescheduling of ${reschedulingResult.rescheduledTasks.length} upcoming tasks. ${reschedulingResult.insights.join(' ')} Time saved: ${reschedulingResult.totalTimeSaved} minutes.`,
-            priority: "normal",
+            priority: "high",
             metadata: {
               rescheduledTasks: reschedulingResult.rescheduledTasks,
               completedTaskId: req.params.id,
@@ -2967,7 +2967,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     };
 
-    // Initial fetch
+    // Call fetchUnreadEmails immediately when starting
+    console.log(`[Gmail] Starting immediate email fetch for user: ${userId}`);
     await fetchUnreadEmails();
 
     // Set up periodic fetching every 10 seconds
