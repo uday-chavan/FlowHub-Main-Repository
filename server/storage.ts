@@ -129,6 +129,7 @@ export interface IStorage {
   getUserConvertedEmails(userId: string, limit?: number): Promise<ConvertedEmail[]>;
   updateConvertedEmail(id: string, updates: Partial<ConvertedEmail>): Promise<ConvertedEmail>;
   deleteConvertedEmail(id: string): Promise<void>;
+  getConvertedEmailById(id: string): Promise<ConvertedEmail | null>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -672,8 +673,21 @@ export class DatabaseStorage implements IStorage {
     return convertedEmail;
   }
 
+  // Get converted email by ID
+  async getConvertedEmailById(id: string): Promise<ConvertedEmail | null> {
+    const db = getDb();
+    if (!db) throw new Error("Database not available");
+
+    const result = await db.select().from(convertedEmails).where(eq(convertedEmails.id, id)).limit(1);
+    return result[0] || null;
+  }
+
+  // Delete a converted email record
   async deleteConvertedEmail(id: string): Promise<void> {
-    await requireDb().delete(convertedEmails).where(eq(convertedEmails.id, id));
+    const db = getDb();
+    if (!db) throw new Error("Database not available");
+
+    await db.delete(convertedEmails).where(eq(convertedEmails.id, id));
   }
 }
 
@@ -1218,6 +1232,12 @@ export class MemoryStorage implements IStorage {
 
   async deleteConvertedEmail(id: string): Promise<void> {
     this.convertedEmailsMap.delete(id);
+  }
+
+  // Get converted email by ID
+  async getConvertedEmailById(id: string): Promise<ConvertedEmail | null> {
+    const convertedEmail = this.convertedEmailsMap.get(id);
+    return convertedEmail || null;
   }
 }
 
