@@ -20,8 +20,10 @@ class TaskNotificationScheduler {
       this.checkAndSendReminders();
     }, 60000);
     
-    // Backfill reminders for existing tasks on startup
-    this.backfillExistingTaskReminders();
+    // Backfill reminders for existing tasks on startup with error handling
+    this.backfillExistingTaskReminders().catch(error => {
+      console.error('Error backfilling task reminders:', error);
+    });
   }
 
   stop() {
