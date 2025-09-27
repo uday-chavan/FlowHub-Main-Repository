@@ -988,7 +988,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             } else if (typeof aiAnalysis.dueAt === 'string') {
               dueAtDate = new Date(aiAnalysis.dueAt);
             }
-            
+
             // Validate the date is valid
             if (dueAtDate && isNaN(dueAtDate.getTime())) {
               console.error(`[TaskCreation] Invalid date for task: ${aiAnalysis.dueAt}`);
@@ -1059,38 +1059,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Create email conversion tracking record for Emails Converted page BEFORE dismissing
+      // Create proper email conversion record in convertedEmails table
       if (notification.sourceApp === "gmail") {
         try {
           const taskTitles = createdTasks.map(t => t.title).join(", ");
-          const taskDescription = createdTasks.length > 1
-            ? `Email split into ${createdTasks.length} tasks: ${taskTitles}`
-            : `Email converted to task: ${createdTasks[0].title}`;
 
-          await storage.createNotification({
+          await storage.createConvertedEmail({
             userId: userId,
-            title: `Email converted: ${notification.title.replace('New email from ', '')}`,
-            description: taskDescription,
-            type: "informational", // Use valid type temporarily
-            sourceApp: "system",
-            aiSummary: `Email from ${notification.metadata?.emailFrom || 'unknown sender'} converted to ${createdTasks.length} task(s)`,
-            actionableInsights: ["View in tasks", "Edit task", "Mark complete"],
+            gmailMessageId: notification.metadata?.emailId || `notification-${notification.id}`,
+            gmailThreadId: notification.metadata?.threadId || null,
+            subject: notification.metadata?.emailSubject || notification.title,
+            sender: notification.metadata?.emailFrom || "Unknown Sender",
+            senderEmail: notification.metadata?.fromEmail || notification.metadata?.emailFrom || "unknown@sender.com",
+            receivedAt: new Date(notification.metadata?.emailDate || notification.createdAt),
+            rawSnippet: fullContent?.substring(0, 500) || notification.description,
+            status: "converted",
+            taskIds: createdTasks.map(t => t.id),
             metadata: {
               sourceNotificationId: notification.id,
-              taskIds: createdTasks.map(t => t.id),
               convertedAt: new Date().toISOString(),
-              from: notification.metadata?.emailFrom,
-              subject: notification.metadata?.emailSubject || notification.title,
-              originalEmailId: notification.metadata?.emailId,
               originalContent: fullContent,
               tasksCount: createdTasks.length,
               taskTitles: taskTitles,
-              isEmailConversion: true // Mark this as email conversion
+              isPriorityPerson: notification.metadata?.isPriorityPerson || false
             }
           });
-          console.log(`[ConversionTracking] Created conversion record for notification: ${notification.id}`);
+          console.log(`[ConversionTracking] Created convertedEmail record for notification: ${notification.id}`);
         } catch (conversionError) {
-          console.error("Error creating conversion tracking record:", conversionError);
+          console.error("Error creating converted email record:", conversionError);
           // Continue with dismissal even if tracking fails
         }
       }
@@ -1227,28 +1223,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             // Create email conversion tracking record for batch-converted emails BEFORE dismissing
             if (notification.sourceApp === "gmail") {
-              await storage.createNotification({
+              await storage.createConvertedEmail({
                 userId: userId,
-                title: `Email converted: ${notification.title}`,
-                description: `Batch converted email to task: ${aiAnalysis.title}`,
-                type: "informational", // Use valid type temporarily
-                sourceApp: "system",
-                aiSummary: `Email from ${notification.metadata?.emailFrom || 'unknown sender'} batch converted to task`,
-                actionableInsights: ["View in tasks", "Edit task", "Mark complete"],
+                gmailMessageId: notification.metadata?.emailId || `batch-${notification.id}`,
+                gmailThreadId: notification.metadata?.threadId || null,
+                subject: notification.metadata?.emailSubject || notification.title,
+                sender: notification.metadata?.emailFrom || "Unknown Sender",
+                senderEmail: notification.metadata?.fromEmail || notification.metadata?.emailFrom || "unknown@sender.com",
+                receivedAt: new Date(notification.metadata?.emailDate || notification.createdAt),
+                rawSnippet: fullContent?.substring(0, 500) || notification.description,
+                status: "converted",
+                taskIds: [task.id],
                 metadata: {
                   sourceNotificationId: notification.id,
-                  taskId: task.id,
                   convertedAt: new Date().toISOString(),
-                  from: notification.metadata?.emailFrom,
-                  subject: notification.title,
-                  originalEmailId: notification.metadata?.emailId,
-                  batchProcessed: true,
                   originalContent: fullContent,
-                  taskTitle: aiAnalysis.title,
-                  taskDescription: aiAnalysis.description,
-                  isEmailConversion: true // Mark this as email conversion
+                  tasksCount: 1,
+                  taskTitles: aiAnalysis.title,
+                  isPriorityPerson: notification.metadata?.isPriorityPerson || false,
+                  batchProcessed: true
                 }
               });
+              console.log(`[BatchConversion] Created convertedEmail record for notification: ${notification.id}`);
             }
 
             // Dismiss the original notification since it's been converted to task
@@ -1491,6 +1487,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error bulk deleting notifications:', error);
       res.status(500).json({ error: 'Failed to delete notifications', error: error instanceof Error ? error.message : 'Unknown error' });
+    }
+  });
+
+  // Get converted emails endpoint
+  app.get('/api/converted-emails', authenticateToken, async (req: AuthenticatedRequest, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const convertedEmails = await storage.getUserConvertedEmails(userId, limit);
+      res.json(convertedEmails);
+    } catch (error) {
+      console.error('Error fetching converted emails:', error);
+      res.status(500).json({ error: 'Failed to fetch converted emails' });
+    }
+  });
+
+  // Bulk delete converted emails
+  app.post('/api/converted-emails/bulk-delete', authenticateToken, async (req: AuthenticatedRequest, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const { ids } = req.body;
+      if (!Array.isArray(ids)) {
+        return res.status(400).json({ error: 'Invalid request format' });
+      }
+
+      // Get user's converted emails to verify ownership
+      const userConvertedEmails = await storage.getUserConvertedEmails(userId);
+      const userConvertedEmailIds = new Set(userConvertedEmails.map(e => e.id));
+
+      const deletableIds = ids.filter(id => userConvertedEmailIds.has(id));
+      const nonDeletableIds = ids.filter(id => !userConvertedEmailIds.has(id));
+
+      if (nonDeletableIds.length > 0) {
+        console.warn(`[BulkDelete] User ${userId} attempted to delete converted emails they don't own: ${nonDeletableIds.join(', ')}`);
+      }
+
+      for (const id of deletableIds) {
+        await storage.deleteConvertedEmail(id);
+      }
+
+      res.json({ success: true, deletedCount: deletableIds.length, ignoredCount: nonDeletableIds.length });
+    } catch (error) {
+      console.error('Error bulk deleting converted emails:', error);
+      res.status(500).json({ error: 'Failed to delete converted emails' });
     }
   });
 
@@ -2397,14 +2445,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Time-based deduplication - allow reprocessing after 60 seconds for new notifications
             const now = Date.now();
             const processingWindow = 60 * 1000; // 60 seconds (reduced from 10 minutes)
-            
+
             if (!processedEmailIds.has(userId)) {
               processedEmailIds.set(userId, new Map());
             }
-            
+
             const userProcessedEmails = processedEmailIds.get(userId)!;
             const lastProcessedTime = userProcessedEmails.get(message.id!);
-            
+
             // Skip only if processed recently (within 60 seconds) to prevent race conditions
             // but allow reprocessing for legitimate new notifications
             if (lastProcessedTime && (now - lastProcessedTime) < processingWindow) {
@@ -2413,7 +2461,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
 
             // Note: Email will be marked as processed AFTER successful persistence (moved below)
-            
+
             // Clean up old entries (older than 1 hour) to prevent memory leaks
             const cleanupWindow = 60 * 60 * 1000; // 1 hour
             for (const [emailId, timestamp] of userProcessedEmails.entries()) {
@@ -2519,10 +2567,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ];
 
             const emailContent = (subject + ' ' + body).toLowerCase();
-            
+
             // Only skip if it contains specific security keywords AND is clearly automated
             const isSecurityEmail = securityKeywords.some(keyword => emailContent.includes(keyword)) &&
-                                   (emailContent.includes('code:') || emailContent.includes('verification code') || 
+                                   (emailContent.includes('code:') || emailContent.includes('verification code') ||
                                     emailContent.includes('click here to verify') || emailContent.includes('confirm your'));
 
             if (isSecurityEmail) {
@@ -2541,7 +2589,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ];
 
             const hasWorkContent = workIndicators.some(indicator => emailContent.includes(indicator));
-            
+
             // Force process work emails regardless of other patterns
             if (hasWorkContent) {
               console.log(`[Gmail] Processing work email: ${subject}`);
@@ -2684,14 +2732,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 // Time-based deduplication for retry - consistent with main processing logic
                 const now = Date.now();
                 const processingWindow = 10 * 60 * 1000; // 10 minutes
-                
+
                 if (!processedEmailIds.has(userId)) {
                   processedEmailIds.set(userId, new Map());
                 }
-                
+
                 const userProcessedEmails = processedEmailIds.get(userId)!;
                 const lastProcessedTime = userProcessedEmails.get(message.id!);
-                
+
                 // Skip only if processed recently (within 10 minutes)
                 if (lastProcessedTime && (now - lastProcessedTime) < processingWindow) {
                   console.log(`[Gmail] Skipping recently processed email during retry: ${message.id} (${Math.round((now - lastProcessedTime) / 1000)}s ago)`);
@@ -2789,10 +2837,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   ];
 
                   const emailContent = (subject + ' ' + body).toLowerCase();
-                  
+
                   // Only skip if it contains specific security keywords AND is clearly automated
                   const isSecurityEmail = securityKeywords.some(keyword => emailContent.includes(keyword)) &&
-                                         (emailContent.includes('code:') || emailContent.includes('verification code') || 
+                                         (emailContent.includes('code:') || emailContent.includes('verification code') ||
                                           emailContent.includes('click here to verify') || emailContent.includes('confirm your'));
 
                   if (isSecurityEmail) {
@@ -2811,7 +2859,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   ];
 
                   const hasWorkContent = workIndicators.some(indicator => emailContent.includes(indicator));
-                  
+
                   // Force process work emails regardless of other patterns
                   if (hasWorkContent) {
                     console.log(`[Gmail] Processing work email (retry): ${subject}`);
