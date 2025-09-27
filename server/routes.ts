@@ -986,7 +986,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           priority: finalPriority as any,
           status: "pending",
           estimatedMinutes: aiAnalysis.estimatedMinutes,
-          dueAt: aiAnalysis.dueAt,
+          dueAt: aiAnalysis.dueAt ? new Date(aiAnalysis.dueAt) : null,
           sourceApp: notification.sourceApp as any,
           metadata: {
             sourceNotificationId: notification.id,
@@ -1146,7 +1146,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               priority: finalPriority as any,
               status: "pending",
               estimatedMinutes: aiAnalysis.estimatedMinutes,
-              dueAt: aiAnalysis.dueAt,
+              dueAt: aiAnalysis.dueAt ? new Date(aiAnalysis.dueAt) : null,
               sourceApp: notification.sourceApp as any,
               metadata: {
                 sourceNotificationId: notification.id,
