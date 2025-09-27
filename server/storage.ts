@@ -148,8 +148,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllUsers(): Promise<User[]> {
-    const [users] = await requireDb().select().from(users);
-    return users;
+    return await requireDb().select().from(users);
   }
 
   // Task operations with strict user isolation
@@ -1133,5 +1132,5 @@ export class MemoryStorage implements IStorage {
   }
 }
 
-// Use MemoryStorage for stable demo while database connection issues are resolved
-export const storage = new MemoryStorage();
+// Use DatabaseStorage when DATABASE_URL is available, fallback to MemoryStorage for development
+export const storage = process.env.DATABASE_URL ? new DatabaseStorage() : new MemoryStorage();
