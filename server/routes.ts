@@ -976,98 +976,132 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create multiple tasks if multiple deadlines detected
       const createdTasks = [];
       for (const [index, aiAnalysis] of taskAnalyses.entries()) {
-        // Force urgent priority for tasks from priority person emails
-        const finalPriority = notification.metadata?.isPriorityPerson ? "urgent" : aiAnalysis.priority;
+        try {
+          // Force urgent priority for tasks from priority person emails
+          const finalPriority = notification.metadata?.isPriorityPerson ? "urgent" : aiAnalysis.priority;
 
-        const taskData: InsertTask = {
-          userId: userId,
-          title: aiAnalysis.title,
-          description: fullContent || aiAnalysis.description, // Use full content as description
-          priority: finalPriority as any,
-          status: "pending",
-          estimatedMinutes: aiAnalysis.estimatedMinutes,
-          dueAt: aiAnalysis.dueAt ? new Date(aiAnalysis.dueAt) : null,
-          sourceApp: notification.sourceApp as any,
-          metadata: {
-            sourceNotificationId: notification.id,
-            aiGenerated: true,
-            originalContent: fullContent,
-            emailSubject: notification.metadata?.emailSubject,
-            emailFrom: notification.metadata?.emailFrom,
-            emailDate: notification.metadata?.emailDate,
-            multiTask: taskAnalyses.length > 1,
-            taskIndex: index + 1,
-            totalTasks: taskAnalyses.length,
-            isPriorityPerson: notification.metadata?.isPriorityPerson || false
-          }
-        };
-
-        const task = await storage.createAiTaskWithLimit(taskData);
-        if (!task) {
-          // stop further creations and return 429 with partial results
-          return res.status(429).json({
-            message: "AI task limit exceeded",
-            error: "PLAN_LIMIT_EXCEEDED",
-            createdTasks,
-            upgradeRequired: true,
-          });
-        }
-        createdTasks.push(task);
-
-        // Schedule reminders for each task
-        await taskNotificationScheduler.scheduleTaskReminders(task);
-
-        // Create calendar event for the task
-        if (task.dueAt && calendarService.hasUserClient(userId)) {
-          try {
-            const calendarEventId = await calendarService.createTaskEvent(task);
-            if (calendarEventId) {
-              await storage.updateTask(task.id, {
-                metadata: {
-                  ...task.metadata,
-                  calendarEventId
-                }
-              });
-              console.log(`[ConvertedTask] Created calendar event for converted task: ${task.title}`);
+          // Ensure dueAt is properly converted to Date object or null
+          let dueAtDate = null;
+          if (aiAnalysis.dueAt) {
+            if (aiAnalysis.dueAt instanceof Date) {
+              dueAtDate = aiAnalysis.dueAt;
+            } else if (typeof aiAnalysis.dueAt === 'string') {
+              dueAtDate = new Date(aiAnalysis.dueAt);
             }
-          } catch (calendarError) {
-            console.error("[ConvertedTask] Failed to create calendar event:", calendarError);
-            // Continue without failing the task creation
+            
+            // Validate the date is valid
+            if (dueAtDate && isNaN(dueAtDate.getTime())) {
+              console.error(`[TaskCreation] Invalid date for task: ${aiAnalysis.dueAt}`);
+              dueAtDate = null;
+            }
           }
+
+          const taskData: InsertTask = {
+            userId: userId,
+            title: aiAnalysis.title,
+            description: fullContent || aiAnalysis.description, // Use full content as description
+            priority: finalPriority as any,
+            status: "pending",
+            estimatedMinutes: aiAnalysis.estimatedMinutes,
+            dueAt: dueAtDate,
+            sourceApp: notification.sourceApp as any,
+            metadata: {
+              sourceNotificationId: notification.id,
+              aiGenerated: true,
+              originalContent: fullContent,
+              emailSubject: notification.metadata?.emailSubject,
+              emailFrom: notification.metadata?.emailFrom,
+              emailDate: notification.metadata?.emailDate,
+              multiTask: taskAnalyses.length > 1,
+              taskIndex: index + 1,
+              totalTasks: taskAnalyses.length,
+              isPriorityPerson: notification.metadata?.isPriorityPerson || false
+            }
+          };
+
+          console.log(`[TaskCreation] Creating task with dueAt: ${dueAtDate ? dueAtDate.toISOString() : 'null'}`);
+          const task = await storage.createAiTaskWithLimit(taskData);
+          if (!task) {
+            // stop further creations and return 429 with partial results
+            return res.status(429).json({
+              message: "AI task limit exceeded",
+              error: "PLAN_LIMIT_EXCEEDED",
+              createdTasks,
+              upgradeRequired: true,
+            });
+          }
+          createdTasks.push(task);
+
+          // Schedule reminders for each task
+          await taskNotificationScheduler.scheduleTaskReminders(task);
+
+          // Create calendar event for the task
+          if (task.dueAt && calendarService.hasUserClient(userId)) {
+            try {
+              const calendarEventId = await calendarService.createTaskEvent(task);
+              if (calendarEventId) {
+                await storage.updateTask(task.id, {
+                  metadata: {
+                    ...task.metadata,
+                    calendarEventId
+                  }
+                });
+                console.log(`[ConvertedTask] Created calendar event for converted task: ${task.title}`);
+              }
+            } catch (calendarError) {
+              console.error("[ConvertedTask] Failed to create calendar event:", calendarError);
+              // Continue without failing the task creation
+            }
+          }
+        } catch (taskError) {
+          console.error(`Error creating AI task with limit check: ${taskError}`);
+          throw taskError;
         }
       }
 
       // Create email conversion tracking record for Emails Converted page BEFORE dismissing
       if (notification.sourceApp === "gmail") {
-        const taskTitles = createdTasks.map(t => t.title).join(", ");
-        const taskDescription = createdTasks.length > 1
-          ? `Email split into ${createdTasks.length} tasks: ${taskTitles}`
-          : `Email converted to task: ${createdTasks[0].title}`;
+        try {
+          const taskTitles = createdTasks.map(t => t.title).join(", ");
+          const taskDescription = createdTasks.length > 1
+            ? `Email split into ${createdTasks.length} tasks: ${taskTitles}`
+            : `Email converted to task: ${createdTasks[0].title}`;
 
-        await storage.createNotification({
-          userId: userId,
-          title: `Email converted: ${notification.title}`,
-          description: taskDescription,
-          type: "email_converted",
-          sourceApp: "system",
-          aiSummary: `Email from ${notification.metadata?.emailFrom || 'unknown sender'} converted to ${createdTasks.length} task(s)`,
-          actionableInsights: ["View in tasks", "Edit task", "Mark complete"],
-          metadata: {
-            sourceNotificationId: notification.id,
-            taskIds: createdTasks.map(t => t.id),
-            convertedAt: new Date().toISOString(),
-            from: notification.metadata?.emailFrom,
-            subject: notification.title,
-            originalEmailId: notification.metadata?.emailId,
-            originalContent: fullContent,
-            tasksCount: createdTasks.length,
-            taskTitles: taskTitles
-          }
-        });
+          await storage.createNotification({
+            userId: userId,
+            title: `Email converted: ${notification.title.replace('New email from ', '')}`,
+            description: taskDescription,
+            type: "email_converted",
+            sourceApp: "system",
+            aiSummary: `Email from ${notification.metadata?.emailFrom || 'unknown sender'} converted to ${createdTasks.length} task(s)`,
+            actionableInsights: ["View in tasks", "Edit task", "Mark complete"],
+            metadata: {
+              sourceNotificationId: notification.id,
+              taskIds: createdTasks.map(t => t.id),
+              convertedAt: new Date().toISOString(),
+              from: notification.metadata?.emailFrom,
+              subject: notification.metadata?.emailSubject || notification.title,
+              originalEmailId: notification.metadata?.emailId,
+              originalContent: fullContent,
+              tasksCount: createdTasks.length,
+              taskTitles: taskTitles
+            }
+          });
+          console.log(`[ConversionTracking] Created conversion record for notification: ${notification.id}`);
+        } catch (conversionError) {
+          console.error("Error creating conversion tracking record:", conversionError);
+          // Continue with dismissal even if tracking fails
+        }
       }
 
       // Dismiss the original notification since it's been converted to task
-      await storage.dismissNotification(notificationId);
+      try {
+        await storage.dismissNotification(notificationId);
+        console.log(`[NotificationDismissal] Successfully dismissed notification: ${notificationId}`);
+      } catch (dismissError) {
+        console.error("Error dismissing notification:", dismissError);
+        // Don't fail the entire conversion if dismissal fails
+      }
 
       res.json({
         success: true,
