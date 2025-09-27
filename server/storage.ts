@@ -120,7 +120,6 @@ export interface IStorage {
   // Priority Email operations
   createPriorityEmail(data: InsertPriorityEmail): Promise<PriorityEmail>;
   getUserPriorityEmails(userId: string): Promise<PriorityEmail[]>;
-  getPriorityEmailById(id: string): Promise<PriorityEmail | undefined>;
   deletePriorityEmail(id: string): Promise<void>;
   isPriorityEmail(userId: string, email: string): Promise<boolean>;
 
@@ -622,12 +621,6 @@ export class DatabaseStorage implements IStorage {
     return await requireDb().select().from(priorityEmails)
       .where(eq(priorityEmails.userId, userId))
       .orderBy(desc(priorityEmails.createdAt));
-  }
-
-  async getPriorityEmailById(id: string): Promise<PriorityEmail | undefined> {
-    const [priorityEmail] = await requireDb().select().from(priorityEmails)
-      .where(eq(priorityEmails.id, id));
-    return priorityEmail;
   }
 
   async deletePriorityEmail(id: string): Promise<void> {
@@ -1192,10 +1185,6 @@ export class MemoryStorage implements IStorage {
     return Array.from(this.priorityEmailsMap.values())
       .filter(email => email.userId === userId)
       .sort((a, b) => new Date(b.createdAt || new Date()).getTime() - new Date(a.createdAt || new Date()).getTime());
-  }
-
-  async getPriorityEmailById(id: string): Promise<PriorityEmail | undefined> {
-    return this.priorityEmailsMap.get(id);
   }
 
   async deletePriorityEmail(id: string): Promise<void> {
