@@ -13,6 +13,7 @@ import {
   userUsage,
   encryptedGmailTokens,
   priorityEmails,
+  convertedEmails,
   type User,
   type InsertUser,
   type Task,
@@ -41,6 +42,8 @@ import {
   type InsertEncryptedGmailToken,
   type PriorityEmail,
   type InsertPriorityEmail,
+  type ConvertedEmail,
+  type InsertConvertedEmail,
 } from "../shared/schema";
 import { getDb } from "./db";
 import { eq, desc, and, gte, lte, or, isNull, exists, asc, inArray, sql } from "drizzle-orm";
@@ -119,6 +122,13 @@ export interface IStorage {
   getUserPriorityEmails(userId: string): Promise<PriorityEmail[]>;
   deletePriorityEmail(id: string): Promise<void>;
   isPriorityEmail(userId: string, email: string): Promise<boolean>;
+
+  // Converted Email operations
+  createConvertedEmail(data: InsertConvertedEmail): Promise<ConvertedEmail>;
+  getConvertedEmailByGmailId(userId: string, gmailMessageId: string): Promise<ConvertedEmail | undefined>;
+  getUserConvertedEmails(userId: string, limit?: number): Promise<ConvertedEmail[]>;
+  updateConvertedEmail(id: string, updates: Partial<ConvertedEmail>): Promise<ConvertedEmail>;
+  deleteConvertedEmail(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -625,6 +635,46 @@ export class DatabaseStorage implements IStorage {
       ));
     return result.count > 0;
   }
+
+  // Converted Emails methods
+  async createConvertedEmail(data: InsertConvertedEmail): Promise<ConvertedEmail> {
+    const [convertedEmail] = await requireDb().insert(convertedEmails).values(data).returning();
+    return convertedEmail;
+  }
+
+  async getConvertedEmailByGmailId(userId: string, gmailMessageId: string): Promise<ConvertedEmail | undefined> {
+    const [convertedEmail] = await requireDb().select().from(convertedEmails)
+      .where(and(
+        eq(convertedEmails.userId, userId),
+        eq(convertedEmails.gmailMessageId, gmailMessageId)
+      ));
+    return convertedEmail;
+  }
+
+  async getUserConvertedEmails(userId: string, limit?: number): Promise<ConvertedEmail[]> {
+    let query = requireDb().select().from(convertedEmails)
+      .where(eq(convertedEmails.userId, userId))
+      .orderBy(desc(convertedEmails.convertedAt));
+    
+    if (limit) {
+      query = query.limit(limit);
+    }
+    
+    return await query;
+  }
+
+  async updateConvertedEmail(id: string, updates: Partial<ConvertedEmail>): Promise<ConvertedEmail> {
+    const [convertedEmail] = await requireDb()
+      .update(convertedEmails)
+      .set(updates)
+      .where(eq(convertedEmails.id, id))
+      .returning();
+    return convertedEmail;
+  }
+
+  async deleteConvertedEmail(id: string): Promise<void> {
+    await requireDb().delete(convertedEmails).where(eq(convertedEmails.id, id));
+  }
 }
 
 // Use in-memory storage for demo/development
@@ -639,6 +689,7 @@ export class MemoryStorage implements IStorage {
   private userUsageMap = new Map<string, UserUsage>();
   private encryptedGmailTokens = new Map<string, EncryptedGmailToken>();
   private priorityEmailsMap = new Map<string, PriorityEmail>();
+  private convertedEmailsMap = new Map<string, ConvertedEmail>();
 
 
   constructor() {
@@ -1129,6 +1180,44 @@ export class MemoryStorage implements IStorage {
   async isPriorityEmail(userId: string, email: string): Promise<boolean> {
     return Array.from(this.priorityEmailsMap.values())
       .some(priorityEmail => priorityEmail.userId === userId && priorityEmail.email === email.toLowerCase());
+  }
+
+  // Converted Emails methods
+  async createConvertedEmail(data: InsertConvertedEmail): Promise<ConvertedEmail> {
+    const newConvertedEmail: ConvertedEmail = {
+      ...data,
+      id: Math.random().toString(36).substr(2, 9),
+      createdAt: new Date(),
+      convertedAt: new Date(),
+    };
+    this.convertedEmailsMap.set(newConvertedEmail.id, newConvertedEmail);
+    return newConvertedEmail;
+  }
+
+  async getConvertedEmailByGmailId(userId: string, gmailMessageId: string): Promise<ConvertedEmail | undefined> {
+    return Array.from(this.convertedEmailsMap.values())
+      .find(convertedEmail => convertedEmail.userId === userId && convertedEmail.gmailMessageId === gmailMessageId);
+  }
+
+  async getUserConvertedEmails(userId: string, limit?: number): Promise<ConvertedEmail[]> {
+    const userConvertedEmails = Array.from(this.convertedEmailsMap.values())
+      .filter(convertedEmail => convertedEmail.userId === userId)
+      .sort((a, b) => new Date(b.convertedAt || new Date()).getTime() - new Date(a.convertedAt || new Date()).getTime());
+
+    return limit ? userConvertedEmails.slice(0, limit) : userConvertedEmails;
+  }
+
+  async updateConvertedEmail(id: string, updates: Partial<ConvertedEmail>): Promise<ConvertedEmail> {
+    const convertedEmail = this.convertedEmailsMap.get(id);
+    if (!convertedEmail) throw new Error("Converted email not found");
+
+    const updatedConvertedEmail = { ...convertedEmail, ...updates };
+    this.convertedEmailsMap.set(id, updatedConvertedEmail);
+    return updatedConvertedEmail;
+  }
+
+  async deleteConvertedEmail(id: string): Promise<void> {
+    this.convertedEmailsMap.delete(id);
   }
 }
 
