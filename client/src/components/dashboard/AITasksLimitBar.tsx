@@ -48,6 +48,8 @@ export function AITasksLimitBar() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  const isAtLimit = !limitData?.withinLimit;
+
   // Show limit modal when limit is reached
   useEffect(() => {
     if (limitData && isAtLimit && !showLimitModal) {
@@ -98,7 +100,6 @@ export function AITasksLimitBar() {
 
   const percentage = (limitData.currentCount / limitData.limit) * 100;
   const isNearLimit = percentage >= 80;
-  const isAtLimit = !limitData.withinLimit;
 
   // Mobile version - just lightning icon button
   if (isMobile) {
