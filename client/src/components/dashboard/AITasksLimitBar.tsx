@@ -163,7 +163,11 @@ export function AITasksLimitBar() {
         </Dialog>
 
         {/* Limit Reached Modal */}
-        <Dialog open={showLimitModal} onOpenChange={setShowLimitModal}>
+        <Dialog open={showLimitModal} onOpenChange={(open) => {
+          if (!open) {
+            setShowLimitModal(false);
+          }
+        }}>
           <DialogContent className="max-w-md mx-4 fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[calc(100vw-2rem)] max-w-md">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-red-600">
@@ -278,7 +282,11 @@ export function AITasksLimitBar() {
       </div>
 
       {/* Limit Reached Modal */}
-      <Dialog open={showLimitModal} onOpenChange={setShowLimitModal}>
+      <Dialog open={showLimitModal} onOpenChange={(open) => {
+        if (!open) {
+          setShowLimitModal(false);
+        }
+      }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-red-600">
