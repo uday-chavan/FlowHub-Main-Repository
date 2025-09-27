@@ -2433,6 +2433,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
             }
 
+            // Enhanced filtering: Skip non-actionable emails based on sender patterns
+            const nonActionableSenderPatterns = [
+              /^no-reply@/i,
+              /^noreply@/i,
+              /^donotreply@/i,
+              /^do-not-reply@/i,
+              /^security@/i,
+              /^alerts?@/i,
+              /^notifications?@/i,
+              /^system@/i,
+              /^automated?@/i,
+              /^support@.*\.google\.com$/i,
+              /^support@.*\.microsoft\.com$/i,
+              /^support@.*\.apple\.com$/i,
+              /^.*@accounts\.google\.com$/i,
+              /^.*@facebookmail\.com$/i,
+              /^.*@mail\.twitter\.com$/i
+            ];
+
+            if (nonActionableSenderPatterns.some(pattern => pattern.test(fromEmail))) {
+              console.log(`[Gmail] Skipping non-actionable sender: ${fromEmail}`);
+              continue;
+            }
+
+            // Enhanced filtering: Skip emails with non-actionable keywords in subject/body
+            const nonActionableKeywords = [
+              'security alert',
+              'code verification',
+              'verification code',
+              'two-factor authentication',
+              'login attempt',
+              'password reset',
+              'account activity',
+              'suspicious activity',
+              'verify your',
+              'confirm your email',
+              'email verification',
+              'account verification',
+              'welcome to',
+              'thank you for signing up',
+              'your order has been',
+              'shipment notification',
+              'delivery update',
+              'tracking information',
+              'receipt for your',
+              'payment confirmation',
+              'subscription renewal',
+              'billing statement',
+              'invoice from',
+              'newsletter',
+              'unsubscribe'
+            ];
+
+            const emailContent = (subject + ' ' + body).toLowerCase();
+            if (nonActionableKeywords.some(keyword => emailContent.includes(keyword))) {
+              console.log(`[Gmail] Skipping non-actionable content: ${subject}`);
+              continue;
+            }
+
+            // Additional filtering: Skip emails with specific security/system patterns
+            const securityPatterns = [
+              /sign.?in.?attempt/i,
+              /unusual.?activity/i,
+              /location.?access/i,
+              /device.?access/i,
+              /new.?device/i,
+              /security.?code/i,
+              /access.?code/i,
+              /verification.?required/i,
+              /account.?locked/i,
+              /suspended.?account/i
+            ];
+
+            if (securityPatterns.some(pattern => pattern.test(emailContent))) {
+              console.log(`[Gmail] Skipping security notification: ${subject}`);
+              continue;
+            }
+
             console.log(`[Gmail] Extracted email for priority check: "${fromEmail}" from "${from}"`);
             const isPriorityContact = await storage.isPriorityEmail(userId, fromEmail);
             console.log(`[Gmail] Priority check result: ${isPriorityContact} for email: ${fromEmail}`);
@@ -2622,6 +2700,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     if (match) {
                       fromEmail = match[1].toLowerCase().trim();
                     }
+                  }
+
+                  // Enhanced filtering: Skip non-actionable emails based on sender patterns (retry section)
+                  const nonActionableSenderPatterns = [
+                    /^no-reply@/i,
+                    /^noreply@/i,
+                    /^donotreply@/i,
+                    /^do-not-reply@/i,
+                    /^security@/i,
+                    /^alerts?@/i,
+                    /^notifications?@/i,
+                    /^system@/i,
+                    /^automated?@/i,
+                    /^support@.*\.google\.com$/i,
+                    /^support@.*\.microsoft\.com$/i,
+                    /^support@.*\.apple\.com$/i,
+                    /^.*@accounts\.google\.com$/i,
+                    /^.*@facebookmail\.com$/i,
+                    /^.*@mail\.twitter\.com$/i
+                  ];
+
+                  if (nonActionableSenderPatterns.some(pattern => pattern.test(fromEmail))) {
+                    console.log(`[Gmail] Skipping non-actionable sender (retry): ${fromEmail}`);
+                    continue;
+                  }
+
+                  // Enhanced filtering: Skip emails with non-actionable keywords (retry section)
+                  const nonActionableKeywords = [
+                    'security alert',
+                    'code verification',
+                    'verification code',
+                    'two-factor authentication',
+                    'login attempt',
+                    'password reset',
+                    'account activity',
+                    'suspicious activity',
+                    'verify your',
+                    'confirm your email',
+                    'email verification',
+                    'account verification',
+                    'welcome to',
+                    'thank you for signing up',
+                    'your order has been',
+                    'shipment notification',
+                    'delivery update',
+                    'tracking information',
+                    'receipt for your',
+                    'payment confirmation',
+                    'subscription renewal',
+                    'billing statement',
+                    'invoice from',
+                    'newsletter',
+                    'unsubscribe'
+                  ];
+
+                  const emailContent = (subject + ' ' + body).toLowerCase();
+                  if (nonActionableKeywords.some(keyword => emailContent.includes(keyword))) {
+                    console.log(`[Gmail] Skipping non-actionable content (retry): ${subject}`);
+                    continue;
+                  }
+
+                  // Additional filtering: Skip emails with specific security/system patterns (retry section)
+                  const securityPatterns = [
+                    /sign.?in.?attempt/i,
+                    /unusual.?activity/i,
+                    /location.?access/i,
+                    /device.?access/i,
+                    /new.?device/i,
+                    /security.?code/i,
+                    /access.?code/i,
+                    /verification.?required/i,
+                    /account.?locked/i,
+                    /suspended.?account/i
+                  ];
+
+                  if (securityPatterns.some(pattern => pattern.test(emailContent))) {
+                    console.log(`[Gmail] Skipping security notification (retry): ${subject}`);
+                    continue;
                   }
 
                   console.log(`[Gmail] Extracted email for priority check (retry): "${fromEmail}" from "${from}"`);
