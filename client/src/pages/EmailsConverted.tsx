@@ -53,7 +53,7 @@ export default function EmailsConverted() {
   // Delete selected emails mutation
   const deleteMutation = useMutation({
     mutationFn: async (emailIds: string[]) => {
-      const response = await fetch('/api/notifications/bulk-delete', {
+      const response = await fetch('/api/converted-emails/bulk-delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ids: emailIds })
@@ -70,7 +70,7 @@ export default function EmailsConverted() {
   // Retrieve emails back to notification section
   const retrieveMutation = useMutation({
     mutationFn: async (emailIds: string[]) => {
-      const response = await fetch('/api/notifications/retrieve-emails', {
+      const response = await fetch('/api/converted-emails/retrieve', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ids: emailIds })
