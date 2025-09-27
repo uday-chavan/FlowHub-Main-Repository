@@ -18,7 +18,7 @@ import { z } from "zod";
 export const taskPriorityEnum = pgEnum("task_priority", ["urgent", "important", "normal"]);
 export const notificationTypeEnum = pgEnum("notification_type", [
   "urgent",
-  "important", 
+  "important",
   "informational",
   "browser_notification",
   "email_converted"
