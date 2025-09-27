@@ -34,7 +34,7 @@ export default function EmailsConverted() {
   const { data: convertedEmails = [], isLoading } = useQuery({
     queryKey: ['convertedEmails'],
     queryFn: async () => {
-      const response = await fetch('/api/notifications?type=email_converted', {
+      const response = await fetch('/api/notifications', {
         credentials: 'include',
       });
       if (!response.ok) {
@@ -44,7 +44,9 @@ export default function EmailsConverted() {
         }
         throw new Error('Failed to fetch converted emails');
       }
-      return response.json();
+      const allNotifications = await response.json();
+      // Filter for email conversions by metadata flag
+      return allNotifications.filter((n: any) => n.metadata?.isEmailConversion === true);
     }
   });
 
