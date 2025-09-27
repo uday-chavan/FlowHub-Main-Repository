@@ -39,6 +39,7 @@ export function AITasksLimitBar() {
   const [isJoiningWaitlist, setIsJoiningWaitlist] = useState(false);
   const [waitlistJoined, setWaitlistJoined] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [hasManuallyDismissed, setHasManuallyDismissed] = useState(false);
 
   // Check if mobile on mount
   React.useEffect(() => {
@@ -50,12 +51,12 @@ export function AITasksLimitBar() {
 
   const isAtLimit = !limitData?.withinLimit;
 
-  // Show limit modal when limit is reached
+  // Show limit modal when limit is reached (only if not manually dismissed)
   useEffect(() => {
-    if (limitData && isAtLimit && !showLimitModal) {
+    if (limitData && isAtLimit && !showLimitModal && !hasManuallyDismissed) {
       setShowLimitModal(true);
     }
-  }, [limitData, isAtLimit, showLimitModal]);
+  }, [limitData, isAtLimit, showLimitModal, hasManuallyDismissed]);
 
   const handleJoinWaitlist = async () => {
     setIsJoiningWaitlist(true);
@@ -88,6 +89,7 @@ export function AITasksLimitBar() {
 
   const handleContinueManual = () => {
     setShowLimitModal(false);
+    setHasManuallyDismissed(true);
     // You can add additional logic here if needed, like opening the manual task dialog
   };
 
@@ -166,6 +168,7 @@ export function AITasksLimitBar() {
         <Dialog open={showLimitModal} onOpenChange={(open) => {
           if (!open) {
             setShowLimitModal(false);
+            setHasManuallyDismissed(true);
           }
         }}>
           <DialogContent className="max-w-md mx-4 fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[calc(100vw-2rem)] max-w-md">
@@ -285,6 +288,7 @@ export function AITasksLimitBar() {
       <Dialog open={showLimitModal} onOpenChange={(open) => {
         if (!open) {
           setShowLimitModal(false);
+          setHasManuallyDismissed(true);
         }
       }}>
         <DialogContent className="max-w-md">
