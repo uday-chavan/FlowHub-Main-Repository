@@ -2434,81 +2434,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
 
             // Enhanced filtering: Skip non-actionable emails based on sender patterns
+            // Only filter obvious automated/system emails, allow all personal/work emails
             const nonActionableSenderPatterns = [
               /^no-reply@/i,
               /^noreply@/i,
               /^donotreply@/i,
               /^do-not-reply@/i,
-              /^security@/i,
-              /^alerts?@/i,
-              /^notifications?@/i,
-              /^system@/i,
-              /^automated?@/i,
-              /^support@.*\.google\.com$/i,
-              /^support@.*\.microsoft\.com$/i,
-              /^support@.*\.apple\.com$/i,
+              /^security@.*\.google\.com$/i,
+              /^security@.*\.microsoft\.com$/i,
+              /^security@.*\.apple\.com$/i,
               /^.*@accounts\.google\.com$/i,
               /^.*@facebookmail\.com$/i,
-              /^.*@mail\.twitter\.com$/i
+              /^.*@mail\.twitter\.com$/i,
+              /^.*@notification\.amazon\.com$/i
             ];
 
+            // IMPORTANT: Only skip if it's clearly an automated system email
             if (nonActionableSenderPatterns.some(pattern => pattern.test(fromEmail))) {
-              console.log(`[Gmail] Skipping non-actionable sender: ${fromEmail}`);
+              console.log(`[Gmail] Skipping automated system sender: ${fromEmail}`);
               continue;
             }
 
-            // Enhanced filtering: Skip emails with non-actionable keywords in subject/body
-            const nonActionableKeywords = [
+            // Skip ONLY obvious security/verification emails - be very specific
+            const securityKeywords = [
               'security alert',
-              'code verification',
               'verification code',
-              'two-factor authentication',
-              'login attempt',
-              'password reset',
-              'account activity',
-              'suspicious activity',
-              'verify your',
-              'confirm your email',
-              'email verification',
-              'account verification',
-              'welcome to',
-              'thank you for signing up',
-              'your order has been',
-              'shipment notification',
-              'delivery update',
-              'tracking information',
-              'receipt for your',
-              'payment confirmation',
-              'subscription renewal',
-              'billing statement',
-              'invoice from',
-              'newsletter',
-              'unsubscribe'
+              'two-factor authentication code',
+              'login verification',
+              'account verification code',
+              'confirm your email address',
+              'verify your account'
             ];
 
             const emailContent = (subject + ' ' + body).toLowerCase();
-            if (nonActionableKeywords.some(keyword => emailContent.includes(keyword))) {
-              console.log(`[Gmail] Skipping non-actionable content: ${subject}`);
+            
+            // Only skip if it contains specific security keywords AND is clearly automated
+            const isSecurityEmail = securityKeywords.some(keyword => emailContent.includes(keyword)) &&
+                                   (emailContent.includes('code:') || emailContent.includes('verification code') || 
+                                    emailContent.includes('click here to verify') || emailContent.includes('confirm your'));
+
+            if (isSecurityEmail) {
+              console.log(`[Gmail] Skipping security/verification email: ${subject}`);
               continue;
             }
 
-            // Additional filtering: Skip emails with specific security/system patterns
-            const securityPatterns = [
-              /sign.?in.?attempt/i,
-              /unusual.?activity/i,
-              /location.?access/i,
-              /device.?access/i,
-              /new.?device/i,
-              /security.?code/i,
-              /access.?code/i,
-              /verification.?required/i,
-              /account.?locked/i,
-              /suspended.?account/i
+            // WORK EMAIL DETECTION: Allow ALL emails with work-related content
+            const workIndicators = [
+              'deadline', 'task', 'project', 'meeting', 'deliverable', 'report', 'campaign',
+              'vendor', 'coordinate', 'assist', 'prepare', 'draft', 'confirm', 'negotiate',
+              'training', 'session', 'conference', 'calendar', 'schedule', 'analysis',
+              'strategy', 'action required', 'follow up', 'review', 'approval', 'budget',
+              'timeline', 'milestone', 'presentation', 'proposal', 'contract', 'client',
+              'customer', 'stakeholder', 'team', 'department', 'urgent', 'asap'
             ];
 
-            if (securityPatterns.some(pattern => pattern.test(emailContent))) {
-              console.log(`[Gmail] Skipping security notification: ${subject}`);
-              continue;
+            const hasWorkContent = workIndicators.some(indicator => emailContent.includes(indicator));
+            
+            // Force process work emails regardless of other patterns
+            if (hasWorkContent) {
+              console.log(`[Gmail] Processing work email: ${subject}`);
+              // Continue to process this email - don't skip
             }
 
             console.log(`[Gmail] Extracted email for priority check: "${fromEmail}" from "${from}"`);
@@ -2703,81 +2688,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   }
 
                   // Enhanced filtering: Skip non-actionable emails based on sender patterns (retry section)
+                  // Only filter obvious automated/system emails, allow all personal/work emails
                   const nonActionableSenderPatterns = [
                     /^no-reply@/i,
                     /^noreply@/i,
                     /^donotreply@/i,
                     /^do-not-reply@/i,
-                    /^security@/i,
-                    /^alerts?@/i,
-                    /^notifications?@/i,
-                    /^system@/i,
-                    /^automated?@/i,
-                    /^support@.*\.google\.com$/i,
-                    /^support@.*\.microsoft\.com$/i,
-                    /^support@.*\.apple\.com$/i,
+                    /^security@.*\.google\.com$/i,
+                    /^security@.*\.microsoft\.com$/i,
+                    /^security@.*\.apple\.com$/i,
                     /^.*@accounts\.google\.com$/i,
                     /^.*@facebookmail\.com$/i,
-                    /^.*@mail\.twitter\.com$/i
+                    /^.*@mail\.twitter\.com$/i,
+                    /^.*@notification\.amazon\.com$/i
                   ];
 
+                  // IMPORTANT: Only skip if it's clearly an automated system email
                   if (nonActionableSenderPatterns.some(pattern => pattern.test(fromEmail))) {
-                    console.log(`[Gmail] Skipping non-actionable sender (retry): ${fromEmail}`);
+                    console.log(`[Gmail] Skipping automated system sender (retry): ${fromEmail}`);
                     continue;
                   }
 
-                  // Enhanced filtering: Skip emails with non-actionable keywords (retry section)
-                  const nonActionableKeywords = [
+                  // Skip ONLY obvious security/verification emails - be very specific (retry section)
+                  const securityKeywords = [
                     'security alert',
-                    'code verification',
                     'verification code',
-                    'two-factor authentication',
-                    'login attempt',
-                    'password reset',
-                    'account activity',
-                    'suspicious activity',
-                    'verify your',
-                    'confirm your email',
-                    'email verification',
-                    'account verification',
-                    'welcome to',
-                    'thank you for signing up',
-                    'your order has been',
-                    'shipment notification',
-                    'delivery update',
-                    'tracking information',
-                    'receipt for your',
-                    'payment confirmation',
-                    'subscription renewal',
-                    'billing statement',
-                    'invoice from',
-                    'newsletter',
-                    'unsubscribe'
+                    'two-factor authentication code',
+                    'login verification',
+                    'account verification code',
+                    'confirm your email address',
+                    'verify your account'
                   ];
 
                   const emailContent = (subject + ' ' + body).toLowerCase();
-                  if (nonActionableKeywords.some(keyword => emailContent.includes(keyword))) {
-                    console.log(`[Gmail] Skipping non-actionable content (retry): ${subject}`);
+                  
+                  // Only skip if it contains specific security keywords AND is clearly automated
+                  const isSecurityEmail = securityKeywords.some(keyword => emailContent.includes(keyword)) &&
+                                         (emailContent.includes('code:') || emailContent.includes('verification code') || 
+                                          emailContent.includes('click here to verify') || emailContent.includes('confirm your'));
+
+                  if (isSecurityEmail) {
+                    console.log(`[Gmail] Skipping security/verification email (retry): ${subject}`);
                     continue;
                   }
 
-                  // Additional filtering: Skip emails with specific security/system patterns (retry section)
-                  const securityPatterns = [
-                    /sign.?in.?attempt/i,
-                    /unusual.?activity/i,
-                    /location.?access/i,
-                    /device.?access/i,
-                    /new.?device/i,
-                    /security.?code/i,
-                    /access.?code/i,
-                    /verification.?required/i,
-                    /account.?locked/i,
-                    /suspended.?account/i
+                  // WORK EMAIL DETECTION: Allow ALL emails with work-related content (retry section)
+                  const workIndicators = [
+                    'deadline', 'task', 'project', 'meeting', 'deliverable', 'report', 'campaign',
+                    'vendor', 'coordinate', 'assist', 'prepare', 'draft', 'confirm', 'negotiate',
+                    'training', 'session', 'conference', 'calendar', 'schedule', 'analysis',
+                    'strategy', 'action required', 'follow up', 'review', 'approval', 'budget',
+                    'timeline', 'milestone', 'presentation', 'proposal', 'contract', 'client',
+                    'customer', 'stakeholder', 'team', 'department', 'urgent', 'asap'
                   ];
 
-                  if (securityPatterns.some(pattern => pattern.test(emailContent))) {
-                    console.log(`[Gmail] Skipping security notification (retry): ${subject}`);
-                    continue;
+                  const hasWorkContent = workIndicators.some(indicator => emailContent.includes(indicator));
+                  
+                  // Force process work emails regardless of other patterns
+                  if (hasWorkContent) {
+                    console.log(`[Gmail] Processing work email (retry): ${subject}`);
+                    // Continue to process this email - don't skip
                   }
 
                   console.log(`[Gmail] Extracted email for priority check (retry): "${fromEmail}" from "${from}"`);
