@@ -1071,7 +1071,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             userId: userId,
             title: `Email converted: ${notification.title.replace('New email from ', '')}`,
             description: taskDescription,
-            type: "email_converted",
+            type: "informational", // Use valid type temporarily
             sourceApp: "system",
             aiSummary: `Email from ${notification.metadata?.emailFrom || 'unknown sender'} converted to ${createdTasks.length} task(s)`,
             actionableInsights: ["View in tasks", "Edit task", "Mark complete"],
@@ -1084,7 +1084,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               originalEmailId: notification.metadata?.emailId,
               originalContent: fullContent,
               tasksCount: createdTasks.length,
-              taskTitles: taskTitles
+              taskTitles: taskTitles,
+              isEmailConversion: true // Mark this as email conversion
             }
           });
           console.log(`[ConversionTracking] Created conversion record for notification: ${notification.id}`);
@@ -1230,7 +1231,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 userId: userId,
                 title: `Email converted: ${notification.title}`,
                 description: `Batch converted email to task: ${aiAnalysis.title}`,
-                type: "email_converted",
+                type: "informational", // Use valid type temporarily
                 sourceApp: "system",
                 aiSummary: `Email from ${notification.metadata?.emailFrom || 'unknown sender'} batch converted to task`,
                 actionableInsights: ["View in tasks", "Edit task", "Mark complete"],
@@ -1244,7 +1245,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   batchProcessed: true,
                   originalContent: fullContent,
                   taskTitle: aiAnalysis.title,
-                  taskDescription: aiAnalysis.description
+                  taskDescription: aiAnalysis.description,
+                  isEmailConversion: true // Mark this as email conversion
                 }
               });
             }
@@ -2600,9 +2602,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
 
-        // Update lastCheckTime only if emails were processed to avoid missing emails between fetches
+        // Always update lastCheckTime to prevent reprocessing the same emails
+        // but use a slightly earlier time to ensure no emails are missed
         if (messages.length > 0) {
-          lastCheckTime = new Date();
+          lastCheckTime = new Date(Date.now() - 30000); // Go back 30 seconds to ensure no gaps
+        } else {
+          // Even if no messages, update time to move forward
+          lastCheckTime = new Date(Date.now() - 60000); // Go back 1 minute for safety
         }
 
       } catch (error) {
