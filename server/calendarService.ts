@@ -1,3 +1,4 @@
+
 import { google } from 'googleapis';
 import { OAuth2Client } from 'google-auth-library';
 import { storage } from './storage';
@@ -75,21 +76,9 @@ class CalendarService {
       });
 
       // Determine if this is a deadline or start time based on task content
-      const taskText = `${task.title} ${task.description || ''}`.toLowerCase();
-
-      // Enhanced deadline detection logic
-      const isDeadlineTask = 
-        // Direct deadline keywords
-        taskText.match(/\b(till|until|by|due|deadline|before)\b/) ||
-        // Completion-based tasks (complete, finish, submit something)
-        taskText.match(/\b(complete|finish|submit|turn in|hand in)\s+\w+/) ||
-        // Time pressure indicators with action words
-        taskText.match(/\b(complete|finish|submit|do|write|prepare|review|study)\b.*\b(in|within|by)\s+\d+/) ||
-        // Assignment/project/homework patterns
-        taskText.match(/\b(assignment|project|homework|report|essay|paper|task)\b/) ||
-        // Explicit deadline phrases
-        taskText.match(/\b(needs to be done|must be completed|has to be finished)\b/);
-
+      const isDeadlineTask = task.title.toLowerCase().match(/\b(till|until|by|due|deadline|before|finish|complete|submit)\b/) ||
+                            task.description?.toLowerCase().match(/\b(till|until|by|due|deadline|before|finish|complete|submit)\b/);
+      
       const timeLabel = isDeadlineTask ? "due at" : "scheduled at";
 
       const event: CalendarEvent = {
@@ -156,21 +145,9 @@ class CalendarService {
       });
 
       // Determine if this is a deadline or start time based on task content
-      const taskText = `${task.title} ${task.description || ''}`.toLowerCase();
-
-      // Enhanced deadline detection logic
-      const isDeadlineTask = 
-        // Direct deadline keywords
-        taskText.match(/\b(till|until|by|due|deadline|before)\b/) ||
-        // Completion-based tasks (complete, finish, submit something)
-        taskText.match(/\b(complete|finish|submit|turn in|hand in)\s+\w+/) ||
-        // Time pressure indicators with action words
-        taskText.match(/\b(complete|finish|submit|do|write|prepare|review|study)\b.*\b(in|within|by)\s+\d+/) ||
-        // Assignment/project/homework patterns
-        taskText.match(/\b(assignment|project|homework|report|essay|paper|task)\b/) ||
-        // Explicit deadline phrases
-        taskText.match(/\b(needs to be done|must be completed|has to be finished)\b/);
-
+      const isDeadlineTask = task.title.toLowerCase().match(/\b(till|until|by|due|deadline|before|finish|complete|submit)\b/) ||
+                            task.description?.toLowerCase().match(/\b(till|until|by|due|deadline|before|finish|complete|submit)\b/);
+      
       const timeLabel = isDeadlineTask ? "due at" : "scheduled at";
 
       const updatedEvent = {
