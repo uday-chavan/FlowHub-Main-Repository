@@ -65,7 +65,7 @@ class CalendarService {
 
       const dueDate = new Date(task.dueAt);
       const endDate = new Date(dueDate.getTime() + 24 * 60 * 60 * 1000); // Add 24 hours
-      
+
       // Format the execution time in a readable format
       const executionTime = dueDate.toLocaleString('en-IN', { 
         timeZone: 'Asia/Kolkata',
@@ -73,10 +73,16 @@ class CalendarService {
         minute: '2-digit',
         hour12: true
       });
+
+      // Determine if this is a deadline or start time based on task content
+      const isDeadlineTask = task.title.toLowerCase().match(/\b(till|until|by|due|deadline|before|finish|complete|submit)\b/) ||
+                            task.description?.toLowerCase().match(/\b(till|until|by|due|deadline|before|finish|complete|submit)\b/);
       
+      const timeLabel = isDeadlineTask ? "due at" : "scheduled at";
+
       const event: CalendarEvent = {
         // Remove the id field entirely - Google will auto-generate one
-        summary: `📋 ${task.title} scheduled at ${executionTime}`,
+        summary: `📋 ${task.title} ${timeLabel} ${executionTime}`,
         description: `FlowHub Task: ${task.description || ''}\n\nPriority: ${task.priority}\n\nScheduled for: ${dueDate.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}\nValid till: ${endDate.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}\n\nManage this task: https://flowhub-production-409c.up.railway.app/dashboard`,
         start: {
           dateTime: dueDate.toISOString(),
@@ -128,7 +134,7 @@ class CalendarService {
 
       const dueDate = new Date(task.dueAt);
       const endDate = new Date(dueDate.getTime() + 24 * 60 * 60 * 1000); // Add 24 hours
-      
+
       // Format the execution time in a readable format
       const executionTime = dueDate.toLocaleString('en-IN', { 
         timeZone: 'Asia/Kolkata',
@@ -136,9 +142,15 @@ class CalendarService {
         minute: '2-digit',
         hour12: true
       });
+
+      // Determine if this is a deadline or start time based on task content
+      const isDeadlineTask = task.title.toLowerCase().match(/\b(till|until|by|due|deadline|before|finish|complete|submit)\b/) ||
+                            task.description?.toLowerCase().match(/\b(till|until|by|due|deadline|before|finish|complete|submit)\b/);
       
+      const timeLabel = isDeadlineTask ? "due at" : "scheduled at";
+
       const updatedEvent = {
-        summary: `📋 ${task.title} scheduled at ${executionTime}`,
+        summary: `📋 ${task.title} ${timeLabel} ${executionTime}`,
         description: `FlowHub Task: ${task.description || ''}\n\nPriority: ${task.priority}\nStatus: ${task.status}\n\nScheduled for: ${dueDate.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}\nValid till: ${endDate.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}\n\nManage this task: https://flowhub-production-409c.up.railway.app/dashboard`,
         start: {
           dateTime: dueDate.toISOString(),
