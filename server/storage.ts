@@ -4,6 +4,7 @@ import {
   notifications,
   priorityEmails,
   convertedEmails,
+  userUsage,
   type User,
   type InsertUser,
   type Task,
@@ -63,11 +64,29 @@ export interface IStorage {
 
   // Converted Email operations
   createConvertedEmail(data: InsertConvertedEmail): Promise<ConvertedEmail>;
-  getUserConvertedEmails(userId: string): Promise<ConvertedEmail[]>;
+  getUserConvertedEmails(userId: string, limit?: number): Promise<ConvertedEmail[]>;
   getConvertedEmail(id: string): Promise<ConvertedEmail | undefined>;
   deleteConvertedEmail(id: string): Promise<void>;
   bulkDeleteConvertedEmails(ids: string[]): Promise<void>;
   retrieveConvertedEmails(ids: string[]): Promise<void>;
+
+  // Additional User operations
+  getUser(id: string): Promise<User | undefined>;
+  getAllUsers(): Promise<User[]>;
+
+  // Additional Task operations
+  getTaskById(id: string): Promise<Task | undefined>;
+  getTasksByPriority(priority: string): Promise<Task[]>;
+  getTasksByStatus(userId: string, status: string): Promise<Task[]>;
+  createAiTaskWithLimit(task: InsertTask): Promise<Task | null>;
+  checkAiTaskLimit(userId: string): Promise<{ withinLimit: boolean; currentCount: number; limit: number; planType: string }>;
+
+  // Additional Notification operations
+  getNotificationById(id: string): Promise<Notification | undefined>;
+  markNotificationRead(id: string): Promise<void>;
+
+  // Priority Email operations
+  getPriorityEmailById(id: string): Promise<PriorityEmail | undefined>;
 }
 
 // Database storage implementation
@@ -287,10 +306,16 @@ export class DatabaseStorage implements IStorage {
     return convertedEmail;
   }
 
-  async getUserConvertedEmails(userId: string): Promise<ConvertedEmail[]> {
-    return await requireDb().select().from(convertedEmails)
+  async getUserConvertedEmails(userId: string, limit?: number): Promise<ConvertedEmail[]> {
+    let query = requireDb().select().from(convertedEmails)
       .where(eq(convertedEmails.userId, userId))
       .orderBy(desc(convertedEmails.convertedAt));
+
+    if (limit) {
+      query = query.limit(limit);
+    }
+
+    return await query;
   }
 
   async getConvertedEmail(id: string): Promise<ConvertedEmail | undefined> {
@@ -335,6 +360,107 @@ export class DatabaseStorage implements IStorage {
 
     // Delete the converted emails
     await requireDb().delete(convertedEmails).where(inArray(convertedEmails.id, ids));
+  }
+
+  async getUser(id: string): Promise<User | undefined> {
+    const [user] = await requireDb().select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return await requireDb().select().from(users);
+  }
+
+  async getTaskById(id: string): Promise<Task | undefined> {
+    const [task] = await requireDb().select().from(tasks).where(eq(tasks.id, id));
+    return task;
+  }
+
+  async getTasksByPriority(priority: string): Promise<Task[]> {
+    return await requireDb().select().from(tasks)
+      .where(eq(tasks.priority, priority as any))
+      .orderBy(desc(tasks.createdAt));
+  }
+
+  async getTasksByStatus(userId: string, status: string): Promise<Task[]> {
+    return await requireDb().select().from(tasks)
+      .where(and(eq(tasks.userId, userId), eq(tasks.status, status as any)))
+      .orderBy(desc(tasks.createdAt));
+  }
+
+  async createAiTaskWithLimit(task: InsertTask): Promise<Task | null> {
+    // Check AI task limits before creating
+    const limitCheck = await this.checkAiTaskLimit(task.userId);
+    if (!limitCheck.withinLimit) {
+      return null;
+    }
+
+    // Create the task and increment usage counter
+    const [newTask] = await requireDb().insert(tasks).values(task).returning();
+
+    // Update usage count
+    const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
+    await requireDb().insert(userUsage).values({
+      userId: task.userId,
+      month: currentMonth,
+      aiTasksCreated: 1,
+      planType: limitCheck.planType as any
+    }).onConflictDoUpdate({
+      target: [userUsage.userId, userUsage.month],
+      set: {
+        aiTasksCreated: sql`${userUsage.aiTasksCreated} + 1`,
+        updatedAt: new Date()
+      }
+    });
+
+    return newTask;
+  }
+
+  async checkAiTaskLimit(userId: string): Promise<{ withinLimit: boolean; currentCount: number; limit: number; planType: string }> {
+    const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
+
+    // Get user's current usage for this month
+    const [usage] = await requireDb().select().from(userUsage)
+      .where(and(eq(userUsage.userId, userId), eq(userUsage.month, currentMonth)));
+
+    const currentCount = usage?.aiTasksCreated || 0;
+    const planType = usage?.planType || 'free';
+
+    // Define limits based on plan type
+    const limits = {
+      free: 10,
+      basic: 50,
+      premium: 200,
+      enterprise: 1000
+    };
+
+    const limit = limits[planType] || limits.free;
+    const withinLimit = currentCount < limit;
+
+    return {
+      withinLimit,
+      currentCount,
+      limit,
+      planType
+    };
+  }
+
+  async getNotificationById(id: string): Promise<Notification | undefined> {
+    const [notification] = await requireDb().select().from(notifications).where(eq(notifications.id, id));
+    return notification;
+  }
+
+  async markNotificationRead(id: string): Promise<void> {
+    await requireDb()
+      .update(notifications)
+      .set({ isRead: true })
+      .where(eq(notifications.id, id));
+  }
+
+  async getPriorityEmailById(id: string): Promise<PriorityEmail | undefined> {
+    const [priorityEmail] = await requireDb().select().from(priorityEmails)
+      .where(eq(priorityEmails.id, id));
+    return priorityEmail;
   }
 }
 
@@ -593,10 +719,12 @@ export class MemoryStorage implements IStorage {
     return newConvertedEmail;
   }
 
-  async getUserConvertedEmails(userId: string): Promise<ConvertedEmail[]> {
-    return Array.from(this.convertedEmailsMap.values())
+  async getUserConvertedEmails(userId: string, limit?: number): Promise<ConvertedEmail[]> {
+    const userEmails = Array.from(this.convertedEmailsMap.values())
       .filter(email => email.userId === userId)
       .sort((a, b) => new Date(b.convertedAt || new Date()).getTime() - new Date(a.convertedAt || new Date()).getTime());
+
+    return limit ? userEmails.slice(0, limit) : userEmails;
   }
 
   async getConvertedEmail(id: string): Promise<ConvertedEmail | undefined> {
@@ -641,6 +769,79 @@ export class MemoryStorage implements IStorage {
 
     // Delete the converted emails
     ids.forEach(id => this.convertedEmailsMap.delete(id));
+  }
+
+  async getUser(id: string): Promise<User | undefined> {
+    return this.users.get(id);
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return Array.from(this.users.values());
+  }
+
+  async getTaskById(id: string): Promise<Task | undefined> {
+    return this.tasks.get(id);
+  }
+
+  async getTasksByPriority(priority: string): Promise<Task[]> {
+    return Array.from(this.tasks.values())
+      .filter(task => task.priority === priority)
+      .sort((a, b) => new Date(b.createdAt || new Date()).getTime() - new Date(a.createdAt || new Date()).getTime());
+  }
+
+  async getTasksByStatus(userId: string, status: string): Promise<Task[]> {
+    return Array.from(this.tasks.values())
+      .filter(task => task.userId === userId && task.status === status)
+      .sort((a, b) => new Date(b.createdAt || new Date()).getTime() - new Date(a.createdAt || new Date()).getTime());
+  }
+
+  async createAiTaskWithLimit(task: InsertTask): Promise<Task | null> {
+    // Check AI task limits before creating
+    const limitCheck = await this.checkAiTaskLimit(task.userId);
+    if (!limitCheck.withinLimit) {
+      return null;
+    }
+
+    // Create the task
+    const newTask = await this.createTask(task);
+
+    // Simulate usage tracking (in memory storage doesn't persist this)
+    console.log(`[MemoryStorage] AI task created for user ${task.userId}: ${newTask.title}`);
+
+    return newTask;
+  }
+
+  async checkAiTaskLimit(userId: string): Promise<{ withinLimit: boolean; currentCount: number; limit: number; planType: string }> {
+    // For memory storage, simulate usage limits
+    const currentCount = Array.from(this.tasks.values())
+      .filter(task => task.userId === userId && task.metadata?.aiGenerated)
+      .length;
+
+    const planType = 'free';
+    const limit = 10; // Free plan limit
+
+    return {
+      withinLimit: currentCount < limit,
+      currentCount,
+      limit,
+      planType
+    };
+  }
+
+  async getNotificationById(id: string): Promise<Notification | undefined> {
+    return this.notifications.get(id);
+  }
+
+  async markNotificationRead(id: string): Promise<void> {
+    const notification = this.notifications.get(id);
+    if (notification) {
+      notification.isRead = true;
+      this.notifications.set(id, notification);
+    }
+  }
+
+  async getPriorityEmailById(id: string): Promise<PriorityEmail | undefined> {
+    return this.priorityEmailsMap.get(id);
   }
 }
 
