@@ -655,11 +655,11 @@ export class DatabaseStorage implements IStorage {
     let query = requireDb().select().from(convertedEmails)
       .where(eq(convertedEmails.userId, userId))
       .orderBy(desc(convertedEmails.convertedAt));
-    
+
     if (limit) {
       query = query.limit(limit);
     }
-    
+
     return await query;
   }
 
