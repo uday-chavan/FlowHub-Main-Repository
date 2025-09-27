@@ -2394,9 +2394,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         for (const message of messages) {
           try {
-            // Time-based deduplication - allow reprocessing after 10 minutes for new notifications
+            // Time-based deduplication - allow reprocessing after 60 seconds for new notifications
             const now = Date.now();
-            const processingWindow = 10 * 60 * 1000; // 10 minutes
+            const processingWindow = 60 * 1000; // 60 seconds (reduced from 10 minutes)
             
             if (!processedEmailIds.has(userId)) {
               processedEmailIds.set(userId, new Map());
@@ -2405,15 +2405,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const userProcessedEmails = processedEmailIds.get(userId)!;
             const lastProcessedTime = userProcessedEmails.get(message.id!);
             
-            // Skip only if processed recently (within 10 minutes) to prevent race conditions
+            // Skip only if processed recently (within 60 seconds) to prevent race conditions
             // but allow reprocessing for legitimate new notifications
             if (lastProcessedTime && (now - lastProcessedTime) < processingWindow) {
               console.log(`[Gmail] Skipping recently processed email: ${message.id} (${Math.round((now - lastProcessedTime) / 1000)}s ago)`);
               continue;
             }
 
-            // Update last processed time
-            userProcessedEmails.set(message.id!, now);
+            // Note: Email will be marked as processed AFTER successful persistence (moved below)
             
             // Clean up old entries (older than 1 hour) to prevent memory leaks
             const cleanupWindow = 60 * 60 * 1000; // 1 hour
@@ -2613,6 +2612,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             });
 
             console.log(`[Gmail] Notification created successfully for ${fromEmail}`);
+
+            // Mark email as processed ONLY after successful persistence
+            userProcessedEmails.set(message.id!, Date.now());
+            console.log(`[Gmail] Email ${message.id} marked as processed after successful storage`);
 
           } catch (msgError) {
             console.error(`[Gmail] Error processing message ${message.id}:`, msgError);
