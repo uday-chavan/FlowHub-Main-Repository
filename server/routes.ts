@@ -1684,7 +1684,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: task.description || "",
         priority: task.priority || "normal",
         estimatedMinutes: task.estimatedMinutes || 30,
-        dueAt: task.dueAt?.toISOString(),
+        dueAt: task.dueAt ? new Date(task.dueAt).toISOString() : undefined,
       }));
 
       const optimization = await optimizeWorkflow(taskData, new Date());
