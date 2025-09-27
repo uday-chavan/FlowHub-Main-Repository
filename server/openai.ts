@@ -426,7 +426,21 @@ Analyze the complete email text above and create a very short 2-3 word task titl
         }
 
         // Server-side fallback time parsing if AI didn't set dueAt
-        let finalDueAt = result.dueAt ? new Date(result.dueAt) : undefined;
+        let finalDueAt: Date | undefined = undefined;
+        
+        if (result.dueAt) {
+          try {
+            finalDueAt = new Date(result.dueAt);
+            // Validate the date is valid
+            if (isNaN(finalDueAt.getTime())) {
+              console.error(`[AI Analysis] Invalid date returned by AI: ${result.dueAt}`);
+              finalDueAt = undefined;
+            }
+          } catch (dateError) {
+            console.error(`[AI Analysis] Error parsing AI date: ${result.dueAt}`, dateError);
+            finalDueAt = undefined;
+          }
+        }
 
         if (!finalDueAt) {
           const fullText = `${notification.title} ${notification.description || ''}`;
@@ -718,13 +732,31 @@ Source: ${notification.sourceApp || 'email'}`;
     }
 
     // Validate and clean up tasks
-    return tasks.map(task => ({
-      title: task.title || "Task",
-      description: task.description || notification.description || "No description",
-      priority: (task.priority as "urgent" | "important" | "normal") || "normal",
-      estimatedMinutes: typeof task.estimatedMinutes === 'number' ? task.estimatedMinutes : 30,
-      dueAt: task.dueAt || null
-    }));
+    return tasks.map(task => {
+      let validDueAt: Date | undefined = undefined;
+      
+      if (task.dueAt) {
+        try {
+          validDueAt = new Date(task.dueAt);
+          // Validate the date is valid
+          if (isNaN(validDueAt.getTime())) {
+            console.error(`[MultiTask] Invalid date in task: ${task.dueAt}`);
+            validDueAt = undefined;
+          }
+        } catch (dateError) {
+          console.error(`[MultiTask] Error parsing task date: ${task.dueAt}`, dateError);
+          validDueAt = undefined;
+        }
+      }
+      
+      return {
+        title: task.title || "Task",
+        description: task.description || notification.description || "No description",
+        priority: (task.priority as "urgent" | "important" | "normal") || "normal",
+        estimatedMinutes: typeof task.estimatedMinutes === 'number' ? task.estimatedMinutes : 30,
+        dueAt: validDueAt
+      };
+    });
 
   } catch (error) {
     console.error('Multi-task analysis error:', error);
