@@ -40,8 +40,8 @@ import {
 // Store connected user email addresses per session - with proper user isolation
 const userEmails = new Map<string, string>();
 
-// Store processed email IDs per user to prevent duplicates - with proper user isolation
-const processedEmailIds = new Map<string, Set<string>>();
+// Store processed email IDs per user with timestamps to allow reprocessing after time window
+const processedEmailIds = new Map<string, Map<string, number>>();
 
 // Define the redirect URI for Google OAuth
 const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || 'https://flowhub-production-409c.up.railway.app/auth/gmail/callback';
@@ -2394,17 +2394,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         for (const message of messages) {
           try {
-            // Deduplicate based on message ID - check and add atomically
+            // Time-based deduplication - allow reprocessing after 10 minutes for new notifications
+            const now = Date.now();
+            const processingWindow = 10 * 60 * 1000; // 10 minutes
+            
             if (!processedEmailIds.has(userId)) {
-              processedEmailIds.set(userId, new Set());
+              processedEmailIds.set(userId, new Map());
             }
-            if (processedEmailIds.get(userId)!.has(message.id)) {
-              console.log(`[Gmail] Skipping already processed email: ${message.id}`);
+            
+            const userProcessedEmails = processedEmailIds.get(userId)!;
+            const lastProcessedTime = userProcessedEmails.get(message.id!);
+            
+            // Skip only if processed recently (within 10 minutes) to prevent race conditions
+            // but allow reprocessing for legitimate new notifications
+            if (lastProcessedTime && (now - lastProcessedTime) < processingWindow) {
+              console.log(`[Gmail] Skipping recently processed email: ${message.id} (${Math.round((now - lastProcessedTime) / 1000)}s ago)`);
               continue;
             }
 
-            // Add to processed set immediately to prevent race conditions
-            processedEmailIds.get(userId)!.add(message.id!);
+            // Update last processed time
+            userProcessedEmails.set(message.id!, now);
+            
+            // Clean up old entries (older than 1 hour) to prevent memory leaks
+            const cleanupWindow = 60 * 60 * 1000; // 1 hour
+            for (const [emailId, timestamp] of userProcessedEmails.entries()) {
+              if (now - timestamp > cleanupWindow) {
+                userProcessedEmails.delete(emailId);
+              }
+            }
 
             // Check if notification already exists with this email ID to prevent database duplicates
             const existingNotifications = await storage.getUserNotifications(userId, 100); // Fetch recent notifications
@@ -2661,17 +2678,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
               // Process any messages found in the retry
               for (const message of retryMessages) {
-                // Deduplicate based on message ID
+                // Time-based deduplication for retry - consistent with main processing logic
+                const now = Date.now();
+                const processingWindow = 10 * 60 * 1000; // 10 minutes
+                
                 if (!processedEmailIds.has(userId)) {
-                  processedEmailIds.set(userId, new Set());
+                  processedEmailIds.set(userId, new Map());
                 }
-                if (processedEmailIds.get(userId)!.has(message.id)) {
-                  console.log(`[Gmail] Skipping already processed email during retry: ${message.id}`);
+                
+                const userProcessedEmails = processedEmailIds.get(userId)!;
+                const lastProcessedTime = userProcessedEmails.get(message.id!);
+                
+                // Skip only if processed recently (within 10 minutes)
+                if (lastProcessedTime && (now - lastProcessedTime) < processingWindow) {
+                  console.log(`[Gmail] Skipping recently processed email during retry: ${message.id} (${Math.round((now - lastProcessedTime) / 1000)}s ago)`);
                   continue;
                 }
 
-                // Add to processed set immediately to prevent race conditions
-                processedEmailIds.get(userId)!.add(message.id!);
+                // Update last processed time
+                userProcessedEmails.set(message.id!, now);
 
                 try {
                   // Check if notification already exists with this email ID
