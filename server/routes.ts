@@ -1486,7 +1486,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true, deletedCount: deletableIds.length, ignoredCount: nonDeletableIds.length });
     } catch (error) {
       console.error('Error bulk deleting notifications:', error);
-      res.status(500).json({ error: 'Failed to delete notifications', details: error instanceof Error ? error.message : 'Unknown error' });
+      res.status(500).json({ error: 'Failed to delete notifications', error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
@@ -1595,7 +1595,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true, retrievedCount: retrievedEmails.length, emails: retrievedEmails });
     } catch (error) {
       console.error('Error retrieving emails:', error);
-      res.status(500).json({ error: 'Failed to retrieve emails', details: error instanceof Error ? error.message : 'Unknown error' });
+      res.status(500).json({ error: 'Failed to retrieve emails', error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
@@ -2062,7 +2062,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Feedback submission error:', error);
       res.status(500).json({
         success: false,
-        error: 'Failed to submit feedback', details: error instanceof Error ? error.message : 'Unknown error'
+        error: 'Failed to submit feedback', error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   });
