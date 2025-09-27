@@ -63,13 +63,13 @@ function ManualTaskCountdown({ task, onEditClick }: { task: any; onEditClick?: (
   // Initialize target time using global store to prevent recalculation
   useEffect(() => {
     const taskKey = task.id;
-    
+
     // Check if we already have this task's time in global store
     if (globalParsedTimes.has(taskKey)) {
       targetTimeRef.current = globalParsedTimes.get(taskKey);
       return;
     }
-    
+
     // Initialize target time for manual tasks
     if (task.dueAt) {
       const dueDate = new Date(task.dueAt);
@@ -209,13 +209,13 @@ function AiTaskCountdown({ task, onEditClick }: { task: any; onEditClick?: () =>
   // Initialize target time only once using global store
   useEffect(() => {
     const taskKey = task.id;
-    
+
     // Check if we already have this task's parsed time in global store
     if (globalParsedTimes.has(taskKey)) {
       targetTimeRef.current = globalParsedTimes.get(taskKey);
       return;
     }
-    
+
     // Initialize target time
     if (task.dueAt) {
       const dueDate = new Date(task.dueAt);
@@ -225,7 +225,7 @@ function AiTaskCountdown({ task, onEditClick }: { task: any; onEditClick?: () =>
       // Check localStorage for stored parsed time
       const storedTimeKey = `task_parsed_time_${task.id}`;
       const storedTime = localStorage.getItem(storedTimeKey);
-      
+
       if (storedTime && storedTime !== 'null' && storedTime !== 'undefined') {
         try {
           const parsedDate = new Date(storedTime);
@@ -238,11 +238,11 @@ function AiTaskCountdown({ task, onEditClick }: { task: any; onEditClick?: () =>
           localStorage.removeItem(storedTimeKey);
         }
       }
-      
+
       // Parse time once and store it
       const baseTime = task.createdAt ? new Date(task.createdAt) : new Date();
       const parsedTime = parseRelativeTime(task.title + ' ' + (task.description || ''), baseTime);
-      
+
       if (parsedTime && !isNaN(parsedTime.getTime())) {
         localStorage.setItem(storedTimeKey, parsedTime.toISOString());
         targetTimeRef.current = parsedTime;
@@ -616,7 +616,7 @@ export function WorkflowRiver() {
       if (a.dueAt && b.dueAt) {
         return new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime();
       }
-      
+
       // Tasks with due dates come first
       if (a.dueAt && !b.dueAt) return -1;
       if (!a.dueAt && b.dueAt) return 1;
@@ -669,7 +669,7 @@ export function WorkflowRiver() {
   // Without more context, specific code changes are difficult. If this occurs, investigate network requests made during scrolling or any routing logic tied to scroll events.
 
   const handleCreateAITask = async () => {
-    if (!newTaskInput.trim() || createTaskFromTextMutation.isPending) return;
+    if (!newTaskInput.trim()) return;
 
     try {
       const result = await createTaskFromTextMutation.mutateAsync({
@@ -692,6 +692,8 @@ export function WorkflowRiver() {
           duration: 3000,
         });
       }
+      // Dispatch custom event to update AI limit bar
+      window.dispatchEvent(new CustomEvent('ai-task-created'));
     } catch (error) {
       toast({
         title: "Error", 
