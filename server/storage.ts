@@ -150,6 +150,27 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  // Helper method to update user plan type
+  async updateUserPlan(userId: string, newPlanType: string): Promise<void> {
+    const currentMonth = new Date().toISOString().slice(0, 7);
+
+    // Update existing usage record for current month
+    const usage = await this.getUserUsage(userId, currentMonth);
+    if (usage) {
+      await this.updateUserUsage(usage.id, { planType: newPlanType as any });
+    } else {
+      // Create new usage record with correct plan type
+      await this.createUserUsage({
+        userId,
+        month: currentMonth,
+        aiTasksCreated: 0,
+        aiInteractionsCount: 0,
+        planType: newPlanType as any
+      });
+    }
+  }
+
+
   async updateUser(id: string, updates: Partial<User>): Promise<User> {
     const [user] = await requireDb()
       .update(users)
@@ -477,12 +498,15 @@ export class DatabaseStorage implements IStorage {
 
   async createAiTaskWithLimit(taskData: InsertTask): Promise<Task | null> {
     const currentMonth = new Date().toISOString().slice(0, 7);
-    const limit = 50; // Free plan limit
 
     try {
+      // First, get current limit check to determine the actual limit based on current plan
+      const limitCheck = await this.checkAiTaskLimit(taskData.userId);
+      const dynamicLimit = limitCheck.limit;
+
       // Perform atomic reservation and task creation in a single transaction
       const result = await requireDb().transaction(async (tx) => {
-        // First, try to reserve capacity atomically using the transaction
+        // First, try to reserve capacity atomically using the dynamic limit
         const [reservedUsage] = await tx
           .update(userUsage)
           .set({
@@ -493,13 +517,17 @@ export class DatabaseStorage implements IStorage {
           .where(and(
             eq(userUsage.userId, taskData.userId),
             eq(userUsage.month, currentMonth),
-            sql`${userUsage.aiTasksCreated} < ${limit}` // Only update if under limit
+            sql`${userUsage.aiTasksCreated} < ${dynamicLimit}` // Use dynamic limit
           ))
           .returning();
 
         if (!reservedUsage) {
           // Either no record exists or limit reached - try to create new record within transaction
           try {
+            // Get current user's plan type for new records
+            const currentUsage = await this.getUserUsage(taskData.userId, currentMonth);
+            const planType = currentUsage?.planType || "free";
+
             const [newUsage] = await tx
               .insert(userUsage)
               .values({
@@ -507,7 +535,7 @@ export class DatabaseStorage implements IStorage {
                 month: currentMonth,
                 aiTasksCreated: 1,
                 aiInteractionsCount: 1,
-                planType: "free"
+                planType: planType // Use existing plan type or default to free
               })
               .returning();
 
@@ -527,7 +555,7 @@ export class DatabaseStorage implements IStorage {
                 .where(and(
                   eq(userUsage.userId, taskData.userId),
                   eq(userUsage.month, currentMonth),
-                  sql`${userUsage.aiTasksCreated} < ${limit}` // Only update if under limit
+                  sql`${userUsage.aiTasksCreated} < ${dynamicLimit}` // Use dynamic limit
                 ))
                 .returning();
 
@@ -1101,17 +1129,20 @@ export class MemoryStorage implements IStorage {
     // Check AI task limits before proceeding
     const limitCheck = await this.checkAiTaskLimit(taskData.userId);
     if (!limitCheck.withinLimit) {
+      console.log(`[MemoryStorage] AI task limit exceeded for user ${taskData.userId}. Current: ${limitCheck.currentCount}, Limit: ${limitCheck.limit}, Plan: ${limitCheck.planType}`);
       return null; // Return null if limit exceeded
     }
 
     // Increment usage counter
     const usage = await this.incrementAiTaskUsage(taskData.userId);
     if (!usage) {
+      console.log(`[MemoryStorage] Failed to increment AI task usage for user ${taskData.userId}`);
       return null; // Return null if increment failed (shouldn't happen in memory storage)
     }
 
     // Create the task
     const task = await this.createTask(taskData);
+    console.log(`[MemoryStorage] Successfully created AI task for user ${taskData.userId}. Usage: ${usage.aiTasksCreated}/${limitCheck.limit}`);
     return task;
   }
 
@@ -1165,6 +1196,30 @@ export class MemoryStorage implements IStorage {
 
     const updatedToken = { ...token, ...data, updatedAt: new Date() };
     this.encryptedGmailTokens.set(token.id, updatedToken);
+    return updatedToken;
+  }
+
+  // Helper method to update user plan type
+  async updateUserPlan(userId: string, newPlanType: string): Promise<void> {
+    const currentMonth = new Date().toISOString().slice(0, 7);
+
+    // Update existing usage record for current month
+    const usage = await this.getUserUsage(userId, currentMonth);
+    if (usage) {
+      await this.updateUserUsage(usage.id, { planType: newPlanType as any });
+    } else {
+      // Create new usage record with correct plan type
+      await this.createUserUsage({
+        userId,
+        month: currentMonth,
+        aiTasksCreated: 0,
+        aiInteractionsCount: 0,
+        planType: newPlanType as any
+      });
+    }
+  }
+
+
     return updatedToken;
   }
 
