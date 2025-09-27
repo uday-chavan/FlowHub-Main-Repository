@@ -571,15 +571,15 @@ export class DatabaseStorage implements IStorage {
     const currentCount = usage?.aiTasksCreated || 0;
     const planType = usage?.planType || "free";
 
-    // Define limits based on plan - Updated limits
+    // Define limits based on plan
     const limits = {
-      free: 100,  // Updated from 50 to 100
-      basic: 200,
-      premium: 500,
-      enterprise: 1000
+      free: 50,
+      basic: 100,
+      premium: 200,
+      enterprise: 500
     };
 
-    const limit = limits[planType as keyof typeof limits] || 100;  // Updated default from 50 to 100
+    const limit = limits[planType as keyof typeof limits] || 50;
     const withinLimit = currentCount < limit;
 
     return { withinLimit, currentCount, limit, planType };
@@ -1122,15 +1122,15 @@ export class MemoryStorage implements IStorage {
     const currentCount = usage?.aiTasksCreated || 0;
     const planType = usage?.planType || "free";
 
-    // Define limits based on plan - Updated limits
+    // Define limits based on plan
     const limits = {
-      free: 100,  // Updated from 50 to 100
-      basic: 200,
-      premium: 500,
-      enterprise: 1000
+      free: 50,
+      basic: 100,
+      premium: 200,
+      enterprise: 500
     };
 
-    const limit = limits[planType as keyof typeof limits] || 100;  // Updated default from 50 to 100
+    const limit = limits[planType as keyof typeof limits] || 50;
     const withinLimit = currentCount < limit;
 
     return { withinLimit, currentCount, limit, planType };
