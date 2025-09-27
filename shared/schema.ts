@@ -24,7 +24,7 @@ export const notificationTypeEnum = pgEnum("notification_type", [
   "email_converted"
 ]);
 export const taskStatusEnum = pgEnum("task_status", ["pending", "in_progress", "completed", "paused"]);
-export const appTypeEnum = pgEnum("app_type", ["gmail", "slack", "notion", "trello", "zoom", "calendar", "manual"]);
+export const appTypeEnum = pgEnum("app_type", ["gmail", "slack", "notion", "trello", "zoom", "calendar", "manual", "system"]);
 export const credentialTypeEnum = pgEnum("credential_type", ["oauth_token", "api_key", "password", "certificate"]);
 export const planTypeEnum = pgEnum("plan_type", ["free", "basic", "premium", "enterprise"]);
 export const paymentStatusEnum = pgEnum("payment_status", ["pending", "completed", "failed", "refunded"]);
