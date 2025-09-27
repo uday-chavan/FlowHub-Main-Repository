@@ -84,12 +84,8 @@ export async function analyzeNotification(
     const rawJson = response.text;
     if (rawJson) {
       const result = JSON.parse(rawJson);
-      // Validate and normalize priority - ensure it's one of the valid enum values
-      if (!["urgent", "important", "informational"].includes(result.priority)) {
-        result.priority = "informational";
-      }
       return {
-        priority: result.priority,
+        priority: result.priority || "informational",
         summary: result.summary || "No summary available",
         actionableInsights: result.actionableInsights || [],
         estimatedTimeToHandle: result.estimatedTimeToHandle || 5,
@@ -214,13 +210,6 @@ export async function optimizeWorkflow(
     const rawJson = response.text;
     if (rawJson) {
       const result = JSON.parse(rawJson);
-      // Validate and normalize priority in optimizedTasks
-      result.optimizedTasks = result.optimizedTasks.map((task: TaskOptimizationResult) => {
-        if (!["urgent", "important", "normal"].includes(task.newPriority)) {
-          task.newPriority = "normal";
-        }
-        return task;
-      });
       return {
         optimizedTasks: result.optimizedTasks || [],
         insights: result.insights || [],
@@ -304,7 +293,6 @@ export async function generateWellnessInsights(
     const rawJson = response.text;
     if (rawJson) {
       const result = JSON.parse(rawJson);
-      // No specific priority to validate here, just return the insights
       return {
         insights: result.insights || [],
         suggestions: result.suggestions || [],
@@ -422,11 +410,6 @@ Analyze the complete email text above and create a very short 2-3 word task titl
       if (rawJson) {
         const result = JSON.parse(rawJson);
 
-        // Validate and normalize priority
-        if (!["urgent", "important", "normal"].includes(result.priority)) {
-          result.priority = "normal";
-        }
-
         // Validate required fields
         if (!result.title || !result.description || !result.priority) {
           throw new Error("Invalid AI response: missing required fields");
@@ -444,7 +427,7 @@ Analyze the complete email text above and create a very short 2-3 word task titl
 
         // Server-side fallback time parsing if AI didn't set dueAt
         let finalDueAt: Date | undefined = undefined;
-
+        
         if (result.dueAt) {
           try {
             finalDueAt = new Date(result.dueAt);
@@ -751,7 +734,7 @@ Source: ${notification.sourceApp || 'email'}`;
     // Validate and clean up tasks
     return tasks.map(task => {
       let validDueAt: Date | undefined = undefined;
-
+      
       if (task.dueAt) {
         try {
           validDueAt = new Date(task.dueAt);
@@ -765,16 +748,11 @@ Source: ${notification.sourceApp || 'email'}`;
           validDueAt = undefined;
         }
       }
-
-      // Validate and normalize priority
-      if (!["urgent", "important", "normal"].includes(task.priority)) {
-        task.priority = "normal";
-      }
-
+      
       return {
         title: task.title || "Task",
         description: task.description || notification.description || "No description",
-        priority: task.priority,
+        priority: (task.priority as "urgent" | "important" | "normal") || "normal",
         estimatedMinutes: typeof task.estimatedMinutes === 'number' ? task.estimatedMinutes : 30,
         dueAt: validDueAt
       };
@@ -946,7 +924,7 @@ function getFallbackTaskFromNotification(notification: {
   // Check for important patterns (work-related, deadlines within hours/days) - EXCLUDE if already classified as casual
   else if (allText.match(/\b(?:meeting|work|boss|client|deadline|important|review|submit|report|project|task|schedule|call)\b/) ||
            allText.match(/\b(?:in\s*(?:[1-9]|[12][0-9])\s*(?:hour|hours?|hrs?))\b/) ||
-           allText.includes("today") || allText.includes("tomorrow") || allText.includes("this week")) {
+           allText.match(/\b(?:today|tomorrow|this\s+(?:morning|afternoon|evening|week))\b/)) {
     priority = "important";
   }
 
