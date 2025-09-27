@@ -66,10 +66,18 @@ class CalendarService {
       const dueDate = new Date(task.dueAt);
       const endDate = new Date(dueDate.getTime() + 24 * 60 * 60 * 1000); // Add 24 hours
       
+      // Format the execution time in a readable format
+      const executionTime = dueDate.toLocaleString('en-IN', { 
+        timeZone: 'Asia/Kolkata',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+      
       const event: CalendarEvent = {
         // Remove the id field entirely - Google will auto-generate one
-        summary: `📋 ${task.title}`,
-        description: `FlowHub Task: ${task.description || ''}\n\nPriority: ${task.priority}\n\nValid till: ${endDate.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}\n\nManage this task: https://flowhub-production-409c.up.railway.app/dashboard`,
+        summary: `📋 ${task.title} scheduled at ${executionTime}`,
+        description: `FlowHub Task: ${task.description || ''}\n\nPriority: ${task.priority}\n\nScheduled for: ${dueDate.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}\nValid till: ${endDate.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}\n\nManage this task: https://flowhub-production-409c.up.railway.app/dashboard`,
         start: {
           dateTime: dueDate.toISOString(),
           timeZone: 'Asia/Kolkata'
@@ -121,9 +129,17 @@ class CalendarService {
       const dueDate = new Date(task.dueAt);
       const endDate = new Date(dueDate.getTime() + 24 * 60 * 60 * 1000); // Add 24 hours
       
+      // Format the execution time in a readable format
+      const executionTime = dueDate.toLocaleString('en-IN', { 
+        timeZone: 'Asia/Kolkata',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+      
       const updatedEvent = {
-        summary: `📋 ${task.title}`,
-        description: `FlowHub Task: ${task.description || ''}\n\nPriority: ${task.priority}\nStatus: ${task.status}\n\nValid till: ${endDate.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}\n\nManage this task: https://flowhub-production-409c.up.railway.app/dashboard`,
+        summary: `📋 ${task.title} scheduled at ${executionTime}`,
+        description: `FlowHub Task: ${task.description || ''}\n\nPriority: ${task.priority}\nStatus: ${task.status}\n\nScheduled for: ${dueDate.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}\nValid till: ${endDate.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}\n\nManage this task: https://flowhub-production-409c.up.railway.app/dashboard`,
         start: {
           dateTime: dueDate.toISOString(),
           timeZone: 'Asia/Kolkata'
