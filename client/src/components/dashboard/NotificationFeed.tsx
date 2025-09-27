@@ -83,17 +83,21 @@ export function NotificationFeed() {
       // Use Gemini AI to convert notification to structured task
       const response = await apiRequest("POST", `/api/notifications/${notification.id}/convert-to-task`);
 
-      // Task created successfully
+      console.log("Task conversion successful:", response);
 
       // Refresh tasks and notifications with proper query key patterns
       await queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
       await queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+      await queryClient.invalidateQueries({ queryKey: ['convertedEmails'] });
       
-      // Force immediate refetch
-      await queryClient.refetchQueries({ queryKey: ["/api/tasks"] });
-      await queryClient.refetchQueries({ queryKey: ["/api/notifications"] });
+      // Force immediate refetch with a slight delay to ensure database changes are committed
+      setTimeout(async () => {
+        await queryClient.refetchQueries({ queryKey: ["/api/tasks"] });
+        await queryClient.refetchQueries({ queryKey: ["/api/notifications"] });
+        await queryClient.refetchQueries({ queryKey: ['convertedEmails'] });
+      }, 500);
     } catch (error) {
-      // Silently handle conversion errors
+      console.error("Conversion error:", error);
     } finally {
       setConvertingTasks(prev => {
         const newSet = new Set(prev);
