@@ -38,7 +38,7 @@ export async function analyzeNotification(
 ): Promise<NotificationAnalysis> {
   // If AI is not available, return basic analysis
   if (!ai) {
-    const priority = content.toLowerCase().includes("urgent") || title.toLowerCase().includes("urgent") 
+    const priority = content.toLowerCase().includes("urgent") || title.toLowerCase().includes("urgent")
       ? "urgent" : "important";
     return {
       priority: priority as any,
@@ -48,9 +48,9 @@ export async function analyzeNotification(
       suggestedActions: ["Read content", "Respond if needed"]
     };
   }
-  
+
   try {
-    const systemPrompt = `You are an executive assistant AI analyzing workplace notifications for a corporate command center. 
+    const systemPrompt = `You are an executive assistant AI analyzing workplace notifications for a corporate command center.
     Analyze the notification and provide priority classification, summary, and actionable insights.
     Consider business context, urgency indicators, and deadline implications.
     Respond with JSON in this exact format: {
@@ -128,7 +128,7 @@ export async function optimizeWorkflow(
   if (!ai) {
     const urgentTasks = tasks.filter(t => t.priority === 'urgent');
     const importantTasks = tasks.filter(t => t.priority === 'important');
-    
+
     return {
       optimizedTasks: [...urgentTasks, ...importantTasks].slice(0, 5).map((task, index) => ({
         taskId: task.id,
@@ -140,7 +140,7 @@ export async function optimizeWorkflow(
       estimatedTimeSaving: 10
     };
   }
-  
+
   try {
     const systemPrompt = `You are an AI workflow optimization system for executive productivity.
     Analyze the given tasks and intelligently categorize them into 3 priority levels:
@@ -239,10 +239,10 @@ export async function generateWellnessInsights(
 }> {
   // If AI is not available, return basic wellness insights
   if (!ai) {
-    const stressAdvice = userMetrics.stressLevel === 'high' ? 
-      "Take a 15-minute break to improve focus" : 
+    const stressAdvice = userMetrics.stressLevel === 'high' ?
+      "Take a 15-minute break to improve focus" :
       "Maintain current productivity rhythm";
-      
+
     return {
       insights: [
         `Focus score: ${userMetrics.focusScore}% - ${userMetrics.focusScore > 70 ? 'performing well' : 'room for improvement'}`,
@@ -255,7 +255,7 @@ export async function generateWellnessInsights(
       nextBreakRecommendation: userMetrics.activeHours > 4 ? 15 : 30
     };
   }
-  
+
   try {
     const systemPrompt = `You are a corporate wellness AI advisor focused on executive performance optimization.
     Analyze user metrics and provide professional wellness insights disguised as performance optimization.
@@ -368,7 +368,7 @@ export async function analyzeNotificationForTask(
       - "tomorrow" → set to next date 03:30 UTC (9 AM IST)
       - Week days → set to appropriate date 03:30 UTC (9 AM IST)
       - If no clear time reference, set dueAt to null
-      
+
       IMPORTANT: Be very precise with "in X min" patterns. "google meet in 11 min" should be exactly 11 minutes from current time.
 
       Respond with JSON in this exact format: {
@@ -409,30 +409,30 @@ Analyze the complete email text above and create a very short 2-3 word task titl
       const rawJson = response.text?.trim();
       if (rawJson) {
         const result = JSON.parse(rawJson);
-        
+
         // Validate required fields
         if (!result.title || !result.description || !result.priority) {
           throw new Error("Invalid AI response: missing required fields");
         }
-        
+
         // Post-processing guardrails: override generic AI titles
         let finalTitle = result.title;
         const genericTitles = ["reply email", "check email", "new email", "email response", "respond email"];
-        
+
         if (genericTitles.includes(result.title.toLowerCase())) {
           // Apply deterministic logic to notification content
           const fallback = getFallbackTaskFromNotification(notification);
           finalTitle = fallback.title;
         }
-        
+
         // Server-side fallback time parsing if AI didn't set dueAt
         let finalDueAt = result.dueAt ? new Date(result.dueAt) : undefined;
-        
+
         if (!finalDueAt) {
           const fullText = `${notification.title} ${notification.description || ''}`;
           finalDueAt = parseServerSideTimeReferences(fullText);
         }
-        
+
         return {
           title: finalTitle,
           description: result.description,
@@ -446,7 +446,7 @@ Analyze the complete email text above and create a very short 2-3 word task titl
     } catch (error: any) {
 
       // Check if it's a 503 (overloaded) error or other retryable errors
-      const isRetryableError = error.status === 503 || 
+      const isRetryableError = error.status === 503 ||
                               error.message?.includes("overloaded") ||
                               error.message?.includes("quota") ||
                               error.message?.includes("rate limit");
@@ -515,33 +515,33 @@ function parseServerSideTimeReferences(text: string): Date | undefined {
   // Handle "today" with specific time mentions - Use UTC consistently
   if (lowerText.includes('today')) {
     const today = new Date(now);
-    
+
     // Look for specific time mentions with "today"
     // Match patterns like: "9 pm", "9:00 pm", "21:00", "9 p.m.", "9pm"
     const timeToday = lowerText.match(/(\d{1,2}):?(\d{2})?\s*(pm|p\.m\.|am|a\.m\.)\s*today|today\s*(?:at\s*)?(\d{1,2}):?(\d{2})?\s*(pm|p\.m\.|am|a\.m\.)|(\d{1,2}):?(\d{2})?\s*(pm|p\.m\.|am|a\.m\.)/i);
-    
+
     if (timeToday) {
       // Extract hour and minute, handling different capture groups
       let hour = parseInt(timeToday[1] || timeToday[4] || timeToday[7] || '17');
       const minute = parseInt(timeToday[2] || timeToday[5] || timeToday[8] || '0');
       const period = (timeToday[3] || timeToday[6] || timeToday[9] || '').toLowerCase();
-      
+
       // Convert to 24-hour format
       if (period.includes('pm') || period.includes('p.m.')) {
         if (hour !== 12) hour += 12;
       } else if (period.includes('am') || period.includes('a.m.')) {
         if (hour === 12) hour = 0;
       }
-      
+
       // Convert IST hour to UTC (IST = UTC + 5:30)
       const utcHour = hour - 5;
       const utcMinute = minute - 30;
-      
+
       // Handle minute/hour overflow
       let finalHour = utcHour;
       let finalMinute = utcMinute;
       let dayOffset = 0;
-      
+
       if (finalMinute < 0) {
         finalMinute += 60;
         finalHour -= 1;
@@ -550,10 +550,10 @@ function parseServerSideTimeReferences(text: string): Date | undefined {
         finalHour += 24;
         dayOffset = -1;
       }
-      
+
       today.setUTCDate(today.getUTCDate() + dayOffset);
       today.setUTCHours(finalHour, finalMinute, 0, 0);
-      
+
       console.log(`[TimeParser] Parsed "today at ${hour}:${minute.toString().padStart(2, '0')}" IST as: ${today.toISOString()}`);
       return today;
     } else {
@@ -580,7 +580,7 @@ function parseServerSideTimeReferences(text: string): Date | undefined {
       const targetDate = new Date(now);
       const currentDay = now.getDay();
       const daysUntilTarget = (dayNumber - currentDay + 7) % 7;
-      
+
       // If it's the same day, assume next week unless it's still early
       if (daysUntilTarget === 0 && now.getHours() >= 12) {
         targetDate.setDate(targetDate.getDate() + 7);
@@ -591,7 +591,7 @@ function parseServerSideTimeReferences(text: string): Date | undefined {
       } else {
         targetDate.setDate(targetDate.getDate() + daysUntilTarget);
       }
-      
+
       targetDate.setHours(9, 0, 0, 0); // Set to 9 AM on target day
       return targetDate;
     }
@@ -697,19 +697,19 @@ Source: ${notification.sourceApp || 'email'}`;
       // FIXED: Use correct Gemini SDK method consistent with other functions
       const responseText = response.text;
       tasks = JSON.parse(responseText);
-      
+
       // Validate array structure and ensure we have valid task objects
       if (!Array.isArray(tasks)) {
         tasks = [tasks]; // Convert single object to array
       }
-      
+
       // Validate each task has required properties
       tasks = tasks.filter(task => task && typeof task === 'object' && task.title);
-      
+
       if (tasks.length === 0) {
         throw new Error("No valid tasks found in AI response");
       }
-      
+
       console.log(`[MultiTaskAnalysis] Successfully parsed ${tasks.length} tasks from AI response`);
     } catch (parseError) {
       console.error('Multi-task parsing error:', parseError);
@@ -739,16 +739,16 @@ function getFallbackTaskFromNotification(notification: {
 }): TaskAnalysis {
   let shortTitle = "Check notification";
   let priority: "urgent" | "important" | "normal" = "normal";
-  
+
   // Focus on notification description (actual content) over generic title
   const content = notification.description || notification.title;
   const lowerContent = content.toLowerCase();
-  
+
   // Gmail-specific logic: parse email content
   if (notification.sourceApp === 'gmail') {
     // Look for specific actions in email content (prioritize action keywords over greetings)
-    if (lowerContent.includes("submit") || lowerContent.includes("submission") || lowerContent.includes("assignment") || 
-        lowerContent.includes("deliverable") || lowerContent.includes("turn in") || lowerContent.includes("attach") || 
+    if (lowerContent.includes("submit") || lowerContent.includes("submission") || lowerContent.includes("assignment") ||
+        lowerContent.includes("deliverable") || lowerContent.includes("turn in") || lowerContent.includes("attach") ||
         lowerContent.includes("upload")) {
       shortTitle = "Submit file";
     } else if (lowerContent.includes("deadline") || lowerContent.includes("due")) {
@@ -771,7 +771,7 @@ function getFallbackTaskFromNotification(notification: {
         const meaningfulWords = subject.split(' ')
           .filter(word => word.length > 2 && !['the', 'and', 'for', 'with', 'from', 'just', 'will'].includes(word))
           .slice(0, 2);
-        
+
         if (meaningfulWords.length >= 2) {
           shortTitle = meaningfulWords.join(' ').replace(/[^\w\s]/g, '');
         } else if (meaningfulWords.length === 1) {
@@ -786,7 +786,7 @@ function getFallbackTaskFromNotification(notification: {
   } else {
     // For non-email notifications, use general logic
     const allText = (notification.title + ' ' + (notification.description || '')).toLowerCase();
-    
+
     if (allText.includes("meeting") || allText.includes("meet")) {
       shortTitle = allText.includes("google meet") || allText.includes("zoom") ? "Join meeting" : "Schedule meeting";
     } else if (allText.includes("review") || allText.includes("check")) {
@@ -801,7 +801,7 @@ function getFallbackTaskFromNotification(notification: {
       shortTitle = "Contact manager";
     } else {
       // Extract meaningful words from title
-      const titleWords = notification.title.split(' ').filter(word => 
+      const titleWords = notification.title.split(' ').filter(word =>
         word.length > 2 && !['the', 'and', 'for', 'with', 'from'].includes(word.toLowerCase())
       );
       if (titleWords.length >= 2) {
@@ -811,10 +811,10 @@ function getFallbackTaskFromNotification(notification: {
       }
     }
   }
-  
+
   // Priority detection based on time and context - MOVED to analyze the FULL text including description
   const allText = (notification.title + ' ' + (notification.description || '')).toLowerCase();
-  
+
   // Check for work email patterns FIRST - prioritize work content
   const workPatterns = [
     /action required/i,
@@ -895,7 +895,7 @@ function getFallbackTaskFromNotification(notification: {
            allText.match(/\b(?:today|tomorrow|this\s+(?:morning|afternoon|evening|week))\b/)) {
     priority = "important";
   }
-  
+
   return {
     title: shortTitle,
     description: `Complete email content:\n\n${notification.title}\n\n${notification.description || 'No content available'}\n\nAction needed: Review and respond to this notification.`,
