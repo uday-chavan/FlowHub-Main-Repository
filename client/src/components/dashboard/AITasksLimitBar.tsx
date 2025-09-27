@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +20,7 @@ interface AITasksLimitData {
 
 export function AITasksLimitBar() {
   const { user } = useCurrentUser();
+  const queryClient = useQueryClient();
 
   const { data: limitData, isLoading } = useQuery<AITasksLimitData>({
     queryKey: ["ai-tasks-limit", user?.id],
@@ -31,7 +32,8 @@ export function AITasksLimitBar() {
       return response.json();
     },
     enabled: !!user?.id,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 30, // 30 seconds - more frequent updates
+    refetchInterval: 1000 * 60, // Refetch every minute
   });
 
   const [showUsageModal, setShowUsageModal] = useState(false);
@@ -39,7 +41,15 @@ export function AITasksLimitBar() {
   const [isJoiningWaitlist, setIsJoiningWaitlist] = useState(false);
   const [waitlistJoined, setWaitlistJoined] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [hasManuallyDismissed, setHasManuallyDismissed] = useState(false);
+  
+  // Get dismissal state from localStorage with user-specific key
+  const getDismissalKey = () => `ai-limit-dismissed-${user?.id || 'anonymous'}`;
+  const [hasManuallyDismissed, setHasManuallyDismissed] = useState(() => {
+    if (typeof window !== 'undefined' && user?.id) {
+      return localStorage.getItem(getDismissalKey()) === 'true';
+    }
+    return false;
+  });
 
   // Check if mobile on mount
   React.useEffect(() => {
@@ -48,6 +58,27 @@ export function AITasksLimitBar() {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // Update dismissal state when user changes
+  useEffect(() => {
+    if (user?.id) {
+      const dismissed = localStorage.getItem(getDismissalKey()) === 'true';
+      setHasManuallyDismissed(dismissed);
+    }
+  }, [user?.id]);
+
+  // Expose function to refresh limit data from other components
+  React.useEffect(() => {
+    const refreshLimitData = () => {
+      if (user?.id) {
+        queryClient.invalidateQueries({ queryKey: ["ai-tasks-limit", user.id] });
+      }
+    };
+
+    // Listen for custom event when AI task is created
+    window.addEventListener('ai-task-created', refreshLimitData);
+    return () => window.removeEventListener('ai-task-created', refreshLimitData);
+  }, [user?.id, queryClient]);
 
   const isAtLimit = !limitData?.withinLimit;
 
@@ -90,7 +121,20 @@ export function AITasksLimitBar() {
   const handleContinueManual = () => {
     setShowLimitModal(false);
     setHasManuallyDismissed(true);
+    if (user?.id) {
+      localStorage.setItem(getDismissalKey(), 'true');
+    }
     // You can add additional logic here if needed, like opening the manual task dialog
+  };
+
+  const handleModalClose = (open: boolean) => {
+    if (!open) {
+      setShowLimitModal(false);
+      setHasManuallyDismissed(true);
+      if (user?.id) {
+        localStorage.setItem(getDismissalKey(), 'true');
+      }
+    }
   };
 
 
@@ -165,12 +209,7 @@ export function AITasksLimitBar() {
         </Dialog>
 
         {/* Limit Reached Modal */}
-        <Dialog open={showLimitModal} onOpenChange={(open) => {
-          if (!open) {
-            setShowLimitModal(false);
-            setHasManuallyDismissed(true);
-          }
-        }}>
+        <Dialog open={showLimitModal} onOpenChange={handleModalClose}>
           <DialogContent className="max-w-md mx-4 fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[calc(100vw-2rem)] max-w-md">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-red-600">
@@ -285,12 +324,7 @@ export function AITasksLimitBar() {
       </div>
 
       {/* Limit Reached Modal */}
-      <Dialog open={showLimitModal} onOpenChange={(open) => {
-        if (!open) {
-          setShowLimitModal(false);
-          setHasManuallyDismissed(true);
-        }
-      }}>
+      <Dialog open={showLimitModal} onOpenChange={handleModalClose}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-red-600">
