@@ -10,17 +10,23 @@ import { ChevronDown, ChevronRight, Mail } from "lucide-react";
 
 interface ConvertedEmail {
   id: string;
-  title: string;
-  description: string;
-  sourceApp: string;
+  userId: string;
+  gmailMessageId: string;
+  gmailThreadId?: string;
+  subject: string;
+  sender: string;
+  senderEmail: string;
+  receivedAt: string;
+  convertedAt: string;
+  rawSnippet?: string;
+  status: string;
+  taskIds?: string[];
   metadata?: {
-    emailId?: string;
-    from?: string;
-    subject?: string;
-    convertedAt?: string;
-    taskId?: string;
-    taskTitle?: string;
+    sourceNotificationId?: string;
     originalContent?: string;
+    tasksCount?: number;
+    taskTitles?: string;
+    isPriorityPerson?: boolean;
   };
   createdAt: string;
 }
@@ -30,11 +36,11 @@ export default function EmailsConverted() {
   const [expandedEmail, setExpandedEmail] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
-  // Fetch converted emails (notifications with email-to-task conversions) with userId for security
+  // Fetch converted emails from the dedicated convertedEmails table
   const { data: convertedEmails = [], isLoading } = useQuery({
     queryKey: ['convertedEmails'],
     queryFn: async () => {
-      const response = await fetch('/api/notifications', {
+      const response = await fetch('/api/converted-emails', {
         credentials: 'include',
       });
       if (!response.ok) {
@@ -44,9 +50,7 @@ export default function EmailsConverted() {
         }
         throw new Error('Failed to fetch converted emails');
       }
-      const allNotifications = await response.json();
-      // Filter for email conversions by metadata flag
-      return allNotifications.filter((n: any) => n.metadata?.isEmailConversion === true);
+      return await response.json();
     }
   });
 
@@ -225,9 +229,9 @@ export default function EmailsConverted() {
             ) : (
               convertedEmails.map((email: ConvertedEmail) => {
                 const isExpanded = expandedEmail === email.id;
-                const subject = email.metadata?.subject || email.metadata?.taskTitle || email.title;
-                const from = email.metadata?.from || "Unknown Sender";
-                const convertedAt = formatDate(email.metadata?.convertedAt || email.createdAt);
+                const subject = email.subject;
+                const from = email.sender;
+                const convertedAt = formatDate(email.convertedAt || email.createdAt);
                 
                 return (
                   <Card key={email.id} className="transition-all hover:shadow-md border dark:border-gray-700">
@@ -250,7 +254,7 @@ export default function EmailsConverted() {
                             {subject}
                           </h3>
                           <p className="text-xs text-muted-foreground truncate">
-                            From: {from} → Converted to: {email.metadata?.taskTitle || "Task"}
+                            From: {from} → Converted to: {email.metadata?.taskTitles || `${email.metadata?.tasksCount || 1} task(s)`}
                           </p>
                         </div>
                       </div>
@@ -279,7 +283,7 @@ export default function EmailsConverted() {
                             <h4 className="text-sm font-medium text-muted-foreground mb-2">Email Content:</h4>
                             <div className="bg-background/50 p-3 rounded border">
                               <p className="text-sm whitespace-pre-wrap">
-                                {email.metadata?.originalContent || email.description}
+                                {email.metadata?.originalContent || email.rawSnippet || "No content available"}
                               </p>
                             </div>
                           </div>
@@ -289,8 +293,8 @@ export default function EmailsConverted() {
                             <h4 className="text-sm font-medium text-muted-foreground">Task Details:</h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div>
-                                <label className="text-xs font-medium text-muted-foreground">Title:</label>
-                                <p className="text-sm">{email.metadata?.taskTitle || "N/A"}</p>
+                                <label className="text-xs font-medium text-muted-foreground">Tasks Created:</label>
+                                <p className="text-sm">{email.metadata?.taskTitles || `${email.metadata?.tasksCount || 1} task(s)`}</p>
                               </div>
                               <div>
                                 <label className="text-xs font-medium text-muted-foreground">Status:</label>
@@ -300,10 +304,10 @@ export default function EmailsConverted() {
                           </div>
 
                           {/* Task Status Badge */}
-                          {email.metadata?.taskId && (
+                          {email.taskIds && email.taskIds.length > 0 && (
                             <div className="pt-2 border-t">
                               <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-100">
-                                ✅ Converted to Task #{email.metadata.taskId.slice(-8)}
+                                ✅ Converted to {email.taskIds.length} Task{email.taskIds.length > 1 ? 's' : ''}
                               </Badge>
                             </div>
                           )}
