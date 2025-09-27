@@ -245,7 +245,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           title: "🔔 FlowHub Login Successful",
           description: "Welcome back! Your Windows notifications are active and ready. You should see this notification in your Windows notification center.",
           type: "informational",
-          sourceApp: "system",
+          sourceApp: "manual",
           aiSummary: "User login notification for Windows notification testing",
           actionableInsights: ["Check Windows notification center", "Notifications are working"],
           metadata: {
@@ -471,7 +471,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         title: "🔔 Windows Notification Test",
         description: "This is a test notification to verify Windows notifications are working properly. You should see this in your Windows notification center.",
         type: "informational",
-        sourceApp: "system",
+        sourceApp: "manual",
         aiSummary: "Test notification for Windows notification system verification",
         actionableInsights: ["Windows notifications are working", "Check notification center", "System is ready"],
         metadata: {
@@ -771,7 +771,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             userId: userId,
             type: "task_rescheduling",
             title: "Tasks Auto-Rescheduled",
-            description: `Completed task influenced rescheduling of ${reschedulingResult.rescheduledTasks.length} upcoming tasks. ${reschedulingResult.insights.join(' ')}`,
+            description: `Completed task influenced rescheduling of ${reschedulingResult.rescheduledTasks.length} upcoming tasks. ${reschedulingResult.insights.join(' ')} Time saved: ${reschedulingResult.totalTimeSaved} minutes.`,
             priority: "normal",
             metadata: {
               rescheduledTasks: reschedulingResult.rescheduledTasks,
@@ -2306,7 +2306,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           title: "🔔 Gmail Connected to FlowHub",
           description: "Gmail connection successful! You should see this notification in your Windows notification center. Email notifications are now active.",
           type: "informational",
-          sourceApp: "system",
+          sourceApp: "manual",
           aiSummary: "Gmail connection notification for Windows notification testing",
           actionableInsights: ["Check Windows notification center", "Gmail notifications active"],
           metadata: {
