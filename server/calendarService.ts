@@ -67,7 +67,7 @@ class CalendarService {
       const endDate = new Date(dueDate.getTime() + 24 * 60 * 60 * 1000); // Add 24 hours
 
       // Format the execution time in a readable format
-      const executionTime = dueDate.toLocaleString('en-IN', {
+      const executionTime = dueDate.toLocaleString('en-IN', { 
         timeZone: 'Asia/Kolkata',
         hour: 'numeric',
         minute: '2-digit',
@@ -77,48 +77,18 @@ class CalendarService {
       // Determine if this is a deadline or start time based on task content
       const taskText = `${task.title} ${task.description || ''}`.toLowerCase();
 
-      // Strong deadline indicators (definitely "due at")
-      const strongDeadlineKeywords = /\b(till|until|by|due|deadline|before|within|submit|deliver|turn in|hand in|assignment|homework)\b/;
-
-      // Strong start time indicators (definitely "scheduled at")
-      const strongStartKeywords = /\b(start|begin|commence|meeting|call|interview|presentation|demo|standup|session|appointment)\b/;
-
-      // Ambiguous keywords that could be either (context-dependent)
-      const ambiguousKeywords = /\b(review|check|look at|examine|go over|discuss|complete|finish|work on|project|report)\b/;
-
-      const hasStrongDeadline = strongDeadlineKeywords.test(taskText);
-      const hasStrongStart = strongStartKeywords.test(taskText);
-      const hasAmbiguous = ambiguousKeywords.test(taskText);
-
-      let isDeadlineTask = false;
-
-      if (hasStrongDeadline) {
-        isDeadlineTask = true;
-      } else if (hasStrongStart) {
-        isDeadlineTask = false;
-      } else if (hasAmbiguous) {
-        // For ambiguous cases, look for additional context clues:
-        // 1. Completion words suggest deadline
-        // 2. Time pressure words suggest deadline
-        // 3. Action initiation words suggest start time
-
-        const completionContext = /\b(finish|complete|done|ready|final|submit|deliver)\b/.test(taskText);
-        const timePressureContext = /\b(urgent|asap|quickly|fast|rush|hurry)\b/.test(taskText);
-        const initiationContext = /\b(start|begin|kick off|launch|initiate)\b/.test(taskText);
-
-        if (completionContext || timePressureContext) {
-          isDeadlineTask = true;
-        } else if (initiationContext) {
-          isDeadlineTask = false;
-        } else {
-          // Default ambiguous cases to "scheduled at" for better user experience
-          // (easier to reschedule than to miss a deadline)
-          isDeadlineTask = false;
-        }
-      } else {
-        // No specific keywords - default to deadline for general tasks
-        isDeadlineTask = true;
-      }
+      // Enhanced deadline detection logic
+      const isDeadlineTask = 
+        // Direct deadline keywords
+        taskText.match(/\b(till|until|by|due|deadline|before)\b/) ||
+        // Completion-based tasks (complete, finish, submit something)
+        taskText.match(/\b(complete|finish|submit|turn in|hand in)\s+\w+/) ||
+        // Time pressure indicators with action words
+        taskText.match(/\b(complete|finish|submit|do|write|prepare|review|study)\b.*\b(in|within|by)\s+\d+/) ||
+        // Assignment/project/homework patterns
+        taskText.match(/\b(assignment|project|homework|report|essay|paper|task)\b/) ||
+        // Explicit deadline phrases
+        taskText.match(/\b(needs to be done|must be completed|has to be finished)\b/);
 
       const timeLabel = isDeadlineTask ? "due at" : "scheduled at";
 
@@ -178,7 +148,7 @@ class CalendarService {
       const endDate = new Date(dueDate.getTime() + 24 * 60 * 60 * 1000); // Add 24 hours
 
       // Format the execution time in a readable format
-      const executionTime = dueDate.toLocaleString('en-IN', {
+      const executionTime = dueDate.toLocaleString('en-IN', { 
         timeZone: 'Asia/Kolkata',
         hour: 'numeric',
         minute: '2-digit',
@@ -188,48 +158,18 @@ class CalendarService {
       // Determine if this is a deadline or start time based on task content
       const taskText = `${task.title} ${task.description || ''}`.toLowerCase();
 
-      // Strong deadline indicators (definitely "due at")
-      const strongDeadlineKeywords = /\b(till|until|by|due|deadline|before|within|submit|deliver|turn in|hand in|assignment|homework)\b/;
-
-      // Strong start time indicators (definitely "scheduled at")
-      const strongStartKeywords = /\b(start|begin|commence|meeting|call|interview|presentation|demo|standup|session|appointment)\b/;
-
-      // Ambiguous keywords that could be either (context-dependent)
-      const ambiguousKeywords = /\b(review|check|look at|examine|go over|discuss|complete|finish|work on|project|report)\b/;
-
-      const hasStrongDeadline = strongDeadlineKeywords.test(taskText);
-      const hasStrongStart = strongStartKeywords.test(taskText);
-      const hasAmbiguous = ambiguousKeywords.test(taskText);
-
-      let isDeadlineTask = false;
-
-      if (hasStrongDeadline) {
-        isDeadlineTask = true;
-      } else if (hasStrongStart) {
-        isDeadlineTask = false;
-      } else if (hasAmbiguous) {
-        // For ambiguous cases, look for additional context clues:
-        // 1. Completion words suggest deadline
-        // 2. Time pressure words suggest deadline
-        // 3. Action initiation words suggest start time
-
-        const completionContext = /\b(finish|complete|done|ready|final|submit|deliver)\b/.test(taskText);
-        const timePressureContext = /\b(urgent|asap|quickly|fast|rush|hurry)\b/.test(taskText);
-        const initiationContext = /\b(start|begin|kick off|launch|initiate)\b/.test(taskText);
-
-        if (completionContext || timePressureContext) {
-          isDeadlineTask = true;
-        } else if (initiationContext) {
-          isDeadlineTask = false;
-        } else {
-          // Default ambiguous cases to "scheduled at" for better user experience
-          // (easier to reschedule than to miss a deadline)
-          isDeadlineTask = false;
-        }
-      } else {
-        // No specific keywords - default to deadline for general tasks
-        isDeadlineTask = true;
-      }
+      // Enhanced deadline detection logic
+      const isDeadlineTask = 
+        // Direct deadline keywords
+        taskText.match(/\b(till|until|by|due|deadline|before)\b/) ||
+        // Completion-based tasks (complete, finish, submit something)
+        taskText.match(/\b(complete|finish|submit|turn in|hand in)\s+\w+/) ||
+        // Time pressure indicators with action words
+        taskText.match(/\b(complete|finish|submit|do|write|prepare|review|study)\b.*\b(in|within|by)\s+\d+/) ||
+        // Assignment/project/homework patterns
+        taskText.match(/\b(assignment|project|homework|report|essay|paper|task)\b/) ||
+        // Explicit deadline phrases
+        taskText.match(/\b(needs to be done|must be completed|has to be finished)\b/);
 
       const timeLabel = isDeadlineTask ? "due at" : "scheduled at";
 
@@ -328,7 +268,7 @@ class CalendarService {
 
         // Check if we already created a task for this event
         const existingTasks = await storage.getUserTasks(userId);
-        const eventTaskExists = existingTasks.some(task =>
+        const eventTaskExists = existingTasks.some(task => 
           task.metadata?.calendarEventId === event.id
         );
 
@@ -336,7 +276,7 @@ class CalendarService {
 
         // Create task for calendar event if it contains actionable keywords
         const actionableKeywords = ['meeting', 'call', 'interview', 'deadline', 'presentation', 'review', 'demo', 'standup'];
-        const hasActionableContent = actionableKeywords.some(keyword =>
+        const hasActionableContent = actionableKeywords.some(keyword => 
           event.summary!.toLowerCase().includes(keyword)
         );
 
