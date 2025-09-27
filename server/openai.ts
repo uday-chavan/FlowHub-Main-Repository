@@ -359,17 +359,17 @@ export async function analyzeNotificationForTask(
       CRITICAL: If the email mentions work, business, meetings, deadlines, or professional context, it should be "important" unless it's within 1 hour (then "urgent"). However, if it's a security/system notification, it should be skipped entirely.
 
       TIME PARSING INSTRUCTIONS:
-      Current time: ${new Date().toISOString()} (Server timezone: Indian Standard Time - UTC+5:30)
-      When you find time references in the content, convert them to ISO timestamps in IST:
-      - "in X minutes" → add X minutes to current time
-      - "in X hours" → add X hours to current time  
-      - "today" with specific time (e.g., "9 pm today", "2:30 pm today") → use that exact time today in IST
-      - "today" without specific time → set to 5 PM today in IST
-      - "tomorrow" → set to 9 AM tomorrow in IST
-      - "monday", "tuesday", etc. → set to 9 AM on that day this week (or next week if it's past that day)
-      - "this week" → set to 5 PM this Friday
-      - "next week" → set to 9 AM next Monday
-      - If no time reference found, set dueAt to null
+      Current time: ${new Date().toISOString()} (Parse times as UTC timestamps)
+      When you find time references in the content, convert them to ISO timestamps:
+      - "in X minutes" or "X min" → add X minutes to current UTC time
+      - "in X hours" → add X hours to current UTC time
+      - "today" with specific time → convert IST time to UTC (subtract 5:30 hours)
+      - "today" without specific time → set to current date 11:30 UTC (5 PM IST)
+      - "tomorrow" → set to next date 03:30 UTC (9 AM IST)
+      - Week days → set to appropriate date 03:30 UTC (9 AM IST)
+      - If no clear time reference, set dueAt to null
+      
+      IMPORTANT: Be very precise with "in X min" patterns. "google meet in 11 min" should be exactly 11 minutes from current time.
 
       Respond with JSON in this exact format: {
         "title": "Very short 2-3 word task title",
@@ -472,45 +472,49 @@ Analyze the complete email text above and create a very short 2-3 word task titl
 function parseServerSideTimeReferences(text: string): Date | undefined {
   if (!text) return undefined;
 
+  // Use current UTC time consistently
   const now = new Date();
   const lowerText = text.toLowerCase().trim();
 
-  // Look for "in X min/mins/minutes/m" patterns
-  const minuteMatch = lowerText.match(/in\s+(\d+)\s*(?:m|min|mins|minutes?)\b/i);
+  // Look for "in X min/mins/minutes/m" patterns - be more precise
+  const minuteMatch = lowerText.match(/(?:in\s+)?(\d+)\s*(?:m|min|mins|minutes?)\b/i);
   if (minuteMatch) {
     const minutes = parseInt(minuteMatch[1]);
-    return new Date(now.getTime() + minutes * 60 * 1000);
+    const futureTime = new Date(now.getTime() + minutes * 60 * 1000);
+    console.log(`[TimeParser] Parsed "${lowerText}" as ${minutes} minutes from now: ${futureTime.toISOString()}`);
+    return futureTime;
   }
 
   // Look for "in X hour/hours/hr/hrs/h" patterns
-  const hourMatch = lowerText.match(/in\s+(\d+)\s*(?:h|hr|hrs|hour|hours?)\b/i);
+  const hourMatch = lowerText.match(/(?:in\s+)?(\d+)\s*(?:h|hr|hrs|hour|hours?)\b/i);
   if (hourMatch) {
     const hours = parseInt(hourMatch[1]);
-    return new Date(now.getTime() + hours * 60 * 60 * 1000);
+    const futureTime = new Date(now.getTime() + hours * 60 * 60 * 1000);
+    console.log(`[TimeParser] Parsed "${lowerText}" as ${hours} hours from now: ${futureTime.toISOString()}`);
+    return futureTime;
   }
 
   // Look for "in X days" patterns
-  const dayMatch = lowerText.match(/in\s+(\d+)\s*(?:day|days?)/);
+  const dayMatch = lowerText.match(/(?:in\s+)?(\d+)\s*(?:day|days?)\b/i);
   if (dayMatch) {
     const days = parseInt(dayMatch[1]);
-    return new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+    const futureTime = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+    console.log(`[TimeParser] Parsed "${lowerText}" as ${days} days from now: ${futureTime.toISOString()}`);
+    return futureTime;
   }
 
-  // Handle "tomorrow" or "tommorow" (common typo) - IST timezone
+  // Handle "tomorrow" or "tommorow" (common typo) - Use UTC consistently
   if (lowerText.includes('tomorrow') || lowerText.includes('tommorow')) {
-    const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
-    const nowIST = new Date(now.getTime() + istOffset);
-    const tomorrow = new Date(nowIST.getFullYear(), nowIST.getMonth(), nowIST.getDate() + 1, 9, 0, 0, 0); // 9 AM IST tomorrow
-    const tomorrowUTC = new Date(tomorrow.getTime() - istOffset);
-    return tomorrowUTC;
+    const tomorrow = new Date(now);
+    tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+    tomorrow.setUTCHours(3, 30, 0, 0); // 9 AM IST = 3:30 UTC
+    console.log(`[TimeParser] Parsed "tomorrow" as: ${tomorrow.toISOString()}`);
+    return tomorrow;
   }
 
-  // Handle "today" with specific time mentions (Indian Standard Time - UTC+5:30)
+  // Handle "today" with specific time mentions - Use UTC consistently
   if (lowerText.includes('today')) {
-    // Create date in IST timezone
-    const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
-    const nowIST = new Date(now.getTime() + istOffset);
-    const today = new Date(nowIST.getFullYear(), nowIST.getMonth(), nowIST.getDate());
+    const today = new Date(now);
     
     // Look for specific time mentions with "today"
     // Match patterns like: "9 pm", "9:00 pm", "21:00", "9 p.m.", "9pm"
@@ -529,15 +533,34 @@ function parseServerSideTimeReferences(text: string): Date | undefined {
         if (hour === 12) hour = 0;
       }
       
-      // Set time in IST and convert back to UTC for storage
-      today.setHours(hour, minute, 0, 0);
-      const todayUTC = new Date(today.getTime() - istOffset);
-      return todayUTC;
+      // Convert IST hour to UTC (IST = UTC + 5:30)
+      const utcHour = hour - 5;
+      const utcMinute = minute - 30;
+      
+      // Handle minute/hour overflow
+      let finalHour = utcHour;
+      let finalMinute = utcMinute;
+      let dayOffset = 0;
+      
+      if (finalMinute < 0) {
+        finalMinute += 60;
+        finalHour -= 1;
+      }
+      if (finalHour < 0) {
+        finalHour += 24;
+        dayOffset = -1;
+      }
+      
+      today.setUTCDate(today.getUTCDate() + dayOffset);
+      today.setUTCHours(finalHour, finalMinute, 0, 0);
+      
+      console.log(`[TimeParser] Parsed "today at ${hour}:${minute.toString().padStart(2, '0')}" IST as: ${today.toISOString()}`);
+      return today;
     } else {
-      // Default to 5 PM IST if no specific time mentioned
-      today.setHours(17, 0, 0, 0);
-      const todayUTC = new Date(today.getTime() - istOffset);
-      return todayUTC;
+      // Default to 5 PM IST (11:30 UTC) if no specific time mentioned
+      today.setUTCHours(11, 30, 0, 0);
+      console.log(`[TimeParser] Parsed "today" (default 5 PM IST) as: ${today.toISOString()}`);
+      return today;
     }
   }
 
@@ -597,9 +620,12 @@ function parseServerSideTimeReferences(text: string): Date | undefined {
 
   // Look for immediate urgency keywords
   if (lowerText.includes('asap') || lowerText.includes('urgent') || lowerText.includes('right now') || lowerText.includes('immediately')) {
-    return new Date(now.getTime() + 5 * 60 * 1000); // 5 minutes from now
+    const urgentTime = new Date(now.getTime() + 5 * 60 * 1000); // 5 minutes from now
+    console.log(`[TimeParser] Parsed urgent keyword in "${lowerText}" as 5 minutes from now: ${urgentTime.toISOString()}`);
+    return urgentTime;
   }
 
+  console.log(`[TimeParser] No time reference found in: "${lowerText}"`);
   return undefined;
 }
 
