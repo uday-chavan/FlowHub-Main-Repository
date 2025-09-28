@@ -49,9 +49,14 @@ function AppRouter() {
       const currentVersion = Date.now().toString();
       const hadRecentPopup = sessionStorage.getItem('redeploymentPopupShown');
       
+      // Only check for redeployment if user is authenticated
+      if (!isAuthenticated) {
+        return;
+      }
+      
       // If user is authenticated but no app version is stored, 
       // and we haven't shown the popup in this session
-      if (isAuthenticated && !appVersion && !hadRecentPopup) {
+      if (!appVersion && !hadRecentPopup) {
         // Show redeployment popup for authenticated users without version
         setShowRedeploymentPopup(true);
         // Mark that we've shown the popup in this session
@@ -60,7 +65,7 @@ function AppRouter() {
       }
       
       // Store current version if not present and user is authenticated
-      if (!appVersion && isAuthenticated) {
+      if (!appVersion) {
         localStorage.setItem('appVersion', currentVersion);
       }
     };
@@ -106,14 +111,8 @@ function AppRouter() {
         setInitialAuthState(true);
       }
     } else if (authChecked && !isAuthenticated) {
-      // Only check if there was a previous user, don't automatically clear
-      const hadPreviousUser = localStorage.getItem('currentUserId');
-      if (hadPreviousUser && !showRedeploymentPopup) {
-        // Show redeployment popup instead of clearing
-        setShowRedeploymentPopup(true);
-      } else if (!hadPreviousUser) {
-        setLocation("/");
-      }
+      // If not authenticated, just redirect to landing page
+      setLocation("/");
     }
   }, [authChecked, isAuthenticated, initialAuthState, setLocation, user, qc, showRedeploymentPopup]);
 
