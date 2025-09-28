@@ -82,7 +82,7 @@ export const notifications = pgTable("notifications", {
   userId: varchar("user_id").notNull().references(() => users.id),
   title: text("title").notNull(),
   description: text("description"),
-  type: notificationTypeEnum("type").default("normal"),
+  type: notificationTypeEnum("type").default("informational"),
   sourceApp: appTypeEnum("source_app"),
   isRead: boolean("is_read").default(false),
   isDismissed: boolean("is_dismissed").default(false),
