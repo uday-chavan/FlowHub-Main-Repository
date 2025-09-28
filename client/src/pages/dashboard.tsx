@@ -34,7 +34,7 @@ export default function Dashboard() {
       if (!user) return;
 
       // Use a static build timestamp to detect deployments
-      const BUILD_TIMESTAMP = '1759099404'; // This will change with each deployment
+      const BUILD_TIMESTAMP = '1759099640'; // This will change with each deployment
       const storedBuildVersion = localStorage.getItem('buildVersion');
       
       // Check if this is a new deployment
@@ -55,9 +55,11 @@ export default function Dashboard() {
   const handleSignInClick = () => {
     setShowAppUpdateModal(false);
     // Store current build version to prevent showing again
-    localStorage.setItem('buildVersion', '1759099404');
-    // Keep user signed in, just refresh the page to clear any stale state
-    window.location.reload();
+    localStorage.setItem('buildVersion', '1759099640');
+    // Clear user session and redirect to login
+    localStorage.clear();
+    sessionStorage.clear();
+    setLocation('/');
   };
 
   return (
