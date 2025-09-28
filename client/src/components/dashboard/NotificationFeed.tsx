@@ -170,7 +170,13 @@ export function NotificationFeed() {
     );
   }
 
-  const activeNotifications = notifications?.filter(n => !n.isDismissed && n.type !== 'email_converted' && !n.metadata?.browserNotification) || [];
+  const activeNotifications = notifications?.filter(n => 
+    !n.isDismissed && 
+    n.type !== 'email_converted' && 
+    !n.metadata?.browserNotification &&
+    !n.metadata?.loginNotification &&
+    !n.metadata?.gmailConnectNotification
+  ) || [];
 
   return (
     <div className="glass-card rounded-lg p-6 h-full animate-in slide-in-from-right-5 duration-700 flex flex-col" data-testid="card-notification-feed">
@@ -254,6 +260,11 @@ export function NotificationFeed() {
                       {notification.metadata?.isPriorityPerson && (
                         <Badge className="text-xs px-1.5 py-0.5 bg-purple-500 text-white">
                           VIP
+                        </Badge>
+                      )}
+                      {notification.metadata?.retrievedFromConverted && (
+                        <Badge className="text-xs px-1.5 py-0.5 bg-blue-500 text-white">
+                          RETRIEVED
                         </Badge>
                       )}
                       <span className="text-xs text-muted-foreground" data-testid={`notification-time-${notification.id}`}>
