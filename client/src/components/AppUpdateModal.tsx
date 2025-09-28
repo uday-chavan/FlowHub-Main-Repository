@@ -28,7 +28,7 @@ export function AppUpdateModal({ isOpen, onSignInClick }: AppUpdateModalProps) {
             App Updated!
           </DialogTitle>
           <DialogDescription className="text-center mt-2">
-            The app has been updated. Please sign in again to continue using FlowHub with the latest features.
+            The app has been updated with new features and improvements. Click below to refresh and continue using FlowHub.
           </DialogDescription>
         </DialogHeader>
         
@@ -38,7 +38,7 @@ export function AppUpdateModal({ isOpen, onSignInClick }: AppUpdateModalProps) {
             className="w-full"
             size="lg"
           >
-            Sign In Again
+            Refresh App
           </Button>
         </div>
       </DialogContent>
