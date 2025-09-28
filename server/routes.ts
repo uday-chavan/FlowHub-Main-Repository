@@ -374,16 +374,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Add API version of auth endpoints for frontend
   app.get('/api/auth/me', authenticateToken, async (req: AuthenticatedRequest, res) => {
     if (!req.user) {
-      // Clear any stale data for unauthorized requests
-      return res.status(401).json({ message: 'Not authenticated' });
+      return res.status(401).json({ message: 'Not authenticated', redeployment: true });
     }
 
     // Get fresh user data from database with strict user ID matching
     const freshUser = await storage.getUser(req.user.id);
     if (!freshUser) {
-      // Clear user data if user not found
-      clearUserData(req.user.id);
-      return res.status(401).json({ message: 'User not found' });
+      // Don't clear user data immediately - let frontend handle redeployment
+      return res.status(401).json({ message: 'User not found', redeployment: true });
     }
 
     // Parse name into first and last name
