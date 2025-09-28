@@ -1594,7 +1594,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         // Determine priority based on email content and sender
-        let originalPriority: "urgent" | "important" | "informational" = "informational";
+        let originalPriority: "urgent" | "important" | "normal" = "normal";
         
         // Check if it was from a priority person (VIP) - check metadata first
         if (convertedEmail.metadata?.isPriorityPerson) {
@@ -1675,7 +1675,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (!convertedEmail) continue; // Should not happen if already in userNotificationIds, but good safety check
 
         // Determine original priority based on email content and sender
-        let originalPriority: "urgent" | "important" | "informational" = "informational";
+        let originalPriority: "urgent" | "important" | "normal" = "normal";
         
         // Check if it was from a priority person (VIP)
         if (convertedEmail.metadata?.isPriorityPerson) {
