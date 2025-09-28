@@ -21,6 +21,7 @@ import { OAuth2Client } from "google-auth-library";
 import { smartScheduler } from "./scheduler";
 import { taskNotificationScheduler } from "./notificationScheduler";
 import { calendarService } from "./calendarService";
+import { SecureTokenStorage } from "./tokenStorage";
 import { Resend } from 'resend';
 import cookieParser from 'cookie-parser';
 import {
@@ -3118,6 +3119,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const interval = setInterval(fetchUnreadEmails, 10000);
     userGmailIntervals.set(userId, interval);
   }
+
+  // Recovery function to restore Gmail connections on server restart
+  async function recoverGmailConnections() {
+    try {
+      console.log('[Gmail Recovery] Starting Gmail connection recovery...');
+      
+      // Get all users who have stored Gmail tokens
+      const allUsers = await storage.getAllUsers();
+      let recoveredConnections = 0;
+
+      for (const user of allUsers) {
+        try {
+          // Check if user has stored Gmail tokens
+          const hasTokens = await storage.hasGmailTokens(user.id);
+          if (!hasTokens) {
+            continue; // Skip users without Gmail tokens
+          }
+
+          console.log(`[Gmail Recovery] Recovering Gmail connection for user: ${user.id}`);
+
+          // Retrieve stored encrypted tokens
+          const tokenStorage = new SecureTokenStorage();
+          const storedData = await tokenStorage.retrieveGmailTokens(user.id);
+          
+          if (!storedData) {
+            console.log(`[Gmail Recovery] No valid tokens found for user: ${user.id}`);
+            continue;
+          }
+
+          const { tokens, userEmail } = storedData;
+
+          // Create a new OAuth2Client with stored credentials
+          const recoveredOAuth2Client = new google.auth.OAuth2(
+            process.env.GOOGLE_CLIENT_ID,
+            process.env.GOOGLE_CLIENT_SECRET,
+            GOOGLE_REDIRECT_URI
+          );
+
+          // Set the stored credentials
+          recoveredOAuth2Client.setCredentials({
+            access_token: tokens.access_token,
+            refresh_token: tokens.refresh_token,
+            expiry_date: tokens.expiry_date,
+            token_type: tokens.token_type || 'Bearer',
+            scope: tokens.scope
+          });
+
+          // Store the OAuth client in the Map
+          userGmailClients.set(user.id, recoveredOAuth2Client);
+
+          // Store user email for reference
+          userEmails.set(user.id, userEmail);
+
+          // Set up calendar service for this user
+          calendarService.setUserClient(user.id, recoveredOAuth2Client);
+
+          // Start email fetching for this user
+          console.log(`[Gmail Recovery] Starting email fetching for user: ${user.id}, email: ${userEmail}`);
+          startRealGmailFetching(user.id, recoveredOAuth2Client, userEmail);
+
+          recoveredConnections++;
+          console.log(`[Gmail Recovery] Successfully recovered Gmail connection for user: ${user.id}`);
+
+        } catch (userError) {
+          console.error(`[Gmail Recovery] Failed to recover connection for user ${user.id}:`, userError);
+          // Continue with other users even if one fails
+        }
+      }
+
+      console.log(`[Gmail Recovery] Recovery complete. Recovered ${recoveredConnections} Gmail connections.`);
+      
+    } catch (error) {
+      console.error('[Gmail Recovery] Gmail recovery failed:', error);
+    }
+  }
+
+  // Call recovery function after a short delay to ensure database is ready
+  setTimeout(async () => {
+    await recoverGmailConnections();
+  }, 3000); // 3 second delay
 
   const httpServer = createServer(app);
   return httpServer;
