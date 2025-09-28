@@ -30,7 +30,7 @@ export interface NotificationItem {
   id: string;
   title: string;
   description: string;
-  type: "urgent" | "important" | "informational";
+  type: "urgent" | "important" | "normal";
   sourceApp: string;
   isRead: boolean;
   createdAt: Date;
