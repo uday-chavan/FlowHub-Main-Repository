@@ -15,35 +15,15 @@ export function ThemeSwitcher() {
   const [theme, setTheme] = useState<Theme>('dark');
 
   useEffect(() => {
-    // Check if device is mobile
-    const isMobile = window.innerWidth < 768;
-    
-    if (isMobile) {
-      // For mobile devices, automatically use system theme
-      setTheme('system');
-      applyTheme('system');
-      
-      // Listen for system theme changes on mobile
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      const handleSystemThemeChange = () => {
-        applyTheme('system');
-      };
-      
-      mediaQuery.addEventListener('change', handleSystemThemeChange);
-      
-      return () => {
-        mediaQuery.removeEventListener('change', handleSystemThemeChange);
-      };
+    // Use saved theme or default to light theme for all devices
+    const savedTheme = localStorage.getItem('theme') as Theme;
+    if (savedTheme) {
+      setTheme(savedTheme);
+      applyTheme(savedTheme);
     } else {
-      // For desktop, use saved theme or default to dark
-      const savedTheme = localStorage.getItem('theme') as Theme;
-      if (savedTheme) {
-        setTheme(savedTheme);
-        applyTheme(savedTheme);
-      } else {
-        // Default to dark theme
-        applyTheme('dark');
-      }
+      // Default to light theme for all devices
+      setTheme('light');
+      applyTheme('light');
     }
   }, []);
 
