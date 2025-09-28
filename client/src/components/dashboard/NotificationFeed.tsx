@@ -21,12 +21,6 @@ const notificationTypeConfig = {
     textColor: "text-orange-600",
     label: "IMPORTANT",
   },
-  informational: {
-    color: "border-blue-500",
-    bgColor: "bg-blue-50/20",
-    textColor: "text-blue-600",
-    label: "INFORMATIONAL",
-  },
   normal: {
     color: "border-blue-500",
     bgColor: "bg-blue-50/20",
@@ -233,7 +227,7 @@ export function NotificationFeed() {
           </div>
         ) : (
           activeNotifications.map((notification) => {
-            const config = notificationTypeConfig[notification.type as keyof typeof notificationTypeConfig] || notificationTypeConfig.informational;
+            const config = notificationTypeConfig[notification.type as keyof typeof notificationTypeConfig] || notificationTypeConfig.normal;
             const timeAgo = formatDistanceToNow(new Date(notification.createdAt || new Date()), { addSuffix: true });
 
             return (
