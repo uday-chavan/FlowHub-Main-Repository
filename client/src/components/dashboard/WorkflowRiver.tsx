@@ -974,9 +974,9 @@ export function WorkflowRiver() {
                       ? 'animate-in slide-in-from-left-4 opacity-100' 
                       : 'opacity-0'
                   }`}>
-                    <div className={`w-3 h-3 ${config.dotColor} rounded-full`} />
+                    <div className={`w-3 h-3 ${priorityConfig[priority].dotColor} rounded-full`} />
                     <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                      {config.label} ({priorityTasks.length})
+                      {priorityConfig[priority].label} ({priorityTasks.length})
                     </h3>
                   </div>
 
@@ -1020,7 +1020,7 @@ export function WorkflowRiver() {
                           {/* Task header with title and status */}
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex items-start space-x-2 flex-1 min-w-0">
-                              <div className={`w-3 h-3 ${config.dotColor} rounded-full ${task.priority === 'urgent' ? 'animate-pulse' : ''} flex-shrink-0 mt-1`} />
+                              <div className={`w-3 h-3 ${taskConfig.dotColor} rounded-full ${task.priority === 'urgent' ? 'animate-pulse' : ''} flex-shrink-0 mt-1`} />
                               <div className="flex-1 min-w-0 overflow-hidden">
                                 {editingTaskId === task.id ? (
                                   <div className="flex items-center gap-2">
