@@ -1,4 +1,4 @@
-import { Zap, Clock, Play, Square, Info, Trash2, RotateCcw, Plus, Pencil, Sparkles, Calendar } from "lucide-react";
+import { Zap, Clock, Play, Square, Info, Trash2, RotateCcw, Plus, Pencil, Sparkles, Calendar, CheckSquare } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useTasks, useStartTask, useStopTask, useOptimizeWorkflow, useUpdateTask, useDeleteTask, useAutoReschedule, useCreateTaskFromText, useCreateTask } from "@/hooks/useTasks";
@@ -197,6 +197,16 @@ function ManualTaskCountdown({ task, onEditClick }: { task: any; onEditClick?: (
 
 // Global store for parsed times to prevent recalculation across renders
 const globalParsedTimes = new Map<string, Date | null>();
+
+// Error boundary for countdown components
+const CountdownErrorBoundary = ({ children, fallback }: { children: React.ReactNode; fallback: React.ReactNode }) => {
+  try {
+    return <>{children}</>;
+  } catch (error) {
+    console.error('Countdown component error:', error);
+    return <>{fallback}</>;
+  }
+};
 
 // AI Task Countdown Component
 function AiTaskCountdown({ task, onEditClick }: { task: any; onEditClick?: () => void }) {
@@ -601,7 +611,7 @@ export function WorkflowRiver() {
   }, [tasks?.map(t => t.id).join(',')]); // Use stable task ID signature
 
 
-  const activeTasks = tasks?.filter(task => task.status === "pending" || task.status === "in_progress" || task.status === "completed") || [];
+  const activeTasks = Array.isArray(tasks) ? tasks.filter(task => task && task.status && (task.status === "pending" || task.status === "in_progress" || task.status === "completed")) : [];
 
   // Group tasks by priority and sort by completion status and time urgency
   const tasksByPriority = priorityOrder.reduce((acc, priority) => {
@@ -865,7 +875,7 @@ export function WorkflowRiver() {
   };
 
 
-  if (isLoading) {
+  if (isLoading || !tasks) {
     return (
       <div className="glass-card rounded-lg p-6 mb-6" data-testid="card-workflow-river">
         <div className="animate-pulse space-y-4">
@@ -1144,7 +1154,9 @@ export function WorkflowRiver() {
                                     </Button>
                                   </div>
                                 ) : (
-                                  <CountdownTimer task={task} onEditClick={() => handleStartEditTime(task)} />
+                                  <CountdownErrorBoundary fallback={<span className="text-xs text-gray-500">No time set</span>}>
+                                    <CountdownTimer task={task} onEditClick={() => handleStartEditTime(task)} />
+                                  </CountdownErrorBoundary>
                                 )}
                               </div>
                             )}
