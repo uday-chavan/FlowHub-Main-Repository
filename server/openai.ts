@@ -85,7 +85,7 @@ export async function analyzeNotification(
     if (rawJson) {
       const result = JSON.parse(rawJson);
       return {
-        priority: result.priority || "informational",
+        priority: result.priority || "normal",
         summary: result.summary || "No summary available",
         actionableInsights: result.actionableInsights || [],
         estimatedTimeToHandle: result.estimatedTimeToHandle || 5,
