@@ -518,6 +518,7 @@ export function WorkflowRiver() {
   const [editingTitle, setEditingTitle] = useState("");
   const [editingTimeTaskId, setEditingTimeTaskId] = useState<string | null>(null);
   const [editingDueDate, setEditingDueDate] = useState<Date | null>(null);
+  const [completingTaskId, setCompletingTaskId] = useState<string | null>(null);
 
   // Animation state for staggered section and task appearance
   const [visibleSections, setVisibleSections] = useState<Set<string>>(new Set());
@@ -615,7 +616,7 @@ export function WorkflowRiver() {
       // Completed tasks go to the bottom
       if (a.status === 'completed' && b.status !== 'completed') return 1;
       if (a.status !== 'completed' && b.status === 'completed') return -1;
-      
+
       // For non-completed tasks, sort by time urgency
       if (a.status !== 'completed' && b.status !== 'completed') {
         if (a.dueAt && b.dueAt) {
@@ -635,8 +636,15 @@ export function WorkflowRiver() {
   }, {} as Record<string, typeof activeTasks>);
 
 
-  const handleCompleteTask = (taskId: string) => {
-    stopTaskMutation.mutate(taskId);
+  const handleCompleteTask = async (taskId: string) => {
+    setCompletingTaskId(taskId);
+    try {
+      await stopTaskMutation.mutateAsync(taskId);
+    } catch (error) {
+      console.error('Failed to complete task:', error);
+    } finally {
+      setCompletingTaskId(null);
+    }
   };
 
   const handleOptimizeWorkflow = () => {
@@ -1189,19 +1197,17 @@ export function WorkflowRiver() {
                               {task.status !== 'completed' && (
                                 <Button
                                   onClick={() => handleCompleteTask(task.id)}
-                                  disabled={stopTaskMutation.isPending}
+                                  disabled={completingTaskId === task.id}
                                   className="bg-green-600 hover:bg-green-700 px-2 py-1 rounded text-xs font-medium transition-colors hover:shadow-md text-white h-6"
                                   size="sm"
                                   data-testid={`button-complete-task-${task.id}`}
                                 >
-                                  <CheckSquare className="w-3 h-3 mr-1" />
-                                  {stopTaskMutation.isPending ? "Completing..." : "✓ Done"}
+                                  {completingTaskId === task.id ? "Completing..." : "✓ Done"}
                                 </Button>
                               )}
                               {task.status === 'completed' && (
                                 <div className="px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800 border border-green-200 pointer-events-none h-6 flex items-center">
-                                  <CheckSquare className="w-3 h-3 mr-1" />
-                                  Completed
+                                  ✓ Completed
                                 </div>
                               )}
 
@@ -1403,16 +1409,3 @@ export function WorkflowRiver() {
                     selectedTask.priority === 'urgent' ? 'bg-red-500 text-white' : // Red for urgent
                     selectedTask.priority === 'important' ? 'bg-orange-500 text-white' : // Orange for important
                     selectedTask.priority === 'normal' ? 'bg-blue-500 text-white' : // Blue for normal
-                    'bg-gray-200 text-gray-800' // Default
-                  }`}>
-                    {selectedTask.priority.charAt(0).toUpperCase() + selectedTask.priority.slice(1)}
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
