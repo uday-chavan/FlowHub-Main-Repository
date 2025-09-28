@@ -2194,7 +2194,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Real Gmail OAuth callback
+  // Gmail OAuth callback
   app.get("/auth/gmail/callback", async (req, res) => {
     try {
       const { code, state, error } = req.query;
@@ -2277,6 +2277,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         user = await storage.updateUser(user.id, {
           name: extractedName
         });
+      }
+
+      // Store Gmail tokens persistently in database
+      try {
+        await storage.storeEncryptedGmailTokens(user.id, JSON.stringify({
+          access_token: tokens.access_token,
+          refresh_token: tokens.refresh_token,
+          expiry_date: tokens.expiry_date,
+          token_type: tokens.token_type || 'Bearer',
+          scope: tokens.scope,
+          userEmail: userEmail,
+          createdAt: new Date().toISOString()
+        }));
+        console.log(`[Gmail] Stored encrypted tokens for user: ${user.id}`);
+      } catch (tokenError) {
+        console.error('Failed to store Gmail tokens:', tokenError);
+        // Continue without failing the entire OAuth flow
       }
 
       // Store user client and email mappings ONLY for the current user
@@ -2460,7 +2477,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               continue;
             }
 
-            // Note: Email will be marked as processed AFTER successful persistence (moved below)
+            // Note: Email will be marked as processed ONLY AFTER successful persistence (moved below)
 
             // Clean up old entries (older than 1 hour) to prevent memory leaks
             const cleanupWindow = 60 * 60 * 1000; // 1 hour
