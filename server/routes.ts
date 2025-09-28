@@ -721,13 +721,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         startedAt: new Date(),
       });
 
-      // Trigger smart rescheduling when starting a task
-      try {
-        await smartScheduler.rescheduleUserTasks(userId, req.params.id);
-      } catch (scheduleError) {
-        // Auto-rescheduling failed, but task started successfully
-      }
-
       res.json(task);
     } catch (error) {
       console.error("Error starting task:", error);
@@ -776,29 +769,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } catch (calendarError) {
           console.error("[TaskComplete] Failed to delete calendar event:", calendarError);
         }
-      }
-
-      // Trigger smart rescheduling after task completion
-      try {
-        const reschedulingResult = await smartScheduler.rescheduleUserTasks(userId, req.params.id);
-
-        // Create AI insight about the rescheduling if tasks were rescheduled
-        if (reschedulingResult.rescheduledTasks.length > 0) {
-          await storage.createAiInsight({
-            userId: userId,
-            type: "task_rescheduling",
-            title: "Tasks Auto-Rescheduled",
-            description: `Completed task influenced rescheduling of ${reschedulingResult.rescheduledTasks.length} upcoming tasks. ${reschedulingResult.insights.join(' ')} Time saved: ${reschedulingResult.totalTimeSaved} minutes.`,
-            priority: "high",
-            metadata: {
-              rescheduledTasks: reschedulingResult.rescheduledTasks,
-              completedTaskId: req.params.id,
-              timeSaved: reschedulingResult.totalTimeSaved
-            },
-          });
-        }
-      } catch (scheduleError) {
-        // Auto-rescheduling failed, but task completed successfully
       }
 
       res.json(completedTask);
