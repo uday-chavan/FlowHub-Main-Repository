@@ -602,7 +602,7 @@ export function WorkflowRiver() {
 
   const activeTasks = tasks?.filter(task => task.status === "pending" || task.status === "in_progress" || task.status === "completed") || [];
 
-  // Group tasks by priority and sort by time urgency within each priority
+  // Group tasks by priority and sort by completion status and time urgency
   const tasksByPriority = priorityOrder.reduce((acc, priority) => {
     // Filter tasks by priority, with fallback to 'normal' if priority is undefined
     const priorityTasks = activeTasks.filter(task => {
@@ -610,18 +610,23 @@ export function WorkflowRiver() {
       return taskPriority === priority;
     });
 
-    // Sort tasks within each priority by time urgency
+    // Sort tasks within each priority - completed tasks go to bottom
     priorityTasks.sort((a, b) => {
-      // Simple sorting by dueAt if available
-      if (a.dueAt && b.dueAt) {
-        return new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime();
+      // Completed tasks go to the bottom
+      if (a.status === 'completed' && b.status !== 'completed') return 1;
+      if (a.status !== 'completed' && b.status === 'completed') return -1;
+      
+      // For non-completed tasks, sort by time urgency
+      if (a.status !== 'completed' && b.status !== 'completed') {
+        if (a.dueAt && b.dueAt) {
+          return new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime();
+        }
+        // Tasks with due dates come first
+        if (a.dueAt && !b.dueAt) return -1;
+        if (!a.dueAt && b.dueAt) return 1;
       }
 
-      // Tasks with due dates come first
-      if (a.dueAt && !b.dueAt) return -1;
-      if (!a.dueAt && b.dueAt) return 1;
-
-      // If neither has a dueAt, maintain original order
+      // If both completed or neither has dueAt, maintain original order
       return 0;
     });
 
@@ -630,11 +635,7 @@ export function WorkflowRiver() {
   }, {} as Record<string, typeof activeTasks>);
 
 
-  const handleStartTask = (taskId: string) => {
-    startTaskMutation.mutate(taskId);
-  };
-
-  const handleStopTask = (taskId: string) => {
+  const handleCompleteTask = (taskId: string) => {
     stopTaskMutation.mutate(taskId);
   };
 
@@ -1185,28 +1186,16 @@ export function WorkflowRiver() {
                               )}
                             </div>
                             <div className="task-action-buttons flex items-center gap-1 flex-shrink-0">
-                              {task.status === 'pending' && (
+                              {task.status !== 'completed' && (
                                 <Button
-                                  onClick={() => handleStartTask(task.id)}
-                                  disabled={startTaskMutation.isPending}
-                                  className="bg-primary hover:bg-primary/80 px-2 py-1 rounded text-xs font-medium transition-colors hover:shadow-md h-6"
-                                  size="sm"
-                                  data-testid={`button-start-task-${task.id}`}
-                                >
-                                  <Play className="w-3 h-3 mr-1" />
-                                  {startTaskMutation.isPending ? "Starting..." : "Start"}
-                                </Button>
-                              )}
-                              {task.status === 'in_progress' && (
-                                <Button
-                                  onClick={() => handleStopTask(task.id)}
+                                  onClick={() => handleCompleteTask(task.id)}
                                   disabled={stopTaskMutation.isPending}
                                   className="bg-green-600 hover:bg-green-700 px-2 py-1 rounded text-xs font-medium transition-colors hover:shadow-md text-white h-6"
                                   size="sm"
-                                  data-testid={`button-stop-task-${task.id}`}
+                                  data-testid={`button-complete-task-${task.id}`}
                                 >
-                                  <Square className="w-3 h-3 mr-1" />
-                                  {stopTaskMutation.isPending ? "Stopping..." : "Stop"}
+                                  <CheckSquare className="w-3 h-3 mr-1" />
+                                  {stopTaskMutation.isPending ? "Completing..." : "✓ Done"}
                                 </Button>
                               )}
                               {task.status === 'completed' && (
