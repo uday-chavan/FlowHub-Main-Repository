@@ -47,17 +47,20 @@ function AppRouter() {
     const checkForRedeployment = () => {
       const appVersion = localStorage.getItem('appVersion');
       const currentVersion = Date.now().toString();
+      const hadRecentPopup = sessionStorage.getItem('redeploymentPopupShown');
       
       // If user is authenticated but no app version is stored, 
-      // or if we detect a potential redeployment scenario
-      if (isAuthenticated && !appVersion) {
+      // and we haven't shown the popup in this session
+      if (isAuthenticated && !appVersion && !hadRecentPopup) {
         // Show redeployment popup for authenticated users without version
         setShowRedeploymentPopup(true);
+        // Mark that we've shown the popup in this session
+        sessionStorage.setItem('redeploymentPopupShown', 'true');
         return;
       }
       
-      // Store current version if not present
-      if (!appVersion) {
+      // Store current version if not present and user is authenticated
+      if (!appVersion && isAuthenticated) {
         localStorage.setItem('appVersion', currentVersion);
       }
     };
@@ -89,6 +92,8 @@ function AppRouter() {
         localStorage.setItem('currentUserEmail', user.email);
         localStorage.setItem('user_auth', JSON.stringify(user));
         localStorage.setItem('appVersion', Date.now().toString());
+        // Clear the popup session flag since we have a valid user now
+        sessionStorage.removeItem('redeploymentPopupShown');
       }
       
       // Handle auth state transitions - be more conservative about clearing
