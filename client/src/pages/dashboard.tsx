@@ -31,17 +31,23 @@ export default function Dashboard() {
   // Check for app update scenario
   useEffect(() => {
     const checkAppUpdate = () => {
-      // Check if user is not authenticated but trying to access dashboard
-      // This typically happens after app updates/deployments
-      if (!user) {
-        const hasVisitedBefore = localStorage.getItem('hasVisitedDashboard');
-        if (hasVisitedBefore) {
-          setShowAppUpdateModal(true);
-        }
-      } else {
-        // User is authenticated, mark that they've visited dashboard
-        localStorage.setItem('hasVisitedDashboard', 'true');
+      if (!user) return;
+
+      // Get stored app version/timestamp
+      const storedAppVersion = localStorage.getItem('appVersion');
+      const currentAppVersion = Date.now().toString();
+      
+      // Check if this is a returning user without stored version (indicates fresh deployment)
+      const hasUserData = localStorage.getItem('currentUserId') || localStorage.getItem('user_auth');
+      
+      if (hasUserData && !storedAppVersion) {
+        // This is likely after a deployment - show update modal
+        setShowAppUpdateModal(true);
+        return;
       }
+      
+      // Store current app version for future checks
+      localStorage.setItem('appVersion', currentAppVersion);
     };
 
     checkAppUpdate();
@@ -49,8 +55,10 @@ export default function Dashboard() {
 
   const handleSignInClick = () => {
     setShowAppUpdateModal(false);
-    localStorage.removeItem('hasVisitedDashboard');
-    setLocation('/');
+    // Store current app version to prevent showing again
+    localStorage.setItem('appVersion', Date.now().toString());
+    // Keep user signed in, just refresh the page to clear any stale state
+    window.location.reload();
   };
 
   return (
