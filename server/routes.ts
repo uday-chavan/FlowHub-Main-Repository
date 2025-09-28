@@ -44,7 +44,25 @@ const userEmails = new Map<string, string>();
 const processedEmailIds = new Map<string, Map<string, number>>();
 
 // Define the redirect URI for Google OAuth
-const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || 'https://flowhub-production-409c.up.railway.app/auth/gmail/callback';
+// Railway provides RAILWAY_STATIC_URL or construct from environment
+const getGoogleRedirectUri = () => {
+  if (process.env.GOOGLE_REDIRECT_URI) {
+    return process.env.GOOGLE_REDIRECT_URI;
+  }
+  
+  // Railway environment - use the static URL provided by Railway
+  if (process.env.RAILWAY_STATIC_URL) {
+    return `https://${process.env.RAILWAY_STATIC_URL}/auth/gmail/callback`;
+  }
+  
+  // Fallback for development or other environments
+  const host = process.env.HOST || '0.0.0.0';
+  const port = process.env.PORT || '5000';
+  const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+  return `${protocol}://${host}:${port}/auth/gmail/callback`;
+};
+
+const GOOGLE_REDIRECT_URI = getGoogleRedirectUri();
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Add cookie parser middleware
@@ -1542,7 +1560,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Retrieve emails back to notification section
+  // Retrieve converted emails back to notification section (correct endpoint)
+  app.post('/api/converted-emails/retrieve', authenticateToken, async (req: AuthenticatedRequest, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const { ids } = req.body;
+      if (!Array.isArray(ids)) {
+        return res.status(400).json({ error: 'Invalid request format' });
+      }
+
+      const retrievedEmails = [];
+      
+      // Get user's converted emails to verify ownership
+      const userConvertedEmails = await storage.getUserConvertedEmails(userId);
+      const userConvertedEmailIds = new Set(userConvertedEmails.map(e => e.id));
+
+      for (const id of ids) {
+        if (!userConvertedEmailIds.has(id)) {
+          console.warn(`[RetrieveEmail] User ${userId} attempted to retrieve converted email ${id} they don't own.`);
+          continue; // Skip if the converted email doesn't belong to the user
+        }
+
+        // Get the converted email record
+        const convertedEmail = await storage.getConvertedEmailById(id);
+        if (!convertedEmail) {
+          console.warn(`[RetrieveEmail] Converted email ${id} not found.`);
+          continue;
+        }
+
+        // Determine priority based on email content and sender
+        let originalPriority: "urgent" | "important" | "informational" = "informational";
+        
+        // Check if it was from a priority person (VIP) - check metadata first
+        if (convertedEmail.metadata?.isPriorityPerson) {
+          originalPriority = "urgent";
+        } else {
+          // Analyze content for priority keywords
+          const emailContent = (convertedEmail.subject + ' ' + (convertedEmail.rawSnippet || '')).toLowerCase();
+          
+          if (emailContent.includes('urgent') || emailContent.includes('asap') || emailContent.includes('emergency') || emailContent.includes('immediate')) {
+            originalPriority = "urgent";
+          } else if (emailContent.includes('important') || emailContent.includes('meeting') || emailContent.includes('deadline') || emailContent.includes('reminder')) {
+            originalPriority = "important";
+          }
+        }
+
+        // Create a new notification in the notification feed with original email data
+        const originalNotification = await storage.createNotification({
+          userId: userId,
+          title: convertedEmail.subject,
+          description: convertedEmail.rawSnippet || 'Email content not available',
+          type: originalPriority, // Use determined priority
+          sourceApp: "gmail",
+          aiSummary: `Retrieved email from: ${convertedEmail.sender}`,
+          actionableInsights: ["Convert to task", "Mark as read"],
+          metadata: {
+            emailId: convertedEmail.gmailMessageId,
+            emailSubject: convertedEmail.subject,
+            emailFrom: convertedEmail.sender,
+            emailDate: convertedEmail.receivedAt.toISOString(),
+            fullEmailContent: convertedEmail.rawSnippet,
+            fromEmail: convertedEmail.senderEmail,
+            isPriorityPerson: convertedEmail.metadata?.isPriorityPerson || false,
+            retrievedFromConverted: true,
+            retrievedAt: new Date().toISOString(),
+            convertedEmailId: convertedEmail.id,
+            gmailThreadId: convertedEmail.gmailThreadId
+          }
+        });
+
+        // Delete the converted email record since it's back in notifications
+        await storage.deleteConvertedEmail(id);
+
+        retrievedEmails.push(originalNotification);
+        console.log(`[RetrieveEmail] Successfully retrieved converted email ${id} back to notifications as ${originalNotification.id} with priority: ${originalPriority}`);
+      }
+
+      res.json({ success: true, retrievedCount: retrievedEmails.length, emails: retrievedEmails });
+    } catch (error) {
+      console.error('Error retrieving converted emails:', error);
+      res.status(500).json({ error: 'Failed to retrieve converted emails', details: error instanceof Error ? error.message : 'Unknown error' });
+    }
+  });
+
+  // Retrieve emails back to notification section (old endpoint - deprecated)
   app.post('/api/notifications/retrieve-emails', authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
       const userId = req.user?.id;
