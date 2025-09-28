@@ -1,4 +1,4 @@
-import { CheckSquare, Zap, Clock, Play, Square, Info, Trash2, RotateCcw, Plus, Pencil, Sparkles, Calendar } from "lucide-react";
+import { Zap, Clock, Play, Square, Info, Trash2, RotateCcw, Plus, Pencil, Sparkles, Calendar } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useTasks, useStartTask, useStopTask, useOptimizeWorkflow, useUpdateTask, useDeleteTask, useAutoReschedule, useCreateTaskFromText, useCreateTask } from "@/hooks/useTasks";
@@ -1409,3 +1409,16 @@ export function WorkflowRiver() {
                     selectedTask.priority === 'urgent' ? 'bg-red-500 text-white' : // Red for urgent
                     selectedTask.priority === 'important' ? 'bg-orange-500 text-white' : // Orange for important
                     selectedTask.priority === 'normal' ? 'bg-blue-500 text-white' : // Blue for normal
+                    'bg-gray-200 text-gray-800' // Default
+                  }`}>
+                    {selectedTask.priority.charAt(0).toUpperCase() + selectedTask.priority.slice(1)}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
