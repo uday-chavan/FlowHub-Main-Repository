@@ -6,6 +6,7 @@ import { NotificationFeed } from "@/components/dashboard/NotificationFeed";
 import { GmailConnect } from "@/components/dashboard/GmailConnect";
 import { WindowsNotificationManager } from "@/components/WindowsNotificationManager";
 import { CalendarSync } from "@/components/dashboard/CalendarSync"; // Import CalendarSync component
+import { AppUpdateModal } from "@/components/AppUpdateModal";
 
 
 import { useNotifications } from "@/hooks/useNotifications";
@@ -14,19 +15,51 @@ import { useNotifications } from "@/hooks/useNotifications";
 
 import { useIsMobile } from "@/hooks/use-mobile"; // Added useIsMobile hook
 import { useAuth } from "@/hooks/useAuth"; // Added useAuth import
-import { useState } from "react"; // Import useState for isGmailConnected
+import { useState, useEffect } from "react"; // Import useState for isGmailConnected
+import { useLocation } from "wouter";
 
 export default function Dashboard() {
   
   const isMobile = useIsMobile();
   const { user } = useAuth(); // Get actual authenticated user
   const [isGmailConnected, setIsGmailConnected] = useState(false); // State to track Gmail connection
+  const [showAppUpdateModal, setShowAppUpdateModal] = useState(false);
+  const [, setLocation] = useLocation();
   // const { data: notifications } = useNotifications();
   // const activeNotifications = notifications?.filter(n => !n.isRead) || [];
+
+  // Check for app update scenario
+  useEffect(() => {
+    const checkAppUpdate = () => {
+      // Check if user is not authenticated but trying to access dashboard
+      // This typically happens after app updates/deployments
+      if (!user) {
+        const hasVisitedBefore = localStorage.getItem('hasVisitedDashboard');
+        if (hasVisitedBefore) {
+          setShowAppUpdateModal(true);
+        }
+      } else {
+        // User is authenticated, mark that they've visited dashboard
+        localStorage.setItem('hasVisitedDashboard', 'true');
+      }
+    };
+
+    checkAppUpdate();
+  }, [user]);
+
+  const handleSignInClick = () => {
+    setShowAppUpdateModal(false);
+    localStorage.removeItem('hasVisitedDashboard');
+    setLocation('/');
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground dashboard-container flex flex-col">
       <Header />
+      <AppUpdateModal 
+        isOpen={showAppUpdateModal} 
+        onSignInClick={handleSignInClick}
+      />
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-none mx-0 px-4 pt-4 pb-8 h-full">
         {isMobile ? (
