@@ -33,21 +33,20 @@ export default function Dashboard() {
     const checkAppUpdate = () => {
       if (!user) return;
 
-      // Get stored app version/timestamp
-      const storedAppVersion = localStorage.getItem('appVersion');
-      const currentAppVersion = Date.now().toString();
+      // Use a static build timestamp to detect deployments
+      const BUILD_TIMESTAMP = '1759099404'; // This will change with each deployment
+      const storedBuildVersion = localStorage.getItem('buildVersion');
       
-      // Check if this is a returning user without stored version (indicates fresh deployment)
-      const hasUserData = localStorage.getItem('currentUserId') || localStorage.getItem('user_auth');
-      
-      if (hasUserData && !storedAppVersion) {
-        // This is likely after a deployment - show update modal
+      // Check if this is a new deployment
+      if (storedBuildVersion && storedBuildVersion !== BUILD_TIMESTAMP) {
+        // App was updated/redeployed - show modal
+        console.log('App update detected:', storedBuildVersion, '->', BUILD_TIMESTAMP);
         setShowAppUpdateModal(true);
         return;
       }
       
-      // Store current app version for future checks
-      localStorage.setItem('appVersion', currentAppVersion);
+      // Store current build version
+      localStorage.setItem('buildVersion', BUILD_TIMESTAMP);
     };
 
     checkAppUpdate();
@@ -55,8 +54,8 @@ export default function Dashboard() {
 
   const handleSignInClick = () => {
     setShowAppUpdateModal(false);
-    // Store current app version to prevent showing again
-    localStorage.setItem('appVersion', Date.now().toString());
+    // Store current build version to prevent showing again
+    localStorage.setItem('buildVersion', '1759099404');
     // Keep user signed in, just refresh the page to clear any stale state
     window.location.reload();
   };
