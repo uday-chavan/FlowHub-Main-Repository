@@ -116,6 +116,7 @@ export interface IStorage {
   getEncryptedGmailToken(userId: string): Promise<EncryptedGmailToken | undefined>;
   updateEncryptedGmailToken(userId: string, data: Partial<InsertEncryptedGmailToken>): Promise<EncryptedGmailToken>;
   deleteEncryptedGmailToken(userId: string): Promise<void>;
+  hasGmailTokens(userId: string): Promise<boolean>;
 
   // Priority Email operations
   createPriorityEmail(data: InsertPriorityEmail): Promise<PriorityEmail>;
@@ -610,6 +611,16 @@ export class DatabaseStorage implements IStorage {
   // Delete encrypted Gmail token
   async deleteEncryptedGmailToken(userId: string): Promise<void> {
     await requireDb().delete(encryptedGmailTokens).where(eq(encryptedGmailTokens.userId, userId));
+  }
+
+  // Check if user has Gmail tokens stored
+  async hasGmailTokens(userId: string): Promise<boolean> {
+    try {
+      const tokens = await this.getEncryptedGmailToken(userId);
+      return !!tokens;
+    } catch {
+      return false;
+    }
   }
 
   // Priority Emails methods
@@ -1173,6 +1184,16 @@ export class MemoryStorage implements IStorage {
     if (token) {
       this.encryptedGmailTokens.delete(token.id);
     }
+  }
+
+  // Check if user has Gmail tokens stored
+  async hasGmailTokens(userId: string): Promise<boolean> {
+    for (const token of Array.from(this.encryptedGmailTokens.values())) {
+      if (token.userId === userId) {
+        return true;
+      }
+    }
+    return false;
   }
 
   // Priority Emails methods
