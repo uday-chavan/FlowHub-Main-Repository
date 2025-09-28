@@ -508,20 +508,16 @@ export function WorkflowRiver() {
   const queryClient = useQueryClient();
   const [selectedTask, setSelectedTask] = useState<any>(null);
   const [isDescriptionDialogOpen, setIsDescriptionDialogOpen] = useState(false);
-  const [isAddTaskDialogOpen, setIsAddTaskDialogOpen] = useState(false); // Renamed from isAITaskModalOpen
-  const [newTaskInput, setNewTaskInput] = useState("");
-  const [isManualTaskDialogOpen, setIsManualTaskDialogOpen] = useState(false); // Renamed from isManualTaskModalOpen
-  const [manualTaskName, setManualTaskName] = useState("");
-  const [manualTaskTime, setManualTaskTime] = useState("");
-  const [manualTaskDateTime, setManualTaskDateTime] = useState<Date | null>(null);
+  const [visibleTasks, setVisibleTasks] = useState<Set<string>>(new Set());
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
   const [editingTimeTaskId, setEditingTimeTaskId] = useState<string | null>(null);
   const [editingDueDate, setEditingDueDate] = useState<Date | null>(null);
+  const [startingTaskId, setStartingTaskId] = useState<string | null>(null);
+  const [stoppingTaskId, setStoppingTaskId] = useState<string | null>(null);
 
   // Animation state for staggered section and task appearance
   const [visibleSections, setVisibleSections] = useState<Set<string>>(new Set());
-  const [visibleTasks, setVisibleTasks] = useState<Set<string>>(new Set());
   const [animationInProgress, setAnimationInProgress] = useState(false);
 
   // State for handling potential Windows notifications (placeholder)
@@ -602,7 +598,7 @@ export function WorkflowRiver() {
 
   const activeTasks = tasks?.filter(task => task.status === "pending" || task.status === "in_progress" || task.status === "completed") || [];
 
-  // Group tasks by priority and sort by time urgency within each priority
+  // Group tasks by priority and sort by completion status and time urgency
   const tasksByPriority = priorityOrder.reduce((acc, priority) => {
     // Filter tasks by priority, with fallback to 'normal' if priority is undefined
     const priorityTasks = activeTasks.filter(task => {
@@ -610,18 +606,23 @@ export function WorkflowRiver() {
       return taskPriority === priority;
     });
 
-    // Sort tasks within each priority by time urgency
+    // Sort tasks within each priority - completed tasks go to bottom
     priorityTasks.sort((a, b) => {
-      // Simple sorting by dueAt if available
-      if (a.dueAt && b.dueAt) {
-        return new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime();
+      // Completed tasks go to the bottom
+      if (a.status === 'completed' && b.status !== 'completed') return 1;
+      if (a.status !== 'completed' && b.status === 'completed') return -1;
+
+      // For non-completed tasks, sort by time urgency
+      if (a.status !== 'completed' && b.status !== 'completed') {
+        if (a.dueAt && b.dueAt) {
+          return new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime();
+        }
+        // Tasks with due dates come first
+        if (a.dueAt && !b.dueAt) return -1;
+        if (!a.dueAt && b.dueAt) return 1;
       }
 
-      // Tasks with due dates come first
-      if (a.dueAt && !b.dueAt) return -1;
-      if (!a.dueAt && b.dueAt) return 1;
-
-      // If neither has a dueAt, maintain original order
+      // If both completed or neither has dueAt, maintain original order
       return 0;
     });
 
@@ -630,12 +631,24 @@ export function WorkflowRiver() {
   }, {} as Record<string, typeof activeTasks>);
 
 
-  const handleStartTask = (taskId: string) => {
-    startTaskMutation.mutate(taskId);
-  };
-
-  const handleStopTask = (taskId: string) => {
-    stopTaskMutation.mutate(taskId);
+  const handleCompleteTask = async (taskId: string) => {
+    try {
+      setStoppingTaskId(taskId);
+      await stopTaskMutation.mutateAsync(taskId);
+      toast({
+        title: "Task Completed! ✅",
+        description: "Great job! Task has been marked as complete.",
+        duration: 3000,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to complete task. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setStoppingTaskId(null);
+    }
   };
 
   const handleOptimizeWorkflow = () => {
@@ -853,6 +866,26 @@ export function WorkflowRiver() {
     // Regular truncation for other tasks
     if (description.length <= maxLength) return description;
     return description.substring(0, maxLength) + "...";
+  };
+
+  const handleStartTask = async (taskId: string) => {
+    try {
+      setStartingTaskId(taskId);
+      await startTaskMutation.mutateAsync(taskId);
+      toast({
+        title: "Task Started! 🚀",
+        description: "You're now working on this task. Stay focused!",
+        duration: 3000,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to start task. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setStartingTaskId(null);
+    }
   };
 
 
@@ -1188,25 +1221,25 @@ export function WorkflowRiver() {
                               {task.status === 'pending' && (
                                 <Button
                                   onClick={() => handleStartTask(task.id)}
-                                  disabled={startTaskMutation.isPending}
-                                  className="bg-primary hover:bg-primary/80 px-2 py-1 rounded text-xs font-medium transition-colors hover:shadow-md h-6"
+                                  disabled={startingTaskId === task.id}
+                                  className="bg-primary hover:bg-primary/80 px-2 py-1 rounded text-xs font-medium transition-colors hover:shadow-md"
                                   size="sm"
                                   data-testid={`button-start-task-${task.id}`}
                                 >
                                   <Play className="w-3 h-3 mr-1" />
-                                  {startTaskMutation.isPending ? "Starting..." : "Start"}
+                                  {startingTaskId === task.id ? "Starting..." : "Start"}
                                 </Button>
                               )}
                               {task.status === 'in_progress' && (
                                 <Button
-                                  onClick={() => handleStopTask(task.id)}
-                                  disabled={stopTaskMutation.isPending}
-                                  className="bg-green-600 hover:bg-green-700 px-2 py-1 rounded text-xs font-medium transition-colors hover:shadow-md text-white h-6"
+                                  onClick={() => handleCompleteTask(task.id)}
+                                  disabled={stoppingTaskId === task.id}
+                                  className="bg-green-600 hover:bg-green-700 px-2 py-1 rounded text-xs font-medium transition-colors hover:shadow-md text-white"
                                   size="sm"
                                   data-testid={`button-stop-task-${task.id}`}
                                 >
                                   <Square className="w-3 h-3 mr-1" />
-                                  {stopTaskMutation.isPending ? "Stopping..." : "Stop"}
+                                  {stoppingTaskId === task.id ? "Stopping..." : "Stop"}
                                 </Button>
                               )}
                               {task.status === 'completed' && (
