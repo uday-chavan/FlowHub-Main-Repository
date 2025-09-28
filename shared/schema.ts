@@ -19,7 +19,7 @@ export const taskPriorityEnum = pgEnum("task_priority", ["urgent", "important", 
 export const notificationTypeEnum = pgEnum("notification_type", [
   "urgent",
   "important", 
-  "informational",
+  "normal",
   "browser_notification",
   "email_converted"
 ]);
