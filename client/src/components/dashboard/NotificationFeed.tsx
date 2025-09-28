@@ -244,30 +244,32 @@ export function NotificationFeed() {
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      {getSourceIcon(notification.sourceApp || "default")}
-                      <Badge 
-                        variant={notification.type === 'urgent' ? 'destructive' : 
-                                notification.type === 'important' ? 'default' : 'outline'}
-                        className={`text-xs px-1.5 py-0.5 ${
-                          notification.type === 'urgent' ? 'bg-red-500 text-white' :
-                          notification.type === 'important' ? 'bg-orange-500 text-white' :
-                          'bg-blue-500 text-white'
-                        }`}
-                      >
-                        {config.label}
-                      </Badge>
-                      {notification.metadata?.isPriorityPerson && (
-                        <Badge className="text-xs px-1.5 py-0.5 bg-purple-500 text-white">
-                          VIP
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {getSourceIcon(notification.sourceApp || "default")}
+                        <Badge 
+                          variant={notification.type === 'urgent' ? 'destructive' : 
+                                  notification.type === 'important' ? 'default' : 'outline'}
+                          className={`text-xs px-1.5 py-0.5 flex-shrink-0 ${
+                            notification.type === 'urgent' ? 'bg-red-500 text-white' :
+                            notification.type === 'important' ? 'bg-orange-500 text-white' :
+                            'bg-blue-500 text-white'
+                          }`}
+                        >
+                          {config.label}
                         </Badge>
-                      )}
-                      {notification.metadata?.retrievedFromConverted && (
-                        <Badge className="text-xs px-1.5 py-0.5 bg-blue-500 text-white">
-                          RETRIEVED
-                        </Badge>
-                      )}
-                      <span className="text-xs text-muted-foreground" data-testid={`notification-time-${notification.id}`}>
+                        {notification.metadata?.isPriorityPerson && (
+                          <Badge className="text-xs px-1.5 py-0.5 bg-purple-500 text-white flex-shrink-0">
+                            VIP
+                          </Badge>
+                        )}
+                        {notification.metadata?.retrievedFromConverted && (
+                          <Badge className="text-xs px-1.5 py-0.5 bg-green-600 text-white flex-shrink-0">
+                            RETRIEVED
+                          </Badge>
+                        )}
+                      </div>
+                      <span className="text-xs text-muted-foreground flex-shrink-0" data-testid={`notification-time-${notification.id}`}>
                         {timeAgo}
                       </span>
                     </div>
