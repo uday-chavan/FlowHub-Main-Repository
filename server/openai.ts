@@ -9,7 +9,7 @@ if (process.env.GEMINI_API_KEY) {
 }
 
 export interface NotificationAnalysis {
-  priority: "urgent" | "important" | "informational";
+  priority: "urgent" | "important" | "normal";
   summary: string;
   actionableInsights: string[];
   estimatedTimeToHandle: number;
