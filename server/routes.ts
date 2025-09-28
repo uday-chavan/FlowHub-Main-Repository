@@ -374,14 +374,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Add API version of auth endpoints for frontend
   app.get('/api/auth/me', authenticateToken, async (req: AuthenticatedRequest, res) => {
     if (!req.user) {
-      return res.status(401).json({ message: 'Not authenticated', redeployment: true });
+      // Clear any stale data for unauthorized requests
+      return res.status(401).json({ message: 'Not authenticated' });
     }
 
     // Get fresh user data from database with strict user ID matching
     const freshUser = await storage.getUser(req.user.id);
     if (!freshUser) {
-      // Don't clear user data immediately - let frontend handle redeployment
-      return res.status(401).json({ message: 'User not found', redeployment: true });
+      // Clear user data if user not found
+      clearUserData(req.user.id);
+      return res.status(401).json({ message: 'User not found' });
     }
 
     // Parse name into first and last name
@@ -721,6 +723,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         startedAt: new Date(),
       });
 
+      // Trigger smart rescheduling when starting a task
+      try {
+        await smartScheduler.rescheduleUserTasks(userId, req.params.id);
+      } catch (scheduleError) {
+        // Auto-rescheduling failed, but task started successfully
+      }
+
       res.json(task);
     } catch (error) {
       console.error("Error starting task:", error);
@@ -769,6 +778,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } catch (calendarError) {
           console.error("[TaskComplete] Failed to delete calendar event:", calendarError);
         }
+      }
+
+      // Trigger smart rescheduling after task completion
+      try {
+        const reschedulingResult = await smartScheduler.rescheduleUserTasks(userId, req.params.id);
+
+        // Create AI insight about the rescheduling if tasks were rescheduled
+        if (reschedulingResult.rescheduledTasks.length > 0) {
+          await storage.createAiInsight({
+            userId: userId,
+            type: "task_rescheduling",
+            title: "Tasks Auto-Rescheduled",
+            description: `Completed task influenced rescheduling of ${reschedulingResult.rescheduledTasks.length} upcoming tasks. ${reschedulingResult.insights.join(' ')} Time saved: ${reschedulingResult.totalTimeSaved} minutes.`,
+            priority: "high",
+            metadata: {
+              rescheduledTasks: reschedulingResult.rescheduledTasks,
+              completedTaskId: req.params.id,
+              timeSaved: reschedulingResult.totalTimeSaved
+            },
+          });
+        }
+      } catch (scheduleError) {
+        // Auto-rescheduling failed, but task completed successfully
       }
 
       res.json(completedTask);
