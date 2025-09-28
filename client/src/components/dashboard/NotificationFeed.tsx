@@ -236,71 +236,71 @@ export function NotificationFeed() {
                 className={`border-l-2 ${config.color} ${config.bgColor} rounded-r-lg p-3 ${!notification.isRead ? 'ring-1 ring-primary/20' : ''} animate-in slide-in-from-left-3 duration-500 hover:scale-[1.02] transition-all hover:shadow-lg`}
                 data-testid={`notification-item-${notification.id}`}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center space-x-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      {getSourceIcon(notification.sourceApp || "default")}
                       <Badge 
                         variant={notification.type === 'urgent' ? 'destructive' : 
                                 notification.type === 'important' ? 'default' : 'outline'}
-                        className={`text-xs ${
-                          notification.type === 'urgent' ? 'bg-red-500 text-white border-red-500 hover:bg-red-600' :
-                          notification.type === 'important' ? 'bg-orange-500 text-white border-orange-500 hover:bg-orange-600' :
-                          'bg-blue-500 text-white border-blue-500 hover:bg-blue-600'
+                        className={`text-xs px-1.5 py-0.5 ${
+                          notification.type === 'urgent' ? 'bg-red-500 text-white' :
+                          notification.type === 'important' ? 'bg-orange-500 text-white' :
+                          'bg-blue-500 text-white'
                         }`}
                       >
                         {config.label}
                       </Badge>
                       {notification.metadata?.isPriorityPerson && (
-                        <Badge 
-                          className="priority-person-badge text-xs bg-red-500 text-white border-red-500 hover:bg-red-600"
-                        >
-                          <span className="hidden sm:inline">Priority Person</span>
-                          <span className="sm:hidden">Priority</span>
+                        <Badge className="text-xs px-1.5 py-0.5 bg-purple-500 text-white">
+                          VIP
                         </Badge>
                       )}
+                      <span className="text-xs text-muted-foreground" data-testid={`notification-time-${notification.id}`}>
+                        {timeAgo}
+                      </span>
                     </div>
-                  <span className="text-xs text-muted-foreground ml-3" data-testid={`notification-time-${notification.id}`}>
-                    {timeAgo}
-                  </span>
-                </div>
-                <h3 className="text-sm font-medium flex items-center" data-testid={`notification-title-${notification.id}`}>
-                  {getSourceIcon(notification.sourceApp || "default")}
-                  <span className="ml-2">{notification.sourceApp}: {notification.title}</span>
-                </h3>
-                <p className="text-xs text-muted-foreground mt-1" data-testid={`notification-description-${notification.id}`}>
-                  {notification.aiSummary || notification.description}
-                </p>
-                <div className="flex space-x-2 mt-2">
-                  <Button
-                    onClick={() => handleViewNotification(notification)}
-                    className={`${config.bgColor}/50 hover:${config.bgColor}/80 px-2 py-1 rounded text-xs transition-all hover:scale-105`}
-                    variant="ghost"
-                    size="sm"
-                    data-testid={`button-view-notification-${notification.id}`}
-                  >
-                    <Eye className="w-3 h-3 mr-1" />
-                    View
-                  </Button>
-                  <Button
-                    onClick={() => handleConvertToTask(notification)}
-                    disabled={convertingTasks.has(notification.id)}
-                    className="bg-primary/20 hover:bg-primary/30 px-2 py-1 rounded text-xs transition-all hover:scale-105 text-primary"
-                    variant="ghost"
-                    size="sm"
-                    data-testid={`button-convert-task-${notification.id}`}
-                  >
-                    <CheckSquare className="w-3 h-3 mr-1" />
-                    {convertingTasks.has(notification.id) ? "Converting..." : "To Task"}
-                  </Button>
-                  <Button
-                    onClick={() => handleDismiss(notification.id)}
-                    disabled={dismissMutation.isPending}
-                    className="bg-muted/20 hover:bg-muted/30 px-2 py-1 rounded text-xs transition-all hover:scale-105"
-                    variant="ghost"
-                    size="sm"
-                    data-testid={`button-dismiss-notification-${notification.id}`}
-                  >
-                    <X className="w-3 h-3" />
-                  </Button>
+                    <h3 className="text-sm font-medium truncate mb-1" data-testid={`notification-title-${notification.id}`}>
+                      {notification.title}
+                    </h3>
+                    <p className="text-xs text-muted-foreground line-clamp-2" data-testid={`notification-description-${notification.id}`}>
+                      {notification.aiSummary || notification.description}
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-1 ml-2">
+                    <Button
+                      onClick={() => handleViewNotification(notification)}
+                      className="h-7 w-7 p-0"
+                      variant="ghost"
+                      size="sm"
+                      data-testid={`button-view-notification-${notification.id}`}
+                      title="View details"
+                    >
+                      <Eye className="w-3 h-3" />
+                    </Button>
+                    <Button
+                      onClick={() => handleConvertToTask(notification)}
+                      disabled={convertingTasks.has(notification.id)}
+                      className="h-7 w-7 p-0 bg-primary/20 hover:bg-primary/30 text-primary"
+                      variant="ghost"
+                      size="sm"
+                      data-testid={`button-convert-task-${notification.id}`}
+                      title={convertingTasks.has(notification.id) ? "Converting..." : "Convert to Task"}
+                    >
+                      <CheckSquare className="w-3 h-3" />
+                    </Button>
+                    <Button
+                      onClick={() => handleDismiss(notification.id)}
+                      disabled={dismissMutation.isPending}
+                      className="h-7 w-7 p-0"
+                      variant="ghost"
+                      size="sm"
+                      data-testid={`button-dismiss-notification-${notification.id}`}
+                      title="Dismiss"
+                    >
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             );
