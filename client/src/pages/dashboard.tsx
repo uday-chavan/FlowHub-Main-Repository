@@ -55,10 +55,13 @@ export default function Dashboard() {
   const handleSignInClick = () => {
     setShowAppUpdateModal(false);
     // Store current build version to prevent showing again
-    localStorage.setItem('buildVersion', '1759099640');
+    const BUILD_TIMESTAMP = '1759099640';
+    localStorage.setItem('buildVersion', BUILD_TIMESTAMP);
     // Clear user session and redirect to login
     localStorage.clear();
     sessionStorage.clear();
+    // Re-set the build version after clearing
+    localStorage.setItem('buildVersion', BUILD_TIMESTAMP);
     setLocation('/');
   };
 
