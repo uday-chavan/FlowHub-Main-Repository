@@ -1568,19 +1568,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const convertedEmail = await storage.getNotificationById(id);
         if (!convertedEmail) continue; // Should not happen if already in userNotificationIds, but good safety check
 
+        // Determine original priority based on email content and sender
+        let originalPriority: "urgent" | "important" | "informational" = "informational";
+        
+        // Check if it was from a priority person (VIP)
+        if (convertedEmail.metadata?.isPriorityPerson) {
+          originalPriority = "urgent";
+        } else {
+          // Analyze content for priority keywords
+          const emailContent = (convertedEmail.metadata?.subject + ' ' + convertedEmail.metadata?.originalContent || '').toLowerCase();
+          
+          if (emailContent.includes('urgent') || emailContent.includes('asap') || emailContent.includes('emergency')) {
+            originalPriority = "urgent";
+          } else if (emailContent.includes('important') || emailContent.includes('meeting') || emailContent.includes('deadline')) {
+            originalPriority = "important";
+          }
+        }
+
         // Create a new notification in the notification feed with original email data
         const originalNotification = await storage.createNotification({
           userId: userId,
           title: convertedEmail.metadata?.subject || convertedEmail.title,
           description: convertedEmail.metadata?.originalContent || convertedEmail.description,
-          type: "urgent", // Defaulting to urgent for retrieved emails
+          type: originalPriority, // Use determined priority instead of always urgent
           sourceApp: "gmail",
           aiSummary: `Retrieved email from: ${convertedEmail.metadata?.from || 'unknown sender'}`,
           actionableInsights: ["Convert to task", "Mark as read"],
           metadata: {
             emailId: convertedEmail.metadata?.originalEmailId || `retrieved-${Date.now()}`,
-            from: convertedEmail.metadata?.from,
-            subject: convertedEmail.metadata?.subject || convertedEmail.title,
+            emailSubject: convertedEmail.metadata?.subject || convertedEmail.title,
+            emailFrom: convertedEmail.metadata?.from,
+            emailDate: convertedEmail.receivedAt?.toISOString() || new Date().toISOString(),
+            fullEmailContent: convertedEmail.metadata?.originalContent,
+            fromEmail: convertedEmail.senderEmail,
+            isPriorityPerson: convertedEmail.metadata?.isPriorityPerson || false,
             retrievedFromConverted: true,
             retrievedAt: new Date().toISOString()
           }
