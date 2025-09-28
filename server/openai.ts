@@ -54,7 +54,7 @@ export async function analyzeNotification(
     Analyze the notification and provide priority classification, summary, and actionable insights.
     Consider business context, urgency indicators, and deadline implications.
     Respond with JSON in this exact format: {
-      "priority": "urgent|important|informational",
+      "priority": "urgent|important|normal",
       "summary": "concise summary in 1-2 sentences",
       "actionableInsights": ["insight1", "insight2"],
       "estimatedTimeToHandle": number_in_minutes,
