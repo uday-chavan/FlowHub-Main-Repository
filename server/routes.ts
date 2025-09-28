@@ -263,7 +263,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userId: user.id,
           title: "🔔 FlowHub Login Successful",
           description: "Welcome back! Your Windows notifications are active and ready. You should see this notification in your Windows notification center.",
-          type: "informational",
+          type: "normal",
           sourceApp: "manual",
           aiSummary: "User login notification for Windows notification testing",
           actionableInsights: ["Check Windows notification center", "Notifications are working"],
@@ -489,7 +489,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: userId,
         title: "🔔 Windows Notification Test",
         description: "This is a test notification to verify Windows notifications are working properly. You should see this in your Windows notification center.",
-        type: "informational",
+        type: "normal",
         sourceApp: "manual",
         aiSummary: "Test notification for Windows notification system verification",
         actionableInsights: ["Windows notifications are working", "Check notification center", "System is ready"],
@@ -2449,7 +2449,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userId: user.id,
           title: "🔔 Gmail Connected to FlowHub",
           description: "Gmail connection successful! You should see this notification in your Windows notification center. Email notifications are now active.",
-          type: "informational",
+          type: "normal",
           sourceApp: "manual",
           aiSummary: "Gmail connection notification for Windows notification testing",
           actionableInsights: ["Check Windows notification center", "Gmail notifications active"],
@@ -2745,7 +2745,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.log(`[Gmail] Priority check result: ${isPriorityContact} for email: ${fromEmail}`);
 
             // Use AI to analyze and determine priority
-            let priority: "urgent" | "important" | "informational" = "informational";
+            let priority: "urgent" | "important" | "normal" = "normal";
             let isPriorityPerson = false;
 
             if (isPriorityContact) {
@@ -2760,7 +2760,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   description: `${subject}: ${body}`,
                   sourceApp: "gmail"
                 });
-                priority = taskAnalysis.priority as "urgent" | "important" | "informational";
+                priority = taskAnalysis.priority as "urgent" | "important" | "normal";
               } catch (error) {
                 console.log(`[Gmail] AI analysis failed for email from ${fromEmail}, using fallback logic`);
                 // Fallback to simple keyword matching if AI fails
@@ -2770,7 +2770,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
                 const fullText = (subject + ' ' + body).toLowerCase();
                 if (casualKeywords.some(keyword => fullText.includes(keyword))) {
-                  priority = "informational";  // Use informational for casual messages (maps to normal in UI)
+                  priority = "normal";  // Use normal for casual messages
                 } else if (urgentKeywords.some(keyword => fullText.includes(keyword))) {
                   priority = "urgent";
                 } else if (importantKeywords.some(keyword => fullText.includes(keyword))) {
@@ -3014,7 +3014,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   const isPriorityContact = await storage.isPriorityEmail(userId, fromEmail);
                   console.log(`[Gmail] Priority check result (retry): ${isPriorityContact} for email: ${fromEmail}`);
 
-                  let priority: "urgent" | "important" | "informational" = "informational";
+                  let priority: "urgent" | "important" | "normal" = "normal";
                   let isPriorityPerson = false;
 
                   if (isPriorityContact) {
@@ -3029,7 +3029,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                         description: `${subject}: ${body}`,
                         sourceApp: "gmail"
                       });
-                      priority = taskAnalysis.priority as "urgent" | "important" | "informational";
+                      priority = taskAnalysis.priority as "urgent" | "important" | "normal";
                     } catch (error) {
                       console.log(`[Gmail] AI analysis failed for email from ${fromEmail} during retry, using fallback logic`);
                       const casualKeywords = ['hi', 'hello', 'hey', 'wassup', 'what\'s up', 'how are you', 'how r u', 'good morning', 'good afternoon', 'good evening', 'hangout', 'chat', 'let\'s play', 'game'];
@@ -3037,7 +3037,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                       const importantKeywords = ['important', 'meeting', 'deadline', 'review', 'approval', 'join', 'schedule', 'conference', 'call', 'in 1 hour', 'in 2 hours', 'in 3 hours', 'today', 'tomorrow'];
                       const fullText = (subject + ' ' + body).toLowerCase();
                       if (casualKeywords.some(keyword => fullText.includes(keyword))) {
-                        priority = "informational";
+                        priority = "normal";
                       } else if (urgentKeywords.some(keyword => fullText.includes(keyword))) {
                         priority = "urgent";
                       } else if (importantKeywords.some(keyword => fullText.includes(keyword))) {
