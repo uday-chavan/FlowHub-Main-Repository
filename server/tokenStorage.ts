@@ -1,4 +1,4 @@
-import { createCipherGCM, createDecipherGCM, randomBytes } from 'crypto';
+import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
 import { storage } from './storage';
 
 // Encryption service for Gmail OAuth tokens
@@ -18,7 +18,7 @@ class TokenEncryption {
 
   encrypt(plaintext: string): { encrypted: string; iv: string; authTag: string } {
     const iv = randomBytes(16);
-    const cipher = createCipherGCM(this.algorithm, this.secretKey, iv);
+    const cipher = createCipheriv(this.algorithm, this.secretKey, iv);
     
     let encrypted = cipher.update(plaintext, 'utf8', 'hex');
     encrypted += cipher.final('hex');
@@ -33,7 +33,7 @@ class TokenEncryption {
   }
 
   decrypt(encryptedData: { encrypted: string; iv: string; authTag: string }): string {
-    const decipher = createDecipherGCM(this.algorithm, this.secretKey, Buffer.from(encryptedData.iv, 'hex'));
+    const decipher = createDecipheriv(this.algorithm, this.secretKey, Buffer.from(encryptedData.iv, 'hex'));
     decipher.setAuthTag(Buffer.from(encryptedData.authTag, 'hex'));
     
     let decrypted = decipher.update(encryptedData.encrypted, 'hex', 'utf8');
