@@ -508,16 +508,20 @@ export function WorkflowRiver() {
   const queryClient = useQueryClient();
   const [selectedTask, setSelectedTask] = useState<any>(null);
   const [isDescriptionDialogOpen, setIsDescriptionDialogOpen] = useState(false);
-  const [visibleTasks, setVisibleTasks] = useState<Set<string>>(new Set());
+  const [isAddTaskDialogOpen, setIsAddTaskDialogOpen] = useState(false); // Renamed from isAITaskModalOpen
+  const [newTaskInput, setNewTaskInput] = useState("");
+  const [isManualTaskDialogOpen, setIsManualTaskDialogOpen] = useState(false); // Renamed from isManualTaskModalOpen
+  const [manualTaskName, setManualTaskName] = useState("");
+  const [manualTaskTime, setManualTaskTime] = useState("");
+  const [manualTaskDateTime, setManualTaskDateTime] = useState<Date | null>(null);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
   const [editingTimeTaskId, setEditingTimeTaskId] = useState<string | null>(null);
   const [editingDueDate, setEditingDueDate] = useState<Date | null>(null);
-  const [startingTaskId, setStartingTaskId] = useState<string | null>(null);
-  const [stoppingTaskId, setStoppingTaskId] = useState<string | null>(null);
 
   // Animation state for staggered section and task appearance
   const [visibleSections, setVisibleSections] = useState<Set<string>>(new Set());
+  const [visibleTasks, setVisibleTasks] = useState<Set<string>>(new Set());
   const [animationInProgress, setAnimationInProgress] = useState(false);
 
   // State for handling potential Windows notifications (placeholder)
@@ -611,7 +615,7 @@ export function WorkflowRiver() {
       // Completed tasks go to the bottom
       if (a.status === 'completed' && b.status !== 'completed') return 1;
       if (a.status !== 'completed' && b.status === 'completed') return -1;
-
+      
       // For non-completed tasks, sort by time urgency
       if (a.status !== 'completed' && b.status !== 'completed') {
         if (a.dueAt && b.dueAt) {
@@ -631,24 +635,8 @@ export function WorkflowRiver() {
   }, {} as Record<string, typeof activeTasks>);
 
 
-  const handleCompleteTask = async (taskId: string) => {
-    try {
-      setStoppingTaskId(taskId);
-      await stopTaskMutation.mutateAsync(taskId);
-      toast({
-        title: "Task Completed! ✅",
-        description: "Great job! Task has been marked as complete.",
-        duration: 3000,
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to complete task. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setStoppingTaskId(null);
-    }
+  const handleCompleteTask = (taskId: string) => {
+    stopTaskMutation.mutate(taskId);
   };
 
   const handleOptimizeWorkflow = () => {
@@ -866,26 +854,6 @@ export function WorkflowRiver() {
     // Regular truncation for other tasks
     if (description.length <= maxLength) return description;
     return description.substring(0, maxLength) + "...";
-  };
-
-  const handleStartTask = async (taskId: string) => {
-    try {
-      setStartingTaskId(taskId);
-      await startTaskMutation.mutateAsync(taskId);
-      toast({
-        title: "Task Started! 🚀",
-        description: "You're now working on this task. Stay focused!",
-        duration: 3000,
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to start task. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setStartingTaskId(null);
-    }
   };
 
 
@@ -1218,28 +1186,16 @@ export function WorkflowRiver() {
                               )}
                             </div>
                             <div className="task-action-buttons flex items-center gap-1 flex-shrink-0">
-                              {task.status === 'pending' && (
-                                <Button
-                                  onClick={() => handleStartTask(task.id)}
-                                  disabled={startingTaskId === task.id}
-                                  className="bg-primary hover:bg-primary/80 px-2 py-1 rounded text-xs font-medium transition-colors hover:shadow-md"
-                                  size="sm"
-                                  data-testid={`button-start-task-${task.id}`}
-                                >
-                                  <Play className="w-3 h-3 mr-1" />
-                                  {startingTaskId === task.id ? "Starting..." : "Start"}
-                                </Button>
-                              )}
-                              {task.status === 'in_progress' && (
+                              {task.status !== 'completed' && (
                                 <Button
                                   onClick={() => handleCompleteTask(task.id)}
-                                  disabled={stoppingTaskId === task.id}
-                                  className="bg-green-600 hover:bg-green-700 px-2 py-1 rounded text-xs font-medium transition-colors hover:shadow-md text-white"
+                                  disabled={stopTaskMutation.isPending}
+                                  className="bg-green-600 hover:bg-green-700 px-2 py-1 rounded text-xs font-medium transition-colors hover:shadow-md text-white h-6"
                                   size="sm"
-                                  data-testid={`button-stop-task-${task.id}`}
+                                  data-testid={`button-complete-task-${task.id}`}
                                 >
-                                  <Square className="w-3 h-3 mr-1" />
-                                  {stoppingTaskId === task.id ? "Stopping..." : "Stop"}
+                                  <CheckSquare className="w-3 h-3 mr-1" />
+                                  {stopTaskMutation.isPending ? "Completing..." : "✓ Done"}
                                 </Button>
                               )}
                               {task.status === 'completed' && (
