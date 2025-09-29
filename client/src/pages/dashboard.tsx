@@ -5,28 +5,21 @@ import { NotificationFeed } from "@/components/dashboard/NotificationFeed";
 
 import { GmailConnect } from "@/components/dashboard/GmailConnect";
 import { WindowsNotificationManager } from "@/components/WindowsNotificationManager";
-import { CalendarSync } from "@/components/dashboard/CalendarSync"; // Import CalendarSync component
+import { CalendarSync } from "@/components/dashboard/CalendarSync";
 import { AppUpdateModal } from "@/components/AppUpdateModal";
 
-
+import { Page, Section, ResponsiveGrid } from "@/components/layout";
 import { useNotifications } from "@/hooks/useNotifications";
 
-// TaskList functionality is handled by WorkflowRiver component
-
-import { useIsMobile } from "@/hooks/use-mobile"; // Added useIsMobile hook
-import { useAuth } from "@/hooks/useAuth"; // Added useAuth import
-import { useState, useEffect } from "react"; // Import useState for isGmailConnected
+import { useAuth } from "@/hooks/useAuth";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 
 export default function Dashboard() {
-  
-  const isMobile = useIsMobile();
-  const { user } = useAuth(); // Get actual authenticated user
-  const [isGmailConnected, setIsGmailConnected] = useState(false); // State to track Gmail connection
+  const { user } = useAuth();
+  const [isGmailConnected, setIsGmailConnected] = useState(false);
   const [showAppUpdateModal, setShowAppUpdateModal] = useState(false);
   const [, setLocation] = useLocation();
-  // const { data: notifications } = useNotifications();
-  // const activeNotifications = notifications?.filter(n => !n.isRead) || [];
 
   // Check for app update scenario
   useEffect(() => {
@@ -36,7 +29,7 @@ export default function Dashboard() {
       // Use a static build timestamp to detect deployments
       const BUILD_TIMESTAMP = '1759099640'; // This will change with each deployment
       const storedBuildVersion = localStorage.getItem('buildVersion');
-      
+
       // Check if this is a new deployment
       if (storedBuildVersion && storedBuildVersion !== BUILD_TIMESTAMP) {
         // App was updated/redeployed - show modal
@@ -44,7 +37,7 @@ export default function Dashboard() {
         setShowAppUpdateModal(true);
         return;
       }
-      
+
       // Store current build version
       localStorage.setItem('buildVersion', BUILD_TIMESTAMP);
     };
@@ -66,52 +59,45 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground dashboard-container flex flex-col">
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
       <Header />
       <AppUpdateModal 
         isOpen={showAppUpdateModal} 
         onSignInClick={handleSignInClick}
       />
+
       <main className="flex-1 overflow-y-auto">
-        <div className="max-w-none mx-0 px-4 pt-4 pb-8 h-full">
-        {isMobile ? (
-          /* Mobile Layout */
-          <div className="flex flex-col gap-6 h-full overflow-y-auto">
-            {/* Mobile Notifications */}
-            <NotificationFeed />
-
-            {/* Gmail and Calendar Integration */}
-            <div className="space-y-4">
-              <GmailConnect onConnectionChange={setIsGmailConnected} />
-              <CalendarSync isGmailConnected={isGmailConnected} />
+        <Page className="py-4">
+          <ResponsiveGrid 
+            cols={{ base: 1, lg: 3 }}
+            gap="lg"
+            className="min-h-[calc(100vh-8rem)]"
+          >
+            {/* Notifications Column - Full width on mobile, 1/3 on desktop */}
+            <div className="lg:col-span-1 order-1 lg:order-1">
+              <div className="sticky top-4">
+                <NotificationFeed />
+              </div>
             </div>
 
-            {/* Main Content - Tasks */}
-            <WorkflowRiver />
-
-            {/* Additional Mobile Content - Removed sidebar components */}
-          </div>
-        ) : (
-          /* Desktop Layout */
-          <div className="flex gap-6 h-[calc(100vh-120px)]">
-            {/* Left Column - Notifications with Fixed Width */}
-            <div className="w-80 flex-shrink-0 px-2 h-full">
-              <NotificationFeed />
-            </div>
-
-            {/* Main Column - Tasks with Full Remaining Width */}
-            <div className="flex-1 px-2 h-full">
+            {/* Main Tasks Column - Full width on mobile, 2/3 on desktop */}
+            <div className="lg:col-span-2 order-3 lg:order-2">
               <WorkflowRiver />
             </div>
-          </div>
-        )}
-        </div>
+
+            {/* Integration Tools - Desktop only */}
+            <div className="hidden lg:block lg:col-span-3 order-2 lg:order-3 space-y-4">
+              <ResponsiveGrid cols={{ base: 1, sm: 2 }} gap="md">
+                <GmailConnect onConnectionChange={setIsGmailConnected} />
+                <CalendarSync isGmailConnected={isGmailConnected} />
+              </ResponsiveGrid>
+            </div>
+          </ResponsiveGrid>
+        </Page>
       </main>
 
       {/* Windows Notification Manager */}
       {user && <WindowsNotificationManager userId={user.id} />}
-
-
     </div>
   );
 }
