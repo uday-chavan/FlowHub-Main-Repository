@@ -155,13 +155,22 @@ export function useUpdateTask() {
           // Keep null values as null
           processedUpdates.dueAt = null;
         } else {
-          // Always ensure we have a valid Date object first
+          // Handle different input types for dueAt
           let dateObj: Date | null = null;
           
           if (processedUpdates.dueAt instanceof Date) {
             dateObj = processedUpdates.dueAt;
           } else if (typeof processedUpdates.dueAt === 'string') {
-            dateObj = new Date(processedUpdates.dueAt);
+            // Only try to parse if it's not already an ISO string
+            if (processedUpdates.dueAt.includes('T') && processedUpdates.dueAt.includes('Z')) {
+              // Already an ISO string, keep as is
+              dateObj = new Date(processedUpdates.dueAt);
+            } else {
+              dateObj = new Date(processedUpdates.dueAt);
+            }
+          } else if (processedUpdates.dueAt && typeof processedUpdates.dueAt === 'object' && 'toISOString' in processedUpdates.dueAt) {
+            // Already has toISOString method (Date-like object)
+            dateObj = processedUpdates.dueAt as Date;
           }
           
           // Validate the date and convert to ISO string
