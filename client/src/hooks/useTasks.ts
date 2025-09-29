@@ -106,11 +106,19 @@ export function useStopTask() {
 
   return useMutation({
     mutationFn: async (taskId: string) => {
-      // Assuming apiRequest handles user context or the endpoint infers it
       return await apiRequest("POST", `/api/tasks/${taskId}/stop`);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/tasks", userId] });
+    onSuccess: (data, taskId) => {
+      // Update specific task in cache instead of invalidating entire query
+      const queryKey = ["/api/tasks", userId];
+      queryClient.setQueryData<Task[]>(queryKey, (old) => {
+        if (!old) return old;
+        return old.map(task => 
+          task.id === taskId 
+            ? { ...task, status: "completed" as const, completedAt: new Date() }
+            : task
+        );
+      });
     },
   });
 }
