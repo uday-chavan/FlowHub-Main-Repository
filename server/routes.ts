@@ -3,11 +3,13 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import {
   insertTaskSchema,
+  updateTaskSchema,
   insertNotificationSchema,
   insertUserMetricsSchema,
   insertAiInsightSchema,
   insertUserAppLinkSchema,
   InsertTask,
+  UpdateTask,
 } from "../shared/schema";
 import {
   analyzeNotification,
@@ -655,8 +657,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/tasks/:id", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
       const { id } = req.params;
-      const updates = req.body;
-      const userId = req.user?.id || updates.userId || "demo-user";
+      const userId = req.user?.id;
 
       // Verify task belongs to user
       const existingTask = await storage.getTaskById(id);
@@ -664,7 +665,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Task not found or access denied" });
       }
 
-      const updatedTask = await storage.updateTask(id, updates);
+      // Validate and transform the update data
+      const validatedUpdates = updateTaskSchema.parse(req.body);
+
+      const updatedTask = await storage.updateTask(id, validatedUpdates);
       if (!updatedTask) {
         return res.status(404).json({ message: "Task not found" });
       }
