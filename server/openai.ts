@@ -927,7 +927,8 @@ function getFallbackTaskFromNotification(notification: {
       allText.match(/\b(?:hi|hello|hey|wassup|what's up|how are you|how r u|good morning|good afternoon|good evening|hangout|chat|let's play|game|social|casual)\b/) ||
       allText.match(/^(?:hi|hello|hey)\s*[!.]*\s*$/)) {
     priority = "normal";
-  }ortant";
+  } else {
+    priority = "important";
   }
 
   return {
