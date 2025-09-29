@@ -530,11 +530,6 @@ export function WorkflowRiver() {
   const [editingDueDate, setEditingDueDate] = useState<Date | null>(null);
   const [completingTaskId, setCompletingTaskId] = useState<string | null>(null);
 
-  // Animation state for staggered section and task appearance
-  const [visibleSections, setVisibleSections] = useState<Set<string>>(new Set());
-  const [visibleTasks, setVisibleTasks] = useState<Set<string>>(new Set());
-  const [animationInProgress, setAnimationInProgress] = useState(false);
-
   // State for handling potential Windows notifications (placeholder)
   const [showWindowsNotificationPrompt, setShowWindowsNotificationPrompt] = useState(false);
 
@@ -549,6 +544,11 @@ export function WorkflowRiver() {
       setShowWindowsNotificationPrompt(true);
     }
   }, []);
+
+  // Animation state for staggered section and task appearance
+  const [visibleSections, setVisibleSections] = useState<Set<string>>(new Set());
+  const [visibleTasks, setVisibleTasks] = useState<Set<string>>(new Set());
+  const [animationInProgress, setAnimationInProgress] = useState(false);
 
   // Staggered animation effect for sections and tasks
   useEffect(() => {
@@ -649,10 +649,30 @@ export function WorkflowRiver() {
   const handleCompleteTask = async (taskId: string) => {
     setCompletingTaskId(taskId);
     try {
-      await stopTaskMutation.mutateAsync(taskId);
+      // Optimistic update - immediately update UI before API call
+      const currentTasks = queryClient.getQueryData<Task[]>(["/api/tasks", user?.id]);
+      if (currentTasks) {
+        const optimisticTasks = currentTasks.map(task => 
+          task.id === taskId 
+            ? { ...task, status: "completed" as const, completedAt: new Date() }
+            : task
+        );
+        queryClient.setQueryData(["/api/tasks", user?.id], optimisticTasks);
+      }
+
+      // Immediately clear completing state for instant UI feedback
+      setCompletingTaskId(null);
+
+      // API call in background (don't await for instant response)
+      stopTaskMutation.mutateAsync(taskId).catch(error => {
+        console.error("Failed to complete task:", error);
+        // Revert optimistic update on error
+        if (currentTasks) {
+          queryClient.setQueryData(["/api/tasks", user?.id], currentTasks);
+        }
+      });
     } catch (error) {
-      console.error('Failed to complete task:', error);
-    } finally {
+      console.error("Failed to complete task:", error);
       setCompletingTaskId(null);
     }
   };
@@ -685,7 +705,7 @@ export function WorkflowRiver() {
   // - Infinite scroll implementation issues: If new content fails to load and triggers a 404, it might be reported during scroll.
   // - Routing errors: If scrolling triggers a navigation event that leads to a 404.
   // - Dynamic component loading failures.
-  // Without more context, specific code changes are difficult. If this occurs, investigate network requests made during scrolling or any routing logic tied to scroll events.
+  // Without more context, specific code changes are difficult. If this occurs, investigate network requests during scrolling or any routing logic tied to scroll events.
 
   const handleCreateAITask = async () => {
     if (!newTaskInput.trim()) return;
