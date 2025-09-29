@@ -673,6 +673,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Task not found" });
       }
 
+      // Increment accumulated time saved if task was just completed
+      if (validatedUpdates.status === "completed" && existingTask.status !== "completed") {
+        try {
+          const minutesToAdd = 3; // 3 minutes saved per completed task
+          await storage.incrementTimeSaved(userId, minutesToAdd, { tasksCompleted: 1 });
+          console.log(`[TimeSaved] Incremented time saved for completed task: ${updatedTask.title}`);
+        } catch (error) {
+          console.error("Error incrementing time saved:", error);
+          // Don't fail the task update if time tracking fails
+        }
+      }
+
       // Handle calendar event updates if user has calendar connected
       if (calendarService.hasUserClient(userId)) {
         const calendarEventId = existingTask.metadata?.calendarEventId;
@@ -923,6 +935,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`Task ${task.id} created with AI analysis: ${task.title}`);
 
+      // Increment accumulated time saved for AI-generated task
+      try {
+        const minutesToAdd = 5; // 5 minutes saved per AI-generated task
+        const isUrgent = task.priority === "urgent" ? 1 : 0;
+        const urgentMinutes = isUrgent * 12; // 12 minutes for urgent tasks
+        await storage.incrementTimeSaved(currentUserId, minutesToAdd + urgentMinutes, { 
+          aiTasksCreated: 1,
+          urgentTasksHandled: isUrgent
+        });
+        console.log(`[TimeSaved] Incremented ${minutesToAdd + urgentMinutes} minutes for AI task creation`);
+      } catch (error) {
+        console.error("Error incrementing time saved:", error);
+        // Don't fail the task creation if time tracking fails
+      }
+
       // Return success with the completed task (AI-processed or fallback)
       res.json({ success: true, task });
 
@@ -1083,6 +1110,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           });
           console.log(`[ConversionTracking] Created convertedEmail record for notification: ${notification.id}`);
+          
+          // Increment accumulated time saved for email conversion
+          try {
+            const emailTimeSaved = 8; // 8 minutes per email conversion
+            const aiTaskTime = createdTasks.length * 5; // 5 minutes per AI task
+            const urgentTasks = createdTasks.filter(t => t.priority === "urgent").length;
+            const urgentTimeSaved = urgentTasks * 12; // 12 minutes per urgent task
+            const totalMinutes = emailTimeSaved + aiTaskTime + urgentTimeSaved;
+            
+            await storage.incrementTimeSaved(userId, totalMinutes, {
+              emailConversions: 1,
+              aiTasksCreated: createdTasks.length,
+              urgentTasksHandled: urgentTasks
+            });
+            console.log(`[TimeSaved] Incremented ${totalMinutes} minutes for email conversion (${createdTasks.length} tasks)`);
+          } catch (timeError) {
+            console.error("Error incrementing time saved:", timeError);
+            // Don't fail the conversion if time tracking fails
+          }
         } catch (conversionError) {
           console.error("Error creating converted email record:", conversionError);
           // Continue with dismissal even if tracking fails
@@ -1758,7 +1804,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Time Saved Analytics endpoint
+  // Time Saved Analytics endpoint - Uses persistent accumulated data
   app.get("/api/analytics/time-saved", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
       const userId = req.user?.id;
@@ -1766,82 +1812,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Authentication required" });
       }
 
-      // Get all current tasks and notifications for analytics
-      const currentTasks = await storage.getUserTasks(userId);
-      const notifications = await storage.getUserNotifications(userId);
+      // Get accumulated time saved from persistent storage
+      let accumulated = await storage.getAccumulatedTimeSaved(userId);
       
-      // Get converted emails (these represent tasks that were created from emails)
-      const convertedEmails = await storage.getUserConvertedEmails(userId);
-
-      // Calculate email conversions from multiple sources
-      // 1. From notifications that were email conversions
-      const emailConversionsFromNotifications = notifications.filter(n =>
-        n.sourceApp === "gmail" && n.type === "email_converted"
-      ).length;
-
-      // 2. From converted emails table (more accurate count of actual conversions)
-      const emailConversionsFromConvertedEmails = convertedEmails.length;
-
-      // Use the higher count to ensure we capture all conversions
-      const totalEmailConversions = Math.max(emailConversionsFromNotifications, emailConversionsFromConvertedEmails);
-
-      // Count tasks created from converted emails (these may have been deleted but still represent time saved)
-      const tasksFromConvertedEmails = convertedEmails.reduce((total, email) => {
-        return total + (email.taskIds ? email.taskIds.length : 1);
-      }, 0);
-
-      // Calculate natural language tasks from current tasks
-      const currentNaturalLanguageTasks = currentTasks.filter(t =>
-        t.metadata?.aiGenerated || t.sourceApp === "manual"
-      ).length;
-
-      // Total natural language tasks = current + those from converted emails
-      const totalNaturalLanguageTasks = currentNaturalLanguageTasks + tasksFromConvertedEmails;
-
-      // Calculate urgent tasks (current + historical from converted emails)
-      const currentUrgentTasks = currentTasks.filter(t => t.priority === "urgent").length;
-      const urgentTasksFromEmails = convertedEmails.filter(e => 
-        e.metadata?.isPriorityPerson || e.metadata?.detectedPriority === 'urgent'
-      ).length;
-      const totalUrgentTasksHandled = currentUrgentTasks + urgentTasksFromEmails;
-
-      // Calculate completed tasks (current + assume converted email tasks were completed)
-      const currentCompletedTasks = currentTasks.filter(t => t.status === "completed").length;
-      const completedTasksFromEmails = convertedEmails.filter(e => 
-        e.status === "converted" // Converted emails represent completed workflow
-      ).length;
-      const totalCompletedTasks = currentCompletedTasks + completedTasksFromEmails;
-
-      // Enhanced time saved calculations
-      const emailTimeSaved = totalEmailConversions * 8; // Increased to 8 minutes per email conversion (reading, processing, creating task)
-      const nlTimeSaved = totalNaturalLanguageTasks * 5; // Increased to 5 minutes per AI-generated task
-      const priorityTimeSaved = totalUrgentTasksHandled * 12; // Increased to 12 minutes for urgent task handling
-      const completionTimeSaved = totalCompletedTasks * 3; // 3 minutes saved per task through better organization
-
-      const totalTimeSavedMinutes = emailTimeSaved + nlTimeSaved + priorityTimeSaved + completionTimeSaved;
+      // If no record exists, create one with zeros
+      if (!accumulated) {
+        accumulated = await storage.createAccumulatedTimeSaved({
+          userId,
+          totalMinutesSaved: 0,
+          emailConversions: 0,
+          aiTasksCreated: 0,
+          urgentTasksHandled: 0,
+          tasksCompleted: 0,
+        });
+      }
 
       const stats = {
-        totalEmailsConverted: totalEmailConversions,
-        totalTasksCreatedFromNaturalLanguage: totalNaturalLanguageTasks,
-        totalTimeSavedMinutes,
+        totalEmailsConverted: accumulated.emailConversions,
+        totalTasksCreatedFromNaturalLanguage: accumulated.aiTasksCreated,
+        totalTimeSavedMinutes: accumulated.totalMinutesSaved,
         conversionBreakdown: {
-          emailConversions: totalEmailConversions,
-          naturalLanguageConversions: totalNaturalLanguageTasks,
-          urgentTasksHandled: totalUrgentTasksHandled,
-          completedTasks: totalCompletedTasks
+          emailConversions: accumulated.emailConversions,
+          naturalLanguageConversions: accumulated.aiTasksCreated,
+          urgentTasksHandled: accumulated.urgentTasksHandled,
+          completedTasks: accumulated.tasksCompleted
         }
       };
 
-      console.log(`[TimeSaved] Analytics for user ${userId}:`, {
-        currentTasks: currentTasks.length,
-        convertedEmails: convertedEmails.length,
-        tasksFromEmails: tasksFromConvertedEmails,
-        totalTimeSaved: totalTimeSavedMinutes
+      console.log(`[TimeSaved] Accumulated analytics for user ${userId}:`, {
+        totalMinutes: accumulated.totalMinutesSaved,
+        emailConversions: accumulated.emailConversions,
+        aiTasks: accumulated.aiTasksCreated
       });
 
       res.json(stats);
     } catch (error) {
-      console.error("Error calculating time saved stats:", error);
+      console.error("Error fetching accumulated time saved stats:", error);
       res.status(500).json({ message: "Failed to fetch time saved analytics", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
