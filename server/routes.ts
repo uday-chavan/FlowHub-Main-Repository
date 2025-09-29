@@ -2562,9 +2562,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         for (const message of messages) {
           try {
-            // Time-based deduplication - allow reprocessing after 60 seconds for new notifications
+            // Time-based deduplication - allow reprocessing after 10 seconds for new notifications
             const now = Date.now();
-            const processingWindow = 60 * 1000; // 60 seconds (reduced from 10 minutes)
+            const processingWindow = 10 * 1000; // 10 seconds for faster processing
 
             if (!processedEmailIds.has(userId)) {
               processedEmailIds.set(userId, new Map());
@@ -2573,7 +2573,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const userProcessedEmails = processedEmailIds.get(userId)!;
             const lastProcessedTime = userProcessedEmails.get(message.id!);
 
-            // Skip only if processed recently (within 60 seconds) to prevent race conditions
+            // Skip only if processed recently (within 10 seconds) to prevent race conditions
             // but allow reprocessing for legitimate new notifications
             if (lastProcessedTime && (now - lastProcessedTime) < processingWindow) {
               console.log(`[Gmail] Skipping recently processed email: ${message.id} (${Math.round((now - lastProcessedTime) / 1000)}s ago)`);
@@ -2613,26 +2613,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
             }
 
-            // Smart deduplication: Skip emails from same sender for 15 seconds to reduce spam
-            if (!processedSenderEmails.has(userId)) {
-              processedSenderEmails.set(userId, new Map());
-            }
-            const userSenderEmails = processedSenderEmails.get(userId)!;
-            const lastSenderTime = userSenderEmails.get(fromEmail);
-            const senderWindow = 15 * 1000; // 15 seconds
-            
-            if (lastSenderTime && (now - lastSenderTime) < senderWindow) {
-              console.log(`[Gmail] Skipping email from recently processed sender: ${fromEmail} (${Math.round((now - lastSenderTime) / 1000)}s ago)`);
-              continue;
-            }
-
-            // Clean up old sender entries (older than 5 minutes)
-            const senderCleanupWindow = 5 * 60 * 1000; // 5 minutes
-            for (const [senderEmail, timestamp] of userSenderEmails.entries()) {
-              if (now - timestamp > senderCleanupWindow) {
-                userSenderEmails.delete(senderEmail);
-              }
-            }
+            // Remove sender-based deduplication to allow continuous fetching from same email
 
             // Check if notification already exists with this email ID to prevent database duplicates
             const existingNotifications = await storage.getUserNotifications(userId, 100); // Fetch recent notifications
@@ -2741,7 +2722,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const isPriorityContact = await storage.isPriorityEmail(userId, fromEmail);
             console.log(`[Gmail] Priority check result: ${isPriorityContact} for email: ${fromEmail}`);
 
-            // Use AI to analyze and determine priority
+            // Use AI to analyze and determine priority - optimized for speed
             let priority: "urgent" | "important" | "normal" = "normal";
             let isPriorityPerson = false;
 
@@ -2750,31 +2731,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
               isPriorityPerson = true;
               console.log(`[Gmail] Priority person detected: ${fromEmail} - setting priority to urgent`);
             } else {
-              console.log(`[Gmail] Normal email from: ${fromEmail} - will analyze with AI`);
-              try {
-                const taskAnalysis = await analyzeNotificationForTask({
-                  title: `New email from ${from}`,
-                  description: `${subject}: ${body}`,
-                  sourceApp: "gmail"
-                });
-                priority = taskAnalysis.priority as "urgent" | "important" | "normal";
-              } catch (error) {
-                console.log(`[Gmail] AI analysis failed for email from ${fromEmail}, using fallback logic`);
-                // Fallback to simple keyword matching if AI fails
-                const casualKeywords = ['hi', 'hello', 'hey', 'wassup', 'what\'s up', 'how are you', 'how r u', 'good morning', 'good afternoon', 'good evening', 'hangout', 'chat', 'let\'s play', 'game'];
-                const urgentKeywords = ['urgent', 'asap', 'emergency', 'critical', 'immediately', 'in 5 min', 'in 10 min', 'in 30 min'];
-                const importantKeywords = ['important', 'meeting', 'deadline', 'review', 'approval', 'join', 'schedule', 'conference', 'call', 'in 1 hour', 'in 2 hours', 'in 3 hours', 'today', 'tomorrow'];
-
-                const fullText = (subject + ' ' + body).toLowerCase();
-                if (casualKeywords.some(keyword => fullText.includes(keyword))) {
-                  priority = "normal";  // Use normal for casual messages
-                } else if (urgentKeywords.some(keyword => fullText.includes(keyword))) {
-                  priority = "urgent";
-                } else if (importantKeywords.some(keyword => fullText.includes(keyword))) {
-                  priority = "important";
-                }
-                console.log(`[Gmail] Fallback analysis result: ${priority} for email from ${fromEmail}`);
+              // Skip AI analysis for faster processing, use keyword-based priority
+              const urgentKeywords = ['urgent', 'asap', 'emergency', 'critical', 'immediately'];
+              const importantKeywords = ['important', 'meeting', 'deadline', 'review', 'approval', 'schedule', 'conference'];
+              const fullText = (subject + ' ' + body).toLowerCase();
+              
+              if (urgentKeywords.some(keyword => fullText.includes(keyword))) {
+                priority = "urgent";
+              } else if (importantKeywords.some(keyword => fullText.includes(keyword))) {
+                priority = "important";
               }
+              console.log(`[Gmail] Fast keyword analysis result: ${priority} for email from ${fromEmail}`);
             }
 
             console.log(`[Gmail] Creating notification for email: ${subject} from ${from} (Priority: ${priority}, isPriorityPerson: ${isPriorityPerson})`);
@@ -2805,10 +2772,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Mark email as processed ONLY after successful persistence
             userProcessedEmails.set(message.id!, Date.now());
             console.log(`[Gmail] Email ${message.id} marked as processed after successful storage`);
-            
-            // Track sender email for smart deduplication
-            userSenderEmails.set(fromEmail, Date.now());
-            console.log(`[Gmail] Sender ${fromEmail} marked for 15-second deduplication window`);
 
           } catch (msgError) {
             console.error(`[Gmail] Error processing message ${message.id}:`, msgError);
@@ -2872,9 +2835,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
               // Process any messages found in the retry
               for (const message of retryMessages) {
-                // Time-based deduplication for retry - consistent with main processing logic
+                // Time-based deduplication for retry - fast processing
                 const now = Date.now();
-                const processingWindow = 10 * 60 * 1000; // 10 minutes
+                const processingWindow = 10 * 1000; // 10 seconds
 
                 if (!processedEmailIds.has(userId)) {
                   processedEmailIds.set(userId, new Map());
@@ -2883,7 +2846,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 const userProcessedEmails = processedEmailIds.get(userId)!;
                 const lastProcessedTime = userProcessedEmails.get(message.id!);
 
-                // Skip only if processed recently (within 10 minutes)
+                // Skip only if processed recently (within 10 seconds)
                 if (lastProcessedTime && (now - lastProcessedTime) < processingWindow) {
                   console.log(`[Gmail] Skipping recently processed email during retry: ${message.id} (${Math.round((now - lastProcessedTime) / 1000)}s ago)`);
                   continue;
@@ -3021,29 +2984,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     isPriorityPerson = true;
                     console.log(`[Gmail] Priority person detected in retry: ${fromEmail} - setting priority to urgent`);
                   } else {
-                    console.log(`[Gmail] Normal email in retry from: ${fromEmail} - will analyze with AI`);
-                    try {
-                      const taskAnalysis = await analyzeNotificationForTask({
-                        title: `New email from ${from}`,
-                        description: `${subject}: ${body}`,
-                        sourceApp: "gmail"
-                      });
-                      priority = taskAnalysis.priority as "urgent" | "important" | "normal";
-                    } catch (error) {
-                      console.log(`[Gmail] AI analysis failed for email from ${fromEmail} during retry, using fallback logic`);
-                      const casualKeywords = ['hi', 'hello', 'hey', 'wassup', 'what\'s up', 'how are you', 'how r u', 'good morning', 'good afternoon', 'good evening', 'hangout', 'chat', 'let\'s play', 'game'];
-                      const urgentKeywords = ['urgent', 'asap', 'emergency', 'critical', 'immediately', 'in 5 min', 'in 10 min', 'in 30 min'];
-                      const importantKeywords = ['important', 'meeting', 'deadline', 'review', 'approval', 'join', 'schedule', 'conference', 'call', 'in 1 hour', 'in 2 hours', 'in 3 hours', 'today', 'tomorrow'];
-                      const fullText = (subject + ' ' + body).toLowerCase();
-                      if (casualKeywords.some(keyword => fullText.includes(keyword))) {
-                        priority = "normal";
-                      } else if (urgentKeywords.some(keyword => fullText.includes(keyword))) {
-                        priority = "urgent";
-                      } else if (importantKeywords.some(keyword => fullText.includes(keyword))) {
-                        priority = "important";
-                      }
-                      console.log(`[Gmail] Fallback analysis result (retry): ${priority} for email from ${fromEmail}`);
+                    // Fast keyword-based priority for retry
+                    const urgentKeywords = ['urgent', 'asap', 'emergency', 'critical', 'immediately'];
+                    const importantKeywords = ['important', 'meeting', 'deadline', 'review', 'approval', 'schedule', 'conference'];
+                    const fullText = (subject + ' ' + body).toLowerCase();
+                    
+                    if (urgentKeywords.some(keyword => fullText.includes(keyword))) {
+                      priority = "urgent";
+                    } else if (importantKeywords.some(keyword => fullText.includes(keyword))) {
+                      priority = "important";
                     }
+                    console.log(`[Gmail] Fast keyword analysis result (retry): ${priority} for email from ${fromEmail}`);
                   }
 
                   console.log(`[Gmail] Creating notification for email during retry: ${subject} from ${from} (Priority: ${priority}, isPriorityPerson: ${isPriorityPerson})`);
@@ -3114,8 +3065,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log(`[Gmail] Starting immediate email fetch for user: ${userId}`);
     await fetchUnreadEmails();
 
-    // Set up periodic fetching every 10 seconds
-    const interval = setInterval(fetchUnreadEmails, 30000); // Reduced frequency to 30 seconds
+    // Set up periodic fetching every 15 seconds for faster notifications
+    const interval = setInterval(fetchUnreadEmails, 15000); // 15 seconds for faster processing
     userGmailIntervals.set(userId, interval);
   }
 
