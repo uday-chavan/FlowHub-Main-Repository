@@ -262,6 +262,21 @@ export const convertedEmails = pgTable("converted_emails", {
   statusIdx: index("converted_emails_status_idx").on(table.status),
 }));
 
+// Accumulated Time Saved table - Persistent tracking that never resets
+export const accumulatedTimeSaved = pgTable("accumulated_time_saved", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }).unique(),
+  totalMinutesSaved: integer("total_minutes_saved").default(0).notNull(),
+  emailConversions: integer("email_conversions").default(0).notNull(),
+  aiTasksCreated: integer("ai_tasks_created").default(0).notNull(),
+  urgentTasksHandled: integer("urgent_tasks_handled").default(0).notNull(),
+  tasksCompleted: integer("tasks_completed").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  userIdIdx: index("accumulated_time_saved_user_id_idx").on(table.userId),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -385,6 +400,12 @@ export const insertConvertedEmailSchema = createInsertSchema(convertedEmails).om
   convertedAt: true,
 });
 
+export const insertAccumulatedTimeSavedSchema = createInsertSchema(accumulatedTimeSaved).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
@@ -431,3 +452,6 @@ export type InsertPriorityEmail = z.infer<typeof insertPriorityEmailSchema>;
 
 export type ConvertedEmail = typeof convertedEmails.$inferSelect;
 export type InsertConvertedEmail = z.infer<typeof insertConvertedEmailSchema>;
+
+export type AccumulatedTimeSaved = typeof accumulatedTimeSaved.$inferSelect;
+export type InsertAccumulatedTimeSaved = z.infer<typeof insertAccumulatedTimeSavedSchema>;
