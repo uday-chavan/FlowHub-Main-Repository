@@ -774,7 +774,7 @@ export function WorkflowRiver() {
         priority: priority,
         status: "pending",
         estimatedMinutes: 60,
-        dueAt: dueAt?.toISOString(),
+        dueAt: dueAt, // Pass Date object directly, not ISO string
         sourceApp: "manual",
         metadata: {
           manuallyCreated: true,
