@@ -560,6 +560,32 @@ export function WorkflowRiver() {
       return;
     }
 
+    // Check if this is just a task deletion (existing tasks are still visible)
+    const currentTaskIds = new Set(tasks.map(t => t.id));
+    const currentVisibleTaskIds = new Set(Array.from(visibleTasks).filter(id => currentTaskIds.has(id)));
+
+    // If most tasks are already visible, don't restart animations (likely a deletion)
+    if (currentVisibleTaskIds.size > 0 && currentVisibleTaskIds.size >= Math.floor(tasks.length * 0.7)) {
+      // Just add any new tasks without full animation restart
+      const newTaskIds = tasks.filter(t => !visibleTasks.has(t.id)).map(t => t.id);
+      if (newTaskIds.length > 0) {
+        // Add new tasks gradually
+        newTaskIds.forEach((taskId, index) => {
+          setTimeout(() => {
+            setVisibleTasks(prev => new Set([...prev, taskId]));
+          }, index * 100);
+        });
+      }
+
+      // Update sections that have tasks
+      const sectionsWithTasks = priorityOrder.filter(priority => 
+        (tasksByPriority[priority] || []).length > 0
+      );
+      setVisibleSections(new Set(sectionsWithTasks));
+
+      return;
+    }
+
     setAnimationInProgress(true);
     const sectionsWithTasks = priorityOrder.filter(priority => 
       (tasksByPriority[priority] || []).length > 0
@@ -716,6 +742,13 @@ export function WorkflowRiver() {
         queryClient.setQueryData<Task[]>(["/api/tasks", user.id], updatedTasks);
       }
 
+      // Immediately remove the task from visible tasks to prevent animation restart
+      setVisibleTasks(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(taskId);
+        return newSet;
+      });
+
       // Show immediate toast feedback
       toast({
         title: "Task Removed! 🗑️",
@@ -732,6 +765,12 @@ export function WorkflowRiver() {
       // Revert optimistic update on error
       if (currentTasks) {
         queryClient.setQueryData(["/api/tasks", user.id], currentTasks);
+        // Re-add the task to visible tasks if deletion failed
+        setVisibleTasks(prev => {
+          const newSet = new Set(prev);
+          newSet.add(taskId);
+          return newSet;
+        });
       }
 
       // Show error toast
