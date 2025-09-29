@@ -1246,7 +1246,11 @@ export function WorkflowRiver() {
                             <div className="task-action-buttons flex items-center gap-1 flex-shrink-0">
                               {task.status !== 'completed' && (
                                 <Button
-                                  onClick={() => handleCompleteTask(task.id)}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    handleCompleteTask(task.id);
+                                  }}
                                   disabled={completingTaskId === task.id}
                                   className="bg-green-600 hover:bg-green-700 px-2 py-1 rounded text-xs font-medium transition-colors hover:shadow-md text-white h-6"
                                   size="sm"
@@ -1268,7 +1272,11 @@ export function WorkflowRiver() {
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <Button
-                                      onClick={() => handleDeleteTask(task.id)}
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        handleDeleteTask(task.id);
+                                      }}
                                       disabled={deletingTaskId === task.id || deleteTaskMutation.isPending} // Disable if already deleting this task or mutation is pending
                                       className="bg-red-50 hover:bg-red-100 text-red-600 px-1.5 py-1 rounded text-xs transition-colors h-6"
                                       size="sm"
