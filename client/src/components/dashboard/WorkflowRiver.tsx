@@ -529,6 +529,8 @@ export function WorkflowRiver() {
   const [editingTimeTaskId, setEditingTimeTaskId] = useState<string | null>(null);
   const [editingDueDate, setEditingDueDate] = useState<Date | null>(null);
   const [completingTaskId, setCompletingTaskId] = useState<string | null>(null);
+  const [isEditingTime, setIsEditingTime] = useState<string | null>(null); // State to track which task is being edited for time
+  const [selectedDateTime, setSelectedDateTime] = useState<Date | null>(new Date()); // State for the DatePicker value
 
   // State for handling potential Windows notifications (placeholder)
   const [showWindowsNotificationPrompt, setShowWindowsNotificationPrompt] = useState(false);
@@ -845,11 +847,14 @@ export function WorkflowRiver() {
   const handleStartEditTime = (task: any) => {
     setEditingTimeTaskId(task.id);
     setEditingDueDate(task.dueAt ? new Date(task.dueAt) : new Date());
+    setSelectedDateTime(task.dueAt ? new Date(task.dueAt) : new Date()); // Initialize selectedDateTime
+    setIsEditingTime(task.id); // Set the task ID for editing time
   };
 
   const handleCancelEditTime = () => {
     setEditingTimeTaskId(null);
     setEditingDueDate(null);
+    setIsEditingTime(null); // Reset editing state
   };
 
   const handleSaveEditTime = async (taskId: string) => {
@@ -863,6 +868,7 @@ export function WorkflowRiver() {
 
       setEditingTimeTaskId(null);
       setEditingDueDate(null);
+      setIsEditingTime(null); // Reset editing state
 
       toast({
         title: "Task Time Updated! ⏰",
@@ -873,6 +879,38 @@ export function WorkflowRiver() {
       toast({
         title: "Error",
         description: "Failed to update task due date. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Function to handle updating the time, used within the time editing interface
+  const handleTimeUpdate = async (task: any, newDate: Date | null = null) => {
+    try {
+      await updateTaskMutation.mutateAsync({
+        id: task.id,
+        updates: { dueAt: newDate?.toISOString() || null }
+      });
+
+      if (newDate) {
+        toast({
+          title: "Task Time Updated! ⏰",
+          description: "Task due date has been updated successfully.",
+          duration: 2000,
+        });
+      } else {
+        toast({
+          title: "Task Time Removed! ⏰",
+          description: "Task due date has been removed.",
+          duration: 2000,
+        });
+      }
+      setIsEditingTime(null); // Close the editing interface
+    } catch (error) {
+      console.error('Error updating task time:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update task time. Please try again.",
         variant: "destructive",
       });
     }
@@ -1028,96 +1066,56 @@ export function WorkflowRiver() {
                     return (
                       <div
                         key={task.id}
-                        className={`workflow-river rounded-lg p-2 border ${taskConfig.color} relative ${
-                          task.status !== 'completed' ? taskConfig.class : ''
+                        className={`workflow-river rounded-lg p-3 border ${
+                          taskConfig.color
+                        } relative ${
+                          task.status !== "completed" ? taskConfig.class : ""
                         } ${
-                          task.status === 'completed' ? 'opacity-80 bg-green-50/50 border-green-300 border-dashed' : taskConfig.bgColor
-                        } overflow-hidden max-w-full min-w-0 transition-all duration-200 hover:shadow-lg hover:border-opacity-80 ${
-                          visibleTasks.has(task.id) 
-                            ? 'animate-in slide-in-from-bottom-4 opacity-100 duration-500' 
-                            : 'opacity-0 translate-y-4'
-                        }`}
+                          task.status === "completed"
+                            ? "opacity-80 bg-green-50/50 border-green-300 border-dashed"
+                            : taskConfig.bgColor
+                        } transition-all duration-300 max-w-full min-w-0`}
                         data-testid={`task-item-${task.id}`}
                         style={{
-                          wordBreak: 'break-word',
-                          overflowWrap: 'break-word',
-                          width: '100%',
-                          maxWidth: '100%'
+                          width: "100%",
+                          maxWidth: "100%",
+                          minHeight: isEditingTime === task.id ? "auto" : "auto",
                         }}
                       >
                         {/* Main task content */}
-                        <div className="flex flex-col space-y-2">
+                        <div className="flex flex-col space-y-2 w-full">
                           {/* Task header with title and status */}
-                          <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-start justify-between gap-2 w-full">
                             <div className="flex items-start space-x-2 flex-1 min-w-0">
-                              <div className={`w-3 h-3 ${taskConfig.dotColor} rounded-full ${task.priority === 'urgent' ? 'animate-pulse' : ''} flex-shrink-0 mt-1`} />
-                              <div className="flex-1 min-w-0 overflow-hidden">
-                                {editingTaskId === task.id ? (
-                                  <div className="flex items-center gap-2">
-                                    <Input
-                                      value={editingTitle}
-                                      onChange={(e) => setEditingTitle(e.target.value)}
-                                      className="text-sm font-medium flex-1"
-                                      onKeyPress={(e) => {
-                                        if (e.key === 'Enter') {
-                                          handleSaveEditTitle(task.id);
-                                        } else if (e.key === 'Escape') {
-                                          handleCancelEditTitle();
-                                        }
-                                      }}
-                                      autoFocus
-                                    />
-                                    <Button
-                                      onClick={() => handleSaveEditTitle(task.id)}
-                                      disabled={updateTaskMutation.isPending}
-                                      className="bg-green-500 hover:bg-green-600 text-white p-1 h-6 w-6"
-                                    >
-                                      ✓
-                                    </Button>
-                                    <Button
-                                      onClick={handleCancelEditTitle}
-                                      className="bg-gray-500 hover:bg-gray-600 text-white p-1 h-6 w-6"
-                                    >
-                                      ✕
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <div className="flex items-center gap-2">
-                                    <h3 className={`font-medium break-words text-sm leading-tight truncate flex-1 ${
-                                      visibleTasks.has(task.id) 
-                                        ? 'animate-in slide-in-from-left-2 duration-500' 
-                                        : 'opacity-0'
-                                    }`} data-testid={`task-title-${task.id}`}>
-                                      {task.status === 'completed' ? '✅ ' : ''}{task.title}
-                                    </h3>
-                                    {/* Pencil edit button for AI-generated tasks */}
-                                    {(task.metadata?.aiGenerated === true || task.metadata?.sourceNotificationId) && (
-                                      <TooltipProvider>
-                                        <Tooltip>
-                                          <TooltipTrigger asChild>
-                                            <Button
-                                              onClick={() => handleStartEditTitle(task)}
-                                              className="bg-gray-50 hover:bg-gray-100 text-gray-600 p-1 h-5 w-5 opacity-60 hover:opacity-100 transition-opacity"
-                                              data-testid={`button-edit-title-${task.id}`}
-                                            >
-                                              <Pencil className="w-3 h-3" />
-                                            </Button>
-                                          </TooltipTrigger>
-                                          <TooltipContent>
-                                            <p>Change the title</p>
-                                          </TooltipContent>
-                                        </Tooltip>
-                                      </TooltipProvider>
-                                    )}
-                                  </div>
-                                )}
+                              <div
+                                className={`w-3 h-3 ${taskConfig.dotColor} rounded-full ${
+                                  task.priority === "urgent" ? "animate-pulse" : ""
+                                } flex-shrink-0 mt-1`}
+                              />
+                              <div className="flex-1 min-w-0">
+                                <h3
+                                  className="font-medium text-sm leading-tight mb-1 break-words"
+                                  data-testid={`task-title-${task.id}`}
+                                  style={{ wordBreak: "break-word", overflowWrap: "break-word" }}
+                                >
+                                  {task.status === "completed" ? "✅ " : ""}
+                                  {task.title}
+                                  {task.status === "completed" && (
+                                    <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-normal whitespace-nowrap">
+                                      Task Completed
+                                    </span>
+                                  )}
+                                </h3>
                                 <div
                                   className="text-xs text-muted-foreground cursor-pointer hover:text-primary transition-colors flex items-center gap-1 mt-1"
                                   data-testid={`task-description-${task.id}`}
-                                  onClick={() => handleViewDescription(task)}
+                                  onClick={() => setSelectedTask(task)}
+                                  style={{ wordBreak: "break-word", overflowWrap: "break-word" }}
                                 >
-                                  <span className="underline">Show description</span>
-                                  <Info className="w-3 h-3 opacity-60" />
+                                  <span className="break-words leading-relaxed flex-1">
+                                    {truncateDescription(task.description || "No description", task)}
+                                  </span>
+                                  <Info className="w-3 h-3 opacity-60 hover:opacity-100 flex-shrink-0 ml-1" />
                                 </div>
                               </div>
                             </div>
