@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { TextLoop } from "@/components/TextLoop";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, InfoIcon } from "lucide-react";
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export function Landing() {
   const [, setLocation] = useLocation();
   const [isVisible, setIsVisible] = useState(false);
+  const [showUpdateNotification, setShowUpdateNotification] = useState(false);
 
   const benefits = [
     "Turn emails into next steps",
@@ -19,6 +21,23 @@ export function Landing() {
   useEffect(() => {
     const timer = setTimeout(() => setIsVisible(true), 500);
     return () => clearTimeout(timer);
+  }, []);
+
+  // Check for update notification flag on mount
+  useEffect(() => {
+    const shouldShowNotification = localStorage.getItem('showUpdateNotification');
+    if (shouldShowNotification === 'true') {
+      setShowUpdateNotification(true);
+      // Remove the flag immediately to prevent showing it again
+      localStorage.removeItem('showUpdateNotification');
+      
+      // Auto-hide after 5 seconds
+      const timer = setTimeout(() => {
+        setShowUpdateNotification(false);
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
   }, []);
 
   const handleSignInWithGoogle = async () => {
@@ -81,6 +100,18 @@ export function Landing() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 relative overflow-hidden">
+      {/* Update notification popup */}
+      {showUpdateNotification && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md px-4">
+          <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950 dark:border-blue-800 animate-in slide-in-from-top-2 duration-300" data-testid="update-notification">
+            <InfoIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <AlertDescription className="text-blue-800 dark:text-blue-200">
+              The app was updated, please log in again
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
+      
       {/* Subtle Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
         {/* Soft gradient orbs */}
