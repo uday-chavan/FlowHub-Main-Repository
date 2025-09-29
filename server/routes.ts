@@ -2757,7 +2757,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             await storage.createNotification({
               userId,
               title: `New email from ${from}`,
-              description: `${subject}: ${truncatedBody}`,
+              description: `${subject}: ${body.length > 200 ? body.substring(0, 200) + '...' : body}`,
               type: priority,
               sourceApp: "gmail",
               aiSummary: `Email from ${from} with subject: ${subject}`,
@@ -3021,7 +3021,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   await storage.createNotification({
                     userId,
                     title: `New email from ${from}`,
-                    description: `${subject}: ${truncatedBody}`,
+                    description: `${subject}: ${body.length > 200 ? body.substring(0, 200) + '...' : body}`,
                     type: priority,
                     sourceApp: "gmail",
                     aiSummary: `Email from ${from} with subject: ${subject}`,
