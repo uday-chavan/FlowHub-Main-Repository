@@ -700,28 +700,51 @@ export function WorkflowRiver() {
     });
   };
 
-  const handleDeleteTask = (taskId: string) => {
-    if (deletingTaskId === taskId) return; // Prevent multiple clicks
-    
-    // Instant optimistic update - remove from UI immediately
-    const currentTasks = queryClient.getQueryData<Task[]>(["/api/tasks", user?.id]);
-    if (currentTasks) {
-      const optimisticTasks = currentTasks.filter(task => task.id !== taskId);
-      queryClient.setQueryData(["/api/tasks", user?.id], optimisticTasks);
-    }
+  const handleDeleteTask = async (taskId: string) => {
+    if (!user?.id) return;
 
-    // Clean up stored data instantly
-    localStorage.removeItem(`task_parsed_time_${taskId}`);
-    globalParsedTimes.delete(taskId);
+    // Get current tasks for potential rollback
+    const currentTasks = queryClient.getQueryData<Task[]>(["/api/tasks", user.id]);
 
-    // API call in background (don't await for instant response)
-    deleteTaskMutation.mutateAsync(taskId).catch(error => {
+    // Set deleting state for visual feedback
+    setDeletingTaskId(taskId);
+
+    try {
+      // Optimistic update - remove only the specific task
+      if (currentTasks) {
+        const updatedTasks = currentTasks.filter(task => task.id !== taskId);
+        queryClient.setQueryData<Task[]>(["/api/tasks", user.id], updatedTasks);
+      }
+
+      // Show immediate toast feedback
+      toast({
+        title: "Task Removed! 🗑️",
+        description: "Task has been successfully deleted.",
+        duration: 2000,
+      });
+
+      // Call API to delete the task
+      await deleteTaskMutation.mutateAsync(taskId);
+
+    } catch (error) {
       console.error("Failed to delete task:", error);
+
       // Revert optimistic update on error
       if (currentTasks) {
-        queryClient.setQueryData(["/api/tasks", user?.id], currentTasks);
+        queryClient.setQueryData(["/api/tasks", user.id], currentTasks);
       }
-    });
+
+      // Show error toast
+      toast({
+        title: "Delete Failed",
+        description: "Failed to delete task. Please try again.",
+        variant: "destructive",
+        duration: 3000,
+      });
+    } finally {
+      // Clear deleting state
+      setDeletingTaskId(null);
+    }
   };
 
   // Placeholder for handling the "404 Page Not Found" error on scroll.
