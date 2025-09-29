@@ -627,8 +627,16 @@ export function WorkflowRiver() {
       if (a.status === 'completed' && b.status !== 'completed') return 1;
       if (a.status !== 'completed' && b.status === 'completed') return -1;
 
-      // For non-completed tasks, sort by time urgency
+      // For non-completed tasks, prioritize VIP (priority person) tasks first
       if (a.status !== 'completed' && b.status !== 'completed') {
+        const aIsVIP = a.metadata?.isPriorityPerson;
+        const bIsVIP = b.metadata?.isPriorityPerson;
+        
+        // VIP tasks always come first
+        if (aIsVIP && !bIsVIP) return -1;
+        if (!aIsVIP && bIsVIP) return 1;
+        
+        // If both are VIP or both are not VIP, sort by time urgency
         if (a.dueAt && b.dueAt) {
           return new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime();
         }
