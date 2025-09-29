@@ -154,17 +154,21 @@ export function useUpdateTask() {
         if (processedUpdates.dueAt === null) {
           // Keep null values as null
           processedUpdates.dueAt = null;
-        } else if (processedUpdates.dueAt instanceof Date) {
-          processedUpdates.dueAt = processedUpdates.dueAt.toISOString();
-        } else if (typeof processedUpdates.dueAt === 'string') {
-          // If it's already a valid ISO string, keep it as is
-          const date = new Date(processedUpdates.dueAt);
-          if (!isNaN(date.getTime())) {
-            // Only convert if it's not already an ISO string
-            if (!processedUpdates.dueAt.includes('T')) {
-              processedUpdates.dueAt = date.toISOString();
-            }
+        } else {
+          // Always ensure we have a valid Date object first
+          let dateObj: Date | null = null;
+          
+          if (processedUpdates.dueAt instanceof Date) {
+            dateObj = processedUpdates.dueAt;
+          } else if (typeof processedUpdates.dueAt === 'string') {
+            dateObj = new Date(processedUpdates.dueAt);
+          }
+          
+          // Validate the date and convert to ISO string
+          if (dateObj && !isNaN(dateObj.getTime())) {
+            processedUpdates.dueAt = dateObj.toISOString();
           } else {
+            console.warn('Invalid date provided for task update:', processedUpdates.dueAt);
             processedUpdates.dueAt = null;
           }
         }
