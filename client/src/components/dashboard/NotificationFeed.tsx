@@ -227,9 +227,25 @@ export function NotificationFeed() {
           </div>
         ) : (
           activeNotifications.map((notification) => {
-            // Ensure we get the correct priority from the notification
-            const notificationType = notification.type || 'normal';
-            const config = notificationTypeConfig[notificationType as keyof typeof notificationTypeConfig] || notificationTypeConfig.normal;
+            // Get priority from notification type or metadata
+            let notificationType: "urgent" | "important" | "normal" = 'normal';
+            
+            // Check if it's from a priority person first
+            if (notification.metadata?.isPriorityPerson) {
+              notificationType = 'urgent';
+            } else if (notification.type === 'urgent' || notification.type === 'important' || notification.type === 'normal') {
+              notificationType = notification.type;
+            } else {
+              // Fallback: analyze content for priority keywords
+              const content = (notification.title + ' ' + (notification.description || '')).toLowerCase();
+              if (content.includes('urgent') || content.includes('asap') || content.includes('emergency') || content.includes('critical')) {
+                notificationType = 'urgent';
+              } else if (content.includes('important') || content.includes('meeting') || content.includes('deadline') || content.includes('review')) {
+                notificationType = 'important';
+              }
+            }
+            
+            const config = notificationTypeConfig[notificationType];
             const timeAgo = formatDistanceToNow(new Date(notification.createdAt || new Date()), { addSuffix: true });
 
             return (
@@ -244,11 +260,11 @@ export function NotificationFeed() {
                       <div className="flex items-center gap-2 flex-wrap">
                         {getSourceIcon(notification.sourceApp || "default")}
                         <Badge 
-                          variant={notification.type === 'urgent' ? 'destructive' : 
-                                  notification.type === 'important' ? 'default' : 'outline'}
+                          variant={notificationType === 'urgent' ? 'destructive' : 
+                                  notificationType === 'important' ? 'default' : 'outline'}
                           className={`text-xs px-1.5 py-0.5 flex-shrink-0 ${
-                            notification.type === 'urgent' ? 'bg-red-500 text-white animate-pulse' :
-                            notification.type === 'important' ? 'bg-orange-500 text-white' :
+                            notificationType === 'urgent' ? 'bg-red-500 text-white animate-pulse' :
+                            notificationType === 'important' ? 'bg-orange-500 text-white' :
                             'bg-blue-500 text-white'
                           }`}
                         >
