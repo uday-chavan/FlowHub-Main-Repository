@@ -236,9 +236,9 @@ export function NotificationFeed() {
                 className={`border-l-2 ${config.color} ${config.bgColor} rounded-r-lg p-3 ${!notification.isRead ? 'ring-1 ring-primary/20' : ''} animate-in slide-in-from-left-3 duration-500 hover:scale-[1.02] transition-all hover:shadow-lg`}
                 data-testid={`notification-item-${notification.id}`}
               >
-                <div className="flex items-start justify-between gap-2">
+                <div className="flex items-start gap-3">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="flex items-start justify-between gap-3 mb-2">
                       <div className="flex items-center gap-2 flex-wrap">
                         {getSourceIcon(notification.sourceApp || "default")}
                         <Badge 
@@ -263,18 +263,18 @@ export function NotificationFeed() {
                           </Badge>
                         )}
                       </div>
-                      <span className="text-xs text-muted-foreground flex-shrink-0" data-testid={`notification-time-${notification.id}`}>
+                      <span className="text-xs text-muted-foreground flex-shrink-0 whitespace-nowrap ml-2" data-testid={`notification-time-${notification.id}`}>
                         {timeAgo}
                       </span>
                     </div>
-                    <h3 className="text-sm font-medium truncate mb-1" data-testid={`notification-title-${notification.id}`}>
+                    <h3 className="text-sm font-medium truncate mb-1 pr-2" data-testid={`notification-title-${notification.id}`}>
                       {notification.title}
                     </h3>
-                    <p className="text-xs text-muted-foreground line-clamp-2" data-testid={`notification-description-${notification.id}`}>
+                    <p className="text-xs text-muted-foreground line-clamp-2 pr-2" data-testid={`notification-description-${notification.id}`}>
                       {notification.aiSummary || notification.description}
                     </p>
                   </div>
-                  <div className="flex flex-col gap-1 ml-2">
+                  <div className="flex flex-col gap-1 flex-shrink-0">
                     <Button
                       onClick={() => handleViewNotification(notification)}
                       className="h-7 w-7 p-0"
