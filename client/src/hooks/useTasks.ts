@@ -40,8 +40,23 @@ export function useCreateTask() {
 
   return useMutation({
     mutationFn: async (task: InsertTask) => {
-      // Assuming apiRequest can handle user context or task should include userId
-      return await apiRequest("POST", "/api/tasks", { ...task, userId });
+      // Process the task to ensure proper date handling
+      const processedTask = { ...task, userId };
+      if (processedTask.dueAt) {
+        if (processedTask.dueAt instanceof Date) {
+          processedTask.dueAt = processedTask.dueAt.toISOString();
+        } else if (typeof processedTask.dueAt === 'string') {
+          // Validate it's a valid date string
+          const date = new Date(processedTask.dueAt);
+          if (!isNaN(date.getTime())) {
+            processedTask.dueAt = date.toISOString();
+          } else {
+            processedTask.dueAt = null;
+          }
+        }
+      }
+      
+      return await apiRequest("POST", "/api/tasks", processedTask);
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
@@ -130,8 +145,23 @@ export function useUpdateTask() {
 
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Task> }) => {
-      // Assuming apiRequest handles user context or updates should include userId
-      return await apiRequest("PATCH", `/api/tasks/${id}`, { ...updates, userId });
+      // Ensure dueAt is properly converted to ISO string if it's a Date object
+      const processedUpdates = { ...updates, userId };
+      if (processedUpdates.dueAt) {
+        if (processedUpdates.dueAt instanceof Date) {
+          processedUpdates.dueAt = processedUpdates.dueAt.toISOString();
+        } else if (typeof processedUpdates.dueAt === 'string') {
+          // Validate it's a valid date string
+          const date = new Date(processedUpdates.dueAt);
+          if (!isNaN(date.getTime())) {
+            processedUpdates.dueAt = date.toISOString();
+          } else {
+            processedUpdates.dueAt = null;
+          }
+        }
+      }
+      
+      return await apiRequest("PATCH", `/api/tasks/${id}`, processedUpdates);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tasks", userId] });
