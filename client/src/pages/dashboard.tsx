@@ -27,19 +27,24 @@ export default function Dashboard() {
       if (!user) return;
 
       // Use a static build timestamp to detect deployments
-      const BUILD_TIMESTAMP = '1759099640'; // This will change with each deployment
-      const storedBuildVersion = localStorage.getItem('buildVersion');
-      
+      const BUILD_TIMESTAMP = "1759099640"; // This will change with each deployment
+      const storedBuildVersion = localStorage.getItem("buildVersion");
+
       // Check if this is a new deployment
       if (storedBuildVersion && storedBuildVersion !== BUILD_TIMESTAMP) {
         // App was updated/redeployed - show modal
-        console.log('App update detected:', storedBuildVersion, '->', BUILD_TIMESTAMP);
+        console.log(
+          "App update detected:",
+          storedBuildVersion,
+          "->",
+          BUILD_TIMESTAMP,
+        );
         setShowAppUpdateModal(true);
         return;
       }
-      
+
       // Store current build version
-      localStorage.setItem('buildVersion', BUILD_TIMESTAMP);
+      localStorage.setItem("buildVersion", BUILD_TIMESTAMP);
     };
 
     checkAppUpdate();
@@ -48,29 +53,29 @@ export default function Dashboard() {
   const handleSignInClick = () => {
     setShowAppUpdateModal(false);
     // Store current build version to prevent showing again
-    const BUILD_TIMESTAMP = '1759099640';
-    localStorage.setItem('buildVersion', BUILD_TIMESTAMP);
+    const BUILD_TIMESTAMP = "1759099640";
+    localStorage.setItem("buildVersion", BUILD_TIMESTAMP);
     // Clear user session and redirect to login
     localStorage.clear();
     sessionStorage.clear();
     // Re-set the build version after clearing
-    localStorage.setItem('buildVersion', BUILD_TIMESTAMP);
-    setLocation('/');
+    localStorage.setItem("buildVersion", BUILD_TIMESTAMP);
+    setLocation("/");
   };
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       <Header />
-      <AppUpdateModal 
-        isOpen={showAppUpdateModal} 
+      <AppUpdateModal
+        isOpen={showAppUpdateModal}
         onSignInClick={handleSignInClick}
       />
-      
+
       <main className="flex-1 overflow-y-auto">
         <Page className="py-4">
           <Section spacing="sm">
             {/* Responsive Grid Layout */}
-            <ResponsiveGrid 
+            <ResponsiveGrid
               cols={{ base: 1, lg: 3 }}
               gap="lg"
               className="min-h-[calc(100vh-8rem)]"
