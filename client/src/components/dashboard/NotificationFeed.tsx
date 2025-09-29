@@ -227,7 +227,9 @@ export function NotificationFeed() {
           </div>
         ) : (
           activeNotifications.map((notification) => {
-            const config = notificationTypeConfig[notification.type as keyof typeof notificationTypeConfig] || notificationTypeConfig.normal;
+            // Ensure we get the correct priority from the notification
+            const notificationType = notification.type || 'normal';
+            const config = notificationTypeConfig[notificationType as keyof typeof notificationTypeConfig] || notificationTypeConfig.normal;
             const timeAgo = formatDistanceToNow(new Date(notification.createdAt || new Date()), { addSuffix: true });
 
             return (
@@ -245,7 +247,7 @@ export function NotificationFeed() {
                           variant={notification.type === 'urgent' ? 'destructive' : 
                                   notification.type === 'important' ? 'default' : 'outline'}
                           className={`text-xs px-1.5 py-0.5 flex-shrink-0 ${
-                            notification.type === 'urgent' ? 'bg-red-500 text-white' :
+                            notification.type === 'urgent' ? 'bg-red-500 text-white animate-pulse' :
                             notification.type === 'important' ? 'bg-orange-500 text-white' :
                             'bg-blue-500 text-white'
                           }`}
