@@ -1134,8 +1134,8 @@ export function WorkflowRiver() {
                                         showTimeSelect
                                         timeFormat="HH:mm"
                                         timeIntervals={15}
-                                        dateFormat="Pp"
-                                        className="text-xs p-1 rounded border text-center w-32 relative z-[9999] text-black bg-white"
+                                        dateFormat="MMM d, yyyy h:mm aa"
+                                        className="text-xs p-2 rounded border text-center w-44 relative z-[9999] text-black bg-white"
                                         placeholderText="Select date & time"
                                         popperClassName="!z-[99999]"
                                         popperPlacement="bottom-end"
@@ -1368,9 +1368,9 @@ export function WorkflowRiver() {
                   showTimeSelect
                   timeFormat="HH:mm"
                   timeIntervals={15}
-                  dateFormat="MMMM d, yyyy h:mm aa"
+                  dateFormat="MMM d, yyyy h:mm aa"
                   placeholderText="Select date and time"
-                  className="w-full bg-transparent outline-none"
+                  className="w-full bg-transparent outline-none text-sm"
                   minDate={new Date()}
                   isClearable
                 />
