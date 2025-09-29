@@ -1111,14 +1111,17 @@ export function WorkflowRiver() {
                                     )}
                                   </div>
                                 )}
-                                <div
-                                  className="text-xs text-muted-foreground cursor-pointer hover:text-primary transition-colors flex items-center gap-1 mt-1"
-                                  data-testid={`task-description-${task.id}`}
-                                  onClick={() => handleViewDescription(task)}
-                                >
-                                  <span className="underline">Show description</span>
-                                  <Info className="w-3 h-3 opacity-60" />
-                                </div>
+                                {/* Hide "Show description" when editing time */}
+                                {editingTimeTaskId !== task.id && (
+                                  <div
+                                    className="text-xs text-muted-foreground cursor-pointer hover:text-primary transition-colors flex items-center gap-1 mt-1"
+                                    data-testid={`task-description-${task.id}`}
+                                    onClick={() => handleViewDescription(task)}
+                                  >
+                                    <span className="underline">Show description</span>
+                                    <Info className="w-3 h-3 opacity-60" />
+                                  </div>
+                                )}
                               </div>
                             </div>
 
