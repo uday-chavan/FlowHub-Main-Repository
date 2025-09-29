@@ -908,24 +908,26 @@ function getFallbackTaskFromNotification(notification: {
     }
   }
 
-  // Check for casual/social patterns SECOND - Check DESCRIPTION content primarily
-  if (lowerContent.match(/\b(?:hi|hello|hey|wassup|what's up|how are you|how r u|good morning|good afternoon|good evening|hangout|chat|let's play|game|social|casual)\b/) ||
+  // Check for urgent patterns FIRST (highest priority)
+  if (allText.match(/\b(?:asap|urgent|right now|immediately|emergency|critical|crisis)\b/i) ||
+      allText.match(/\b(?:in\s*(?:[1-5]?\d)\s*(?:min|mins|minutes?))\b/i) ||
+      allText.match(/\b(?:in\s*(?:[1-9]|[1-5][0-9])\s*(?:min|mins|minutes?))\b/i) ||
+      allText.match(/\b(?:within\s*(?:[1-5]?\d)\s*(?:min|mins|minutes?))\b/i)) {
+    priority = "urgent";
+  }
+  // Check for important patterns (work-related, deadlines within hours/days)
+  else if (allText.match(/\b(?:meeting|work|boss|client|deadline|important|review|submit|report|project|task|schedule|call)\b/i) ||
+           allText.match(/\b(?:in\s*(?:[1-9]|[12][0-9])\s*(?:hour|hours?|hrs?))\b/i) ||
+           allText.match(/\b(?:today|tomorrow|this\s+(?:morning|afternoon|evening|week))\b/i)) {
+    priority = "important";
+  }
+  // Check for casual/social patterns LAST (lowest priority)
+  else if (lowerContent.match(/\b(?:hi|hello|hey|wassup|what's up|how are you|how r u|good morning|good afternoon|good evening|hangout|chat|let's play|game|social|casual)\b/) ||
       lowerContent.match(/^(?:hi|hello|hey)\s*[!.]*\s*$/) ||
       allText.match(/\b(?:hi|hello|hey|wassup|what's up|how are you|how r u|good morning|good afternoon|good evening|hangout|chat|let's play|game|social|casual)\b/) ||
       allText.match(/^(?:hi|hello|hey)\s*[!.]*\s*$/)) {
     priority = "normal";
-  }
-  // Check for urgent patterns (within 1 hour or immediate action needed)
-  else if (allText.match(/\b(?:in\s*(?:[1-5]?\d)\s*(?:min|mins|minutes?))\b/) ||
-      allText.match(/\b(?:asap|urgent|right now|immediately|emergency)\b/) ||
-      allText.match(/\b(?:in\s*(?:[1-9]|[1-5][0-9])\s*(?:min|mins|minutes?))\b/)) {
-    priority = "urgent";
-  }
-  // Check for important patterns (work-related, deadlines within hours/days) - EXCLUDE if already classified as casual
-  else if (allText.match(/\b(?:meeting|work|boss|client|deadline|important|review|submit|report|project|task|schedule|call)\b/) ||
-           allText.match(/\b(?:in\s*(?:[1-9]|[12][0-9])\s*(?:hour|hours?|hrs?))\b/) ||
-           allText.match(/\b(?:today|tomorrow|this\s+(?:morning|afternoon|evening|week))\b/)) {
-    priority = "important";
+  }ortant";
   }
 
   return {
