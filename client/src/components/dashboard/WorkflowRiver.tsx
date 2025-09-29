@@ -1277,8 +1277,12 @@ export function WorkflowRiver() {
                                         e.stopPropagation();
                                         handleDeleteTask(task.id);
                                       }}
-                                      disabled={deletingTaskId === task.id || deleteTaskMutation.isPending} // Disable if already deleting this task or mutation is pending
-                                      className="bg-red-50 hover:bg-red-100 text-red-600 px-1.5 py-1 rounded text-xs transition-colors h-6"
+                                      disabled={deletingTaskId === task.id}
+                                      className={`text-red-600 px-1.5 py-1 rounded text-xs transition-colors h-6 ${
+                                        deletingTaskId === task.id 
+                                          ? 'bg-red-200 cursor-not-allowed opacity-50' 
+                                          : 'bg-red-50 hover:bg-red-100 active:bg-red-150'
+                                      }`}
                                       size="sm"
                                       data-testid={`button-clear-task-${task.id}`}
                                     >
