@@ -541,7 +541,7 @@ main {
   --font-display: 'Inter', 'GT America', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-heading: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --radius: 8px;
-
+  
   /* Fluid Typography */
   --text-xs: clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
   --text-sm: clamp(0.875rem, 0.8rem + 0.375vw, 1rem);
@@ -551,14 +551,14 @@ main {
   --text-2xl: clamp(1.5rem, 1.3rem + 1vw, 2rem);
   --text-3xl: clamp(1.875rem, 1.6rem + 1.375vw, 2.5rem);
   --text-4xl: clamp(2.25rem, 1.9rem + 1.75vw, 3rem);
-
+  
   /* Safe Area Insets */
   --safe-area-inset-top: env(safe-area-inset-top, 0px);
   --safe-area-inset-right: env(safe-area-inset-right, 0px);
   --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
   --safe-area-inset-left: env(safe-area-inset-left, 0px);
   --shadow-2xs: 0px 2px 0px 0px hsl(212, 100%, 47% / 0.00);
-  --shadow-xs: 0px 2px 0px 0px hsl(195, 100%, 55% / 0.00), 0px 1px 2px -1px hsl(195, 100%, 55% / 0.00);
+  --shadow-xs: 0px 2px 0px 0px hsl(195, 100%, 55% / 0.00);
   --shadow-sm: 0px 2px 0px 0px hsl(195, 100%, 55% / 0.00), 0px 1px 2px -1px hsl(195, 100%, 55% / 0.00);
   --shadow: 0px 2px 0px 0px hsl(195, 100%, 55% / 0.00), 0px 1px 2px -1px hsl(195, 100%, 55% / 0.00);
   --shadow-md: 0px 2px 0px 0px hsl(195, 100%, 55% / 0.00), 0px 2px 4px -1px hsl(195, 100%, 55% / 0.00);
