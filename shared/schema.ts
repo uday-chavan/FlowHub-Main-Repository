@@ -284,6 +284,35 @@ export const insertTaskSchema = createInsertSchema(tasks)
     }),
   });
 
+export const updateTaskSchema = createInsertSchema(tasks)
+  .omit({
+    id: true,
+    userId: true, // Don't allow changing user ownership
+    createdAt: true,
+    updatedAt: true,
+  })
+  .partial() // Make all fields optional for updates
+  .extend({
+    dueAt: z.union([z.string(), z.date()]).optional().transform((val) => {
+      if (typeof val === 'string') {
+        return new Date(val);
+      }
+      return val;
+    }),
+    startedAt: z.union([z.string(), z.date()]).optional().transform((val) => {
+      if (typeof val === 'string') {
+        return new Date(val);
+      }
+      return val;
+    }),
+    completedAt: z.union([z.string(), z.date()]).optional().transform((val) => {
+      if (typeof val === 'string') {
+        return new Date(val);
+      }
+      return val;
+    }),
+  });
+
 export const insertNotificationSchema = createInsertSchema(notifications).omit({
   id: true,
   createdAt: true,
@@ -362,6 +391,7 @@ export type InsertUser = typeof users.$inferInsert;
 
 export type Task = typeof tasks.$inferSelect;
 export type InsertTask = z.infer<typeof insertTaskSchema>;
+export type UpdateTask = z.infer<typeof updateTaskSchema>;
 
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
