@@ -32,7 +32,7 @@ export function useNotifications(limit?: number, type?: string) {
       return response.json();
     },
     enabled: !!userId && !!user,
-    refetchInterval: 15000, // Poll every 15 seconds for reasonable updates
+    refetchInterval: 8000, // Poll every 8 seconds for faster updates
     refetchIntervalInBackground: true,
   });
 }
