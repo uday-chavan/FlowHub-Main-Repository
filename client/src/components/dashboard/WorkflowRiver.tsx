@@ -702,14 +702,24 @@ export function WorkflowRiver() {
 
   const handleDeleteTask = (taskId: string) => {
     if (deletingTaskId === taskId) return; // Prevent multiple clicks
-    setDeletingTaskId(taskId);
-    // Clean up stored parsed time when deleting task
+    
+    // Instant optimistic update - remove from UI immediately
+    const currentTasks = queryClient.getQueryData<Task[]>(["/api/tasks", user?.id]);
+    if (currentTasks) {
+      const optimisticTasks = currentTasks.filter(task => task.id !== taskId);
+      queryClient.setQueryData(["/api/tasks", user?.id], optimisticTasks);
+    }
+
+    // Clean up stored data instantly
     localStorage.removeItem(`task_parsed_time_${taskId}`);
-    // Clean up global store
     globalParsedTimes.delete(taskId);
-    deleteTaskMutation.mutate(taskId, {
-      onSettled: () => {
-        setDeletingTaskId(null); // Reset after mutation settles
+
+    // API call in background (don't await for instant response)
+    deleteTaskMutation.mutateAsync(taskId).catch(error => {
+      console.error("Failed to delete task:", error);
+      // Revert optimistic update on error
+      if (currentTasks) {
+        queryClient.setQueryData(["/api/tasks", user?.id], currentTasks);
       }
     });
   };
@@ -1277,12 +1287,8 @@ export function WorkflowRiver() {
                                         e.stopPropagation();
                                         handleDeleteTask(task.id);
                                       }}
-                                      disabled={deletingTaskId === task.id}
-                                      className={`text-red-600 px-1.5 py-1 rounded text-xs transition-colors h-6 ${
-                                        deletingTaskId === task.id 
-                                          ? 'bg-red-200 cursor-not-allowed opacity-50' 
-                                          : 'bg-red-50 hover:bg-red-100 active:bg-red-150'
-                                      }`}
+                                      disabled={false}
+                                      className="bg-red-50 hover:bg-red-100 text-red-600 px-1.5 py-1 rounded text-xs transition-colors h-6 hover:bg-red-200 active:bg-red-300"
                                       size="sm"
                                       data-testid={`button-clear-task-${task.id}`}
                                     >
