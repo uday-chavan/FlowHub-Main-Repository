@@ -29,7 +29,7 @@ export default function Dashboard() {
       // Use a static build timestamp to detect deployments
       const BUILD_TIMESTAMP = '1759099640'; // This will change with each deployment
       const storedBuildVersion = localStorage.getItem('buildVersion');
-
+      
       // Check if this is a new deployment
       if (storedBuildVersion && storedBuildVersion !== BUILD_TIMESTAMP) {
         // App was updated/redeployed - show modal
@@ -37,7 +37,7 @@ export default function Dashboard() {
         setShowAppUpdateModal(true);
         return;
       }
-
+      
       // Store current build version
       localStorage.setItem('buildVersion', BUILD_TIMESTAMP);
     };
@@ -65,34 +65,37 @@ export default function Dashboard() {
         isOpen={showAppUpdateModal} 
         onSignInClick={handleSignInClick}
       />
-
+      
       <main className="flex-1 overflow-y-auto">
         <Page className="py-4">
-          <ResponsiveGrid 
-            cols={{ base: 1, lg: 3 }}
-            gap="lg"
-            className="min-h-[calc(100vh-8rem)]"
-          >
-            {/* Notifications Column - Full width on mobile, 1/3 on desktop */}
-            <div className="lg:col-span-1 order-1 lg:order-1">
-              <div className="sticky top-4">
-                <NotificationFeed />
+          <Section spacing="sm">
+            {/* Responsive Grid Layout */}
+            <ResponsiveGrid 
+              cols={{ base: 1, lg: 3 }}
+              gap="lg"
+              className="min-h-[calc(100vh-8rem)]"
+            >
+              {/* Notifications Column - Full width on mobile, 1/3 on desktop */}
+              <div className="lg:col-span-1 order-1 lg:order-1">
+                <div className="sticky top-4">
+                  <NotificationFeed />
+                </div>
               </div>
-            </div>
 
-            {/* Main Tasks Column - Full width on mobile, 2/3 on desktop */}
-            <div className="lg:col-span-2 order-3 lg:order-2">
-              <WorkflowRiver />
-            </div>
+              {/* Main Tasks Column - Full width on mobile, 2/3 on desktop */}
+              <div className="lg:col-span-2 order-3 lg:order-2">
+                <WorkflowRiver />
+              </div>
 
-            {/* Integration Tools - Desktop only */}
-            <div className="hidden lg:block lg:col-span-3 order-2 lg:order-3 space-y-4">
-              <ResponsiveGrid cols={{ base: 1, sm: 2 }} gap="md">
-                <GmailConnect onConnectionChange={setIsGmailConnected} />
-                <CalendarSync isGmailConnected={isGmailConnected} />
-              </ResponsiveGrid>
-            </div>
-          </ResponsiveGrid>
+              {/* Integration Tools - Full width on mobile, stacked above tasks */}
+              <div className="lg:col-span-3 order-2 lg:order-3 space-y-4">
+                <ResponsiveGrid cols={{ base: 1, sm: 2 }} gap="md">
+                  <GmailConnect onConnectionChange={setIsGmailConnected} />
+                  <CalendarSync isGmailConnected={isGmailConnected} />
+                </ResponsiveGrid>
+              </div>
+            </ResponsiveGrid>
+          </Section>
         </Page>
       </main>
 
