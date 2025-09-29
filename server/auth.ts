@@ -41,13 +41,18 @@ const JWT_SECRET = process.env.JWT_SECRET ||
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 const REFRESH_TOKEN_EXPIRES_IN = process.env.REFRESH_TOKEN_EXPIRES_IN || '30d';
 
+// Deployment timestamp - invalidates all tokens from previous deployments
+const DEPLOYMENT_TIMESTAMP = Date.now();
+console.log(`[Auth] Deployment timestamp: ${DEPLOYMENT_TIMESTAMP} (${new Date(DEPLOYMENT_TIMESTAMP).toISOString()})`);
+
 // Generate JWT tokens
 export function generateTokens(user: { id: string; email: string; name: string }) {
   const accessToken = jwt.sign(
     { 
       id: user.id, 
       email: user.email, 
-      name: user.name 
+      name: user.name,
+      deploymentTimestamp: DEPLOYMENT_TIMESTAMP
     },
     JWT_SECRET,
     { 
@@ -60,7 +65,8 @@ export function generateTokens(user: { id: string; email: string; name: string }
   const refreshToken = jwt.sign(
     { 
       id: user.id, 
-      type: 'refresh' 
+      type: 'refresh',
+      deploymentTimestamp: DEPLOYMENT_TIMESTAMP
     },
     JWT_SECRET,
     { 
@@ -76,10 +82,20 @@ export function generateTokens(user: { id: string; email: string; name: string }
 // Verify JWT token
 export function verifyToken(token: string): any {
   try {
-    return jwt.verify(token, JWT_SECRET, {
+    const decoded = jwt.verify(token, JWT_SECRET, {
       issuer: 'flowhub-app',
       audience: 'flowhub-users'
     });
+    
+    // Check if token is from current deployment
+    if (typeof decoded === 'object' && decoded !== null) {
+      if (!decoded.deploymentTimestamp || decoded.deploymentTimestamp !== DEPLOYMENT_TIMESTAMP) {
+        console.log(`[Auth] Token rejected: deployment mismatch (token: ${decoded.deploymentTimestamp}, current: ${DEPLOYMENT_TIMESTAMP})`);
+        return null;
+      }
+    }
+    
+    return decoded;
   } catch (error) {
     return null;
   }
