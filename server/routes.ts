@@ -2738,17 +2738,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
               isPriorityPerson = true;
               console.log(`[Gmail] Priority person detected: ${fromEmail} - setting priority to urgent`);
             } else {
-              // Skip AI analysis for faster processing, use keyword-based priority
-              const urgentKeywords = ['urgent', 'asap', 'emergency', 'critical', 'immediately'];
-              const importantKeywords = ['important', 'meeting', 'deadline', 'review', 'approval', 'schedule', 'conference'];
+              // Enhanced keyword-based priority classification
+              const urgentKeywords = ['urgent', 'asap', 'emergency', 'critical', 'immediately', 'rush', 'crisis'];
+              const importantKeywords = ['important', 'meeting', 'deadline', 'review', 'approval', 'schedule', 'conference', 'action required', 'follow up'];
               const fullText = (subject + ' ' + body).toLowerCase();
               
               if (urgentKeywords.some(keyword => fullText.includes(keyword))) {
                 priority = "urgent";
               } else if (importantKeywords.some(keyword => fullText.includes(keyword))) {
                 priority = "important";
+              } else {
+                // Check for work-related indicators that should be at least important
+                const workKeywords = ['project', 'task', 'deliverable', 'report', 'client', 'customer'];
+                if (workKeywords.some(keyword => fullText.includes(keyword))) {
+                  priority = "important";
+                }
               }
-              console.log(`[Gmail] Fast keyword analysis result: ${priority} for email from ${fromEmail}`);
+              console.log(`[Gmail] Enhanced keyword analysis result: ${priority} for email from ${fromEmail}`);
             }
 
             console.log(`[Gmail] Creating notification for email: ${subject} from ${from} (Priority: ${priority}, isPriorityPerson: ${isPriorityPerson})`);
@@ -2758,18 +2764,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
               userId,
               title: `New email from ${from}`,
               description: `${subject}: ${body.length > 200 ? body.substring(0, 200) + '...' : body}`,
-              type: priority,
+              type: priority, // This will be 'urgent', 'important', or 'normal'
               sourceApp: "gmail",
               aiSummary: `Email from ${from} with subject: ${subject}`,
               metadata: {
                 fullEmailContent,
                 emailSubject: subject,
                 emailFrom: from,
-                emailDate: headers.find(h => h.name === 'Date')?.value || '', // Add date to metadata
-                emailId: message.id, // Store email ID for deduplication
-                isPriorityPerson: isPriorityPerson, // Mark if from priority contact
-                priorityReason: isPriorityPerson ? "Priority Contact" : "Normal Email",
-                fromEmail: fromEmail // Store extracted email for debugging
+                emailDate: headers.find(h => h.name === 'Date')?.value || '',
+                emailId: message.id,
+                isPriorityPerson: isPriorityPerson,
+                priorityReason: isPriorityPerson ? "Priority Contact" : (priority === 'urgent' ? "Urgent Keywords" : priority === 'important' ? "Important Keywords" : "Normal Email"),
+                fromEmail: fromEmail,
+                detectedPriority: priority // Store the detected priority for debugging
               },
               actionableInsights: ["Reply to email", "Mark as read", "Archive email"],
             });
