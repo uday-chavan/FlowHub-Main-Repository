@@ -2629,8 +2629,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
             }
 
-            // Store both full and truncated body
-            const truncatedBody = body.length > 200 ? body.substring(0, 200) + '...' : body;
+            // Store full body content without truncation
             const fullEmailContent = `Subject: ${subject}\n\n${body}`;
 
             // Extract email address consistently for priority checking
@@ -2786,13 +2785,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
 
-        // Always update lastCheckTime to prevent reprocessing the same emails
-        // but use a slightly earlier time to ensure no emails are missed
+        // Update lastCheckTime properly to prevent duplicate processing
+        // Only update if we successfully processed emails to prevent endless loops
         if (messages.length > 0) {
-          lastCheckTime = new Date(Date.now() - 30000); // Go back 30 seconds to ensure no gaps
-        } else {
-          // Even if no messages, update time to move forward
-          lastCheckTime = new Date(Date.now() - 60000); // Go back 1 minute for safety
+          lastCheckTime = new Date(); // Set to current time, no going back
+          console.log(`[Gmail] Updated lastCheckTime to: ${lastCheckTime.toISOString()}`);
         }
 
       } catch (error) {
@@ -2904,7 +2901,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     }
                   }
 
-                  const truncatedBody = body.length > 200 ? body.substring(0, 200) + '...' : body;
+                  // Keep full email content without truncation
 
                   // Extract email address consistently for priority checking
                   let fromEmail = from.toLowerCase().trim();
@@ -3088,7 +3085,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     await fetchUnreadEmails();
 
     // Set up periodic fetching every 10 seconds
-    const interval = setInterval(fetchUnreadEmails, 10000);
+    const interval = setInterval(fetchUnreadEmails, 30000); // Reduced frequency to 30 seconds
     userGmailIntervals.set(userId, interval);
   }
 
