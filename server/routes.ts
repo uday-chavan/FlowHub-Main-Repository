@@ -1766,42 +1766,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Authentication required" });
       }
 
-      // Get all tasks and notifications for analytics
-      const tasks = await storage.getUserTasks(userId);
+      // Get all current tasks and notifications for analytics
+      const currentTasks = await storage.getUserTasks(userId);
       const notifications = await storage.getUserNotifications(userId);
+      
+      // Get converted emails (these represent tasks that were created from emails)
+      const convertedEmails = await storage.getUserConvertedEmails(userId);
 
-      // Calculate statistics
-      const emailConversions = notifications.filter(n =>
+      // Calculate email conversions from multiple sources
+      // 1. From notifications that were email conversions
+      const emailConversionsFromNotifications = notifications.filter(n =>
         n.sourceApp === "gmail" && n.type === "email_converted"
       ).length;
 
-      const naturalLanguageTasks = tasks.filter(t =>
+      // 2. From converted emails table (more accurate count of actual conversions)
+      const emailConversionsFromConvertedEmails = convertedEmails.length;
+
+      // Use the higher count to ensure we capture all conversions
+      const totalEmailConversions = Math.max(emailConversionsFromNotifications, emailConversionsFromConvertedEmails);
+
+      // Count tasks created from converted emails (these may have been deleted but still represent time saved)
+      const tasksFromConvertedEmails = convertedEmails.reduce((total, email) => {
+        return total + (email.taskIds ? email.taskIds.length : 1);
+      }, 0);
+
+      // Calculate natural language tasks from current tasks
+      const currentNaturalLanguageTasks = currentTasks.filter(t =>
         t.metadata?.aiGenerated || t.sourceApp === "manual"
       ).length;
 
-      const urgentTasksHandled = tasks.filter(t => t.priority === "urgent").length;
-      const completedTasks = tasks.filter(t => t.status === "completed").length;
+      // Total natural language tasks = current + those from converted emails
+      const totalNaturalLanguageTasks = currentNaturalLanguageTasks + tasksFromConvertedEmails;
 
-      // Calculate estimated time saved (conservative estimates)
-      // These calculations are based on assumptions and can be refined.
-      // For example, time saved from AI tasks could be based on average manual task completion time.
-      const emailTimeSaved = emailConversions * 5; // Estimated 5 minutes saved per email conversion
-      const nlTimeSaved = naturalLanguageTasks * 3; // Estimated 3 minutes saved per natural language task creation
-      const priorityTimeSaved = urgentTasksHandled * 10; // Estimated 10 minutes saved per urgent task handled proactively
+      // Calculate urgent tasks (current + historical from converted emails)
+      const currentUrgentTasks = currentTasks.filter(t => t.priority === "urgent").length;
+      const urgentTasksFromEmails = convertedEmails.filter(e => 
+        e.metadata?.isPriorityPerson || e.metadata?.detectedPriority === 'urgent'
+      ).length;
+      const totalUrgentTasksHandled = currentUrgentTasks + urgentTasksFromEmails;
 
-      const totalTimeSavedMinutes = emailTimeSaved + nlTimeSaved + priorityTimeSaved;
+      // Calculate completed tasks (current + assume converted email tasks were completed)
+      const currentCompletedTasks = currentTasks.filter(t => t.status === "completed").length;
+      const completedTasksFromEmails = convertedEmails.filter(e => 
+        e.status === "converted" // Converted emails represent completed workflow
+      ).length;
+      const totalCompletedTasks = currentCompletedTasks + completedTasksFromEmails;
+
+      // Enhanced time saved calculations
+      const emailTimeSaved = totalEmailConversions * 8; // Increased to 8 minutes per email conversion (reading, processing, creating task)
+      const nlTimeSaved = totalNaturalLanguageTasks * 5; // Increased to 5 minutes per AI-generated task
+      const priorityTimeSaved = totalUrgentTasksHandled * 12; // Increased to 12 minutes for urgent task handling
+      const completionTimeSaved = totalCompletedTasks * 3; // 3 minutes saved per task through better organization
+
+      const totalTimeSavedMinutes = emailTimeSaved + nlTimeSaved + priorityTimeSaved + completionTimeSaved;
 
       const stats = {
-        totalEmailsConverted: emailConversions,
-        totalTasksCreatedFromNaturalLanguage: naturalLanguageTasks,
+        totalEmailsConverted: totalEmailConversions,
+        totalTasksCreatedFromNaturalLanguage: totalNaturalLanguageTasks,
         totalTimeSavedMinutes,
         conversionBreakdown: {
-          emailConversions,
-          naturalLanguageConversions: naturalLanguageTasks,
-          urgentTasksHandled,
-          completedTasks
+          emailConversions: totalEmailConversions,
+          naturalLanguageConversions: totalNaturalLanguageTasks,
+          urgentTasksHandled: totalUrgentTasksHandled,
+          completedTasks: totalCompletedTasks
         }
       };
+
+      console.log(`[TimeSaved] Analytics for user ${userId}:`, {
+        currentTasks: currentTasks.length,
+        convertedEmails: convertedEmails.length,
+        tasksFromEmails: tasksFromConvertedEmails,
+        totalTimeSaved: totalTimeSavedMinutes
+      });
 
       res.json(stats);
     } catch (error) {
