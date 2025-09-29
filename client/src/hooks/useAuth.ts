@@ -24,6 +24,19 @@ export function useAuth() {
         });
 
         if (!response.ok) {
+          // Check if session was invalidated due to deployment update
+          if (response.status === 403) {
+            try {
+              const errorData = await response.json();
+              if (errorData.reason === 'deployment_update') {
+                // Set flag to show update notification on login page
+                localStorage.setItem('showUpdateNotification', 'true');
+              }
+            } catch (e) {
+              // Ignore JSON parsing errors
+            }
+          }
+          
           // Clear any stale auth state on failed requests
           localStorage.removeItem('user_auth');
           localStorage.removeItem('gmailConnected');
