@@ -274,7 +274,7 @@ export function NotificationFeed() {
                       {notification.aiSummary || notification.description}
                     </p>
                   </div>
-                  <div className="flex flex-col gap-1 flex-shrink-0">
+                  <div className="flex flex-col gap-1 flex-shrink-0 mt-2">
                     <Button
                       onClick={() => handleViewNotification(notification)}
                       className="h-7 w-7 p-0"
