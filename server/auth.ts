@@ -129,6 +129,14 @@ export function authenticateToken(req: AuthenticatedRequest, res: Response, next
 
   const decoded = verifyToken(token);
   if (!decoded) {
+    // Check if token was rejected due to deployment mismatch
+    const tokenPayload = jwt.decode(token);
+    if (tokenPayload && typeof tokenPayload === 'object' && tokenPayload.deploymentTimestamp && tokenPayload.deploymentTimestamp !== DEPLOYMENT_TIMESTAMP) {
+      return res.status(403).json({ 
+        message: 'Session invalidated due to app update',
+        reason: 'deployment_update'
+      });
+    }
     return res.status(403).json({ message: 'Invalid or expired token' });
   }
 
