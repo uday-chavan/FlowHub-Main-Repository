@@ -46,10 +46,13 @@ export function useCreateTask() {
         if (processedTask.dueAt instanceof Date) {
           processedTask.dueAt = processedTask.dueAt.toISOString();
         } else if (typeof processedTask.dueAt === 'string') {
-          // Validate it's a valid date string
+          // If it's already a valid ISO string, keep it as is
           const date = new Date(processedTask.dueAt);
           if (!isNaN(date.getTime())) {
-            processedTask.dueAt = date.toISOString();
+            // Only convert if it's not already an ISO string
+            if (!processedTask.dueAt.includes('T')) {
+              processedTask.dueAt = date.toISOString();
+            }
           } else {
             processedTask.dueAt = null;
           }
@@ -147,14 +150,20 @@ export function useUpdateTask() {
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Task> }) => {
       // Ensure dueAt is properly converted to ISO string if it's a Date object
       const processedUpdates = { ...updates, userId };
-      if (processedUpdates.dueAt) {
-        if (processedUpdates.dueAt instanceof Date) {
+      if (processedUpdates.dueAt !== undefined) {
+        if (processedUpdates.dueAt === null) {
+          // Keep null values as null
+          processedUpdates.dueAt = null;
+        } else if (processedUpdates.dueAt instanceof Date) {
           processedUpdates.dueAt = processedUpdates.dueAt.toISOString();
         } else if (typeof processedUpdates.dueAt === 'string') {
-          // Validate it's a valid date string
+          // If it's already a valid ISO string, keep it as is
           const date = new Date(processedUpdates.dueAt);
           if (!isNaN(date.getTime())) {
-            processedUpdates.dueAt = date.toISOString();
+            // Only convert if it's not already an ISO string
+            if (!processedUpdates.dueAt.includes('T')) {
+              processedUpdates.dueAt = date.toISOString();
+            }
           } else {
             processedUpdates.dueAt = null;
           }
