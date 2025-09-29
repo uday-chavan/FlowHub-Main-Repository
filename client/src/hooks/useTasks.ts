@@ -40,22 +40,22 @@ export function useCreateTask() {
 
   return useMutation({
     mutationFn: async (task: InsertTask) => {
+      // Process the task to ensure proper date handling
       const processedTask = { ...task, userId };
-      
-      // Handle timestamp fields - always ensure they are Date objects or null
-      if (processedTask.dueAt !== undefined) {
-        if (processedTask.dueAt === null) {
-          processedTask.dueAt = null;
-        } else if (processedTask.dueAt instanceof Date) {
-          // Already a Date object, keep as is
-          processedTask.dueAt = processedTask.dueAt;
+      if (processedTask.dueAt) {
+        if (processedTask.dueAt instanceof Date) {
+          processedTask.dueAt = processedTask.dueAt.toISOString();
         } else if (typeof processedTask.dueAt === 'string') {
-          // Convert string to Date object
-          const dateObj = new Date(processedTask.dueAt);
-          processedTask.dueAt = !isNaN(dateObj.getTime()) ? dateObj : null;
-        } else {
-          // Invalid type, set to null
-          processedTask.dueAt = null;
+          // If it's already a valid ISO string, keep it as is
+          const date = new Date(processedTask.dueAt);
+          if (!isNaN(date.getTime())) {
+            // Only convert if it's not already an ISO string
+            if (!processedTask.dueAt.includes('T')) {
+              processedTask.dueAt = date.toISOString();
+            }
+          } else {
+            processedTask.dueAt = null;
+          }
         }
       }
       
@@ -148,34 +148,30 @@ export function useUpdateTask() {
 
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Task> }) => {
+      // Ensure dueAt is properly converted to ISO string if it's a Date object
       const processedUpdates = { ...updates, userId };
-      
-      // Handle timestamp fields - always ensure they are Date objects or null
       if (processedUpdates.dueAt !== undefined) {
         if (processedUpdates.dueAt === null) {
+          // Keep null values as null
           processedUpdates.dueAt = null;
-        } else if (processedUpdates.dueAt instanceof Date) {
-          // Already a Date object, keep as is
-          processedUpdates.dueAt = processedUpdates.dueAt;
-        } else if (typeof processedUpdates.dueAt === 'string') {
-          // Convert string to Date object
-          const dateObj = new Date(processedUpdates.dueAt);
-          processedUpdates.dueAt = !isNaN(dateObj.getTime()) ? dateObj : null;
         } else {
-          // Invalid type, set to null
-          processedUpdates.dueAt = null;
+          // Always ensure we have a valid Date object first
+          let dateObj: Date | null = null;
+          
+          if (processedUpdates.dueAt instanceof Date) {
+            dateObj = processedUpdates.dueAt;
+          } else if (typeof processedUpdates.dueAt === 'string') {
+            dateObj = new Date(processedUpdates.dueAt);
+          }
+          
+          // Validate the date and convert to ISO string
+          if (dateObj && !isNaN(dateObj.getTime())) {
+            processedUpdates.dueAt = dateObj.toISOString();
+          } else {
+            console.warn('Invalid date provided for task update:', processedUpdates.dueAt);
+            processedUpdates.dueAt = null;
+          }
         }
-      }
-
-      // Handle other timestamp fields if they exist
-      if (processedUpdates.startedAt !== undefined) {
-        processedUpdates.startedAt = processedUpdates.startedAt instanceof Date ? processedUpdates.startedAt : 
-                                   processedUpdates.startedAt ? new Date(processedUpdates.startedAt) : null;
-      }
-      
-      if (processedUpdates.completedAt !== undefined) {
-        processedUpdates.completedAt = processedUpdates.completedAt instanceof Date ? processedUpdates.completedAt : 
-                                     processedUpdates.completedAt ? new Date(processedUpdates.completedAt) : null;
       }
       
       return await apiRequest("PATCH", `/api/tasks/${id}`, processedUpdates);
