@@ -541,8 +541,24 @@ main {
   --font-display: 'Inter', 'GT America', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-heading: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --radius: 8px;
+
+  /* Fluid Typography */
+  --text-xs: clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
+  --text-sm: clamp(0.875rem, 0.8rem + 0.375vw, 1rem);
+  --text-base: clamp(1rem, 0.9rem + 0.5vw, 1.125rem);
+  --text-lg: clamp(1.125rem, 1rem + 0.625vw, 1.25rem);
+  --text-xl: clamp(1.25rem, 1.1rem + 0.75vw, 1.5rem);
+  --text-2xl: clamp(1.5rem, 1.3rem + 1vw, 2rem);
+  --text-3xl: clamp(1.875rem, 1.6rem + 1.375vw, 2.5rem);
+  --text-4xl: clamp(2.25rem, 1.9rem + 1.75vw, 3rem);
+
+  /* Safe Area Insets */
+  --safe-area-inset-top: env(safe-area-inset-top, 0px);
+  --safe-area-inset-right: env(safe-area-inset-right, 0px);
+  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-inset-left: env(safe-area-inset-left, 0px);
   --shadow-2xs: 0px 2px 0px 0px hsl(212, 100%, 47% / 0.00);
-  --shadow-xs: 0px 2px 0px 0px hsl(195, 100%, 55% / 0.00);
+  --shadow-xs: 0px 2px 0px 0px hsl(195, 100%, 55% / 0.00), 0px 1px 2px -1px hsl(195, 100%, 55% / 0.00);
   --shadow-sm: 0px 2px 0px 0px hsl(195, 100%, 55% / 0.00), 0px 1px 2px -1px hsl(195, 100%, 55% / 0.00);
   --shadow: 0px 2px 0px 0px hsl(195, 100%, 55% / 0.00), 0px 1px 2px -1px hsl(195, 100%, 55% / 0.00);
   --shadow-md: 0px 2px 0px 0px hsl(195, 100%, 55% / 0.00), 0px 2px 4px -1px hsl(195, 100%, 55% / 0.00);
@@ -562,6 +578,41 @@ main {
     @apply font-sans antialiased bg-background text-foreground;
     background: linear-gradient(135deg, hsl(240, 5%, 4%) 0%, hsl(245, 8%, 6%) 100%);
     min-height: 100vh;
+    text-wrap: balance;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    text-wrap: balance;
+    line-height: 1.2;
+  }
+
+  /* Responsive text utilities */
+  .text-fluid-xs { font-size: var(--text-xs); }
+  .text-fluid-sm { font-size: var(--text-sm); }
+  .text-fluid-base { font-size: var(--text-base); }
+  .text-fluid-lg { font-size: var(--text-lg); }
+  .text-fluid-xl { font-size: var(--text-xl); }
+  .text-fluid-2xl { font-size: var(--text-2xl); }
+  .text-fluid-3xl { font-size: var(--text-3xl); }
+  .text-fluid-4xl { font-size: var(--text-4xl); }
+
+  /* Safe area utilities */
+  .pb-safe-area-inset-bottom { padding-bottom: var(--safe-area-inset-bottom); }
+  .pt-safe-area-inset-top { padding-top: var(--safe-area-inset-top); }
+  .pl-safe-area-inset-left { padding-left: var(--safe-area-inset-left); }
+  .pr-safe-area-inset-right { padding-right: var(--safe-area-inset-right); }
+
+  /* Responsive touch targets */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Break words for long content */
+  .break-words {
+    word-wrap: break-word;
+    word-break: break-word;
+    hyphens: auto;
   }
 }
 
