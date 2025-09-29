@@ -44,6 +44,9 @@ const userEmails = new Map<string, string>();
 // Store processed email IDs per user with timestamps to allow reprocessing after time window
 const processedEmailIds = new Map<string, Map<string, number>>();
 
+// Store recent sender emails per user for smart deduplication (15 second window)
+const processedSenderEmails = new Map<string, Map<string, number>>();
+
 // Define the redirect URI for Google OAuth
 // Railway provides RAILWAY_STATIC_URL or construct from environment
 const getGoogleRedirectUri = () => {
@@ -2256,6 +2259,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   function clearUserData(userId: string) {
     userEmails.delete(userId);
     processedEmailIds.delete(userId);
+    processedSenderEmails.delete(userId);
     if (userGmailClients.has(userId)) {
       userGmailClients.delete(userId);
     }
@@ -2586,6 +2590,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
             }
 
+            // Get message details early for smart deduplication
+            const messageData = await gmail.users.messages.get({
+              userId: 'me',
+              id: message.id!,
+              format: 'full'
+            });
+            const msg = messageData.data;
+            const headers = msg.payload?.headers || [];
+            const from = headers.find(h => h.name === 'From')?.value || 'Unknown Sender';
+            
+            // Extract sender email for smart deduplication
+            let fromEmail = from.toLowerCase().trim();
+            const emailMatch = from.match(/<([^>]+)>/);
+            if (emailMatch) {
+              fromEmail = emailMatch[1].toLowerCase().trim();
+            } else if (from.includes('@')) {
+              const emailRegex = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/;
+              const match = from.match(emailRegex);
+              if (match) {
+                fromEmail = match[1].toLowerCase().trim();
+              }
+            }
+
+            // Smart deduplication: Skip emails from same sender for 15 seconds to reduce spam
+            if (!processedSenderEmails.has(userId)) {
+              processedSenderEmails.set(userId, new Map());
+            }
+            const userSenderEmails = processedSenderEmails.get(userId)!;
+            const lastSenderTime = userSenderEmails.get(fromEmail);
+            const senderWindow = 15 * 1000; // 15 seconds
+            
+            if (lastSenderTime && (now - lastSenderTime) < senderWindow) {
+              console.log(`[Gmail] Skipping email from recently processed sender: ${fromEmail} (${Math.round((now - lastSenderTime) / 1000)}s ago)`);
+              continue;
+            }
+
+            // Clean up old sender entries (older than 5 minutes)
+            const senderCleanupWindow = 5 * 60 * 1000; // 5 minutes
+            for (const [senderEmail, timestamp] of userSenderEmails.entries()) {
+              if (now - timestamp > senderCleanupWindow) {
+                userSenderEmails.delete(senderEmail);
+              }
+            }
+
             // Check if notification already exists with this email ID to prevent database duplicates
             const existingNotifications = await storage.getUserNotifications(userId, 100); // Fetch recent notifications
             const emailAlreadyExists = existingNotifications.some(notification =>
@@ -2597,19 +2645,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
               continue;
             }
 
-            // Get full message details
-            const messageData = await gmail.users.messages.get({
-              userId: 'me',
-              id: message.id!,
-              format: 'full'
-            });
+            // Use already fetched message data (no duplicate fetch needed for speed optimization!)
+            // msg and headers are already available from the earlier fetch at lines 2598-2600
 
-            const msg = messageData.data;
-            const headers = msg.payload?.headers || [];
-
-            // Extract email details
+            // Extract additional email details we need
             const subject = headers.find(h => h.name === 'Subject')?.value || 'No Subject';
-            const from = headers.find(h => h.name === 'From')?.value || 'Unknown Sender';
 
             // Get email body (simplified - gets first text part)
             let body = '';
@@ -2632,21 +2672,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Store full body content without truncation
             const fullEmailContent = `Subject: ${subject}\n\n${body}`;
 
-            // Extract email address consistently for priority checking
-            let fromEmail = from.toLowerCase().trim();
-
-            // Try to extract email from angle brackets first (e.g., "Name <email@domain.com>")
-            const emailMatch = from.match(/<([^>]+)>/);
-            if (emailMatch) {
-              fromEmail = emailMatch[1].toLowerCase().trim();
-            } else if (from.includes('@')) {
-              // If no angle brackets but contains @, extract the email part
-              const emailRegex = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/;
-              const match = from.match(emailRegex);
-              if (match) {
-                fromEmail = match[1].toLowerCase().trim();
-              }
-            }
+            // fromEmail already extracted earlier for smart deduplication - no need to duplicate this logic
 
             // Enhanced filtering: Skip non-actionable emails based on sender patterns
             // Only filter obvious automated/system emails, allow all personal/work emails
@@ -2779,6 +2805,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Mark email as processed ONLY after successful persistence
             userProcessedEmails.set(message.id!, Date.now());
             console.log(`[Gmail] Email ${message.id} marked as processed after successful storage`);
+            
+            // Track sender email for smart deduplication
+            userSenderEmails.set(fromEmail, Date.now());
+            console.log(`[Gmail] Sender ${fromEmail} marked for 15-second deduplication window`);
 
           } catch (msgError) {
             console.error(`[Gmail] Error processing message ${message.id}:`, msgError);
