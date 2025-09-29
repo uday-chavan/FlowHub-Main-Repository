@@ -1585,11 +1585,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
 
-        // Create a new notification in the notification feed with original email data
+        // Get the full email content from metadata or use rawSnippet as fallback
+        const fullEmailContent = convertedEmail.metadata?.originalContent || convertedEmail.rawSnippet || 'Email content not available';
+        
+        // Create a new notification in the notification feed with complete email data
         const originalNotification = await storage.createNotification({
           userId: userId,
           title: convertedEmail.subject,
-          description: convertedEmail.rawSnippet || 'Email content not available',
+          description: fullEmailContent, // Use complete content instead of truncated snippet
           type: originalPriority, // Use determined priority
           sourceApp: "gmail",
           aiSummary: `Retrieved email from: ${convertedEmail.sender}`,
@@ -1599,7 +1602,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             emailSubject: convertedEmail.subject,
             emailFrom: convertedEmail.sender,
             emailDate: convertedEmail.receivedAt.toISOString(),
-            fullEmailContent: convertedEmail.rawSnippet,
+            fullEmailContent: fullEmailContent, // Store complete content
             fromEmail: convertedEmail.senderEmail,
             isPriorityPerson: convertedEmail.metadata?.isPriorityPerson || false,
             retrievedFromConverted: true,
