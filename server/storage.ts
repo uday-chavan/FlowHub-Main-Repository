@@ -14,6 +14,7 @@ import {
   encryptedGmailTokens,
   priorityEmails,
   convertedEmails,
+  accumulatedTimeSaved,
   type User,
   type InsertUser,
   type Task,
@@ -44,6 +45,8 @@ import {
   type InsertPriorityEmail,
   type ConvertedEmail,
   type InsertConvertedEmail,
+  type AccumulatedTimeSaved,
+  type InsertAccumulatedTimeSaved,
 } from "../shared/schema";
 import { getDb } from "./db";
 import { eq, desc, and, gte, lte, or, isNull, exists, asc, inArray, sql } from "drizzle-orm";
@@ -132,6 +135,11 @@ export interface IStorage {
   updateConvertedEmail(id: string, updates: Partial<ConvertedEmail>): Promise<ConvertedEmail>;
   deleteConvertedEmail(id: string): Promise<void>;
   getConvertedEmailById(id: string): Promise<ConvertedEmail | null>;
+
+  // Accumulated Time Saved operations
+  getAccumulatedTimeSaved(userId: string): Promise<AccumulatedTimeSaved | undefined>;
+  createAccumulatedTimeSaved(data: InsertAccumulatedTimeSaved): Promise<AccumulatedTimeSaved>;
+  incrementTimeSaved(userId: string, minutesToAdd: number, breakdown: { emailConversions?: number; aiTasksCreated?: number; urgentTasksHandled?: number; tasksCompleted?: number }): Promise<AccumulatedTimeSaved>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -707,6 +715,62 @@ export class DatabaseStorage implements IStorage {
 
     await db.delete(convertedEmails).where(eq(convertedEmails.id, id));
   }
+
+  // Accumulated Time Saved methods
+  async getAccumulatedTimeSaved(userId: string): Promise<AccumulatedTimeSaved | undefined> {
+    const [result] = await requireDb().select().from(accumulatedTimeSaved)
+      .where(eq(accumulatedTimeSaved.userId, userId));
+    return result;
+  }
+
+  async createAccumulatedTimeSaved(data: InsertAccumulatedTimeSaved): Promise<AccumulatedTimeSaved> {
+    const [result] = await requireDb().insert(accumulatedTimeSaved).values(data).returning();
+    return result;
+  }
+
+  async incrementTimeSaved(
+    userId: string,
+    minutesToAdd: number,
+    breakdown: {
+      emailConversions?: number;
+      aiTasksCreated?: number;
+      urgentTasksHandled?: number;
+      tasksCompleted?: number;
+    }
+  ): Promise<AccumulatedTimeSaved> {
+    const db = requireDb();
+    
+    // Get or create the record
+    let existing = await this.getAccumulatedTimeSaved(userId);
+    
+    if (!existing) {
+      // Create new record
+      existing = await this.createAccumulatedTimeSaved({
+        userId,
+        totalMinutesSaved: 0,
+        emailConversions: 0,
+        aiTasksCreated: 0,
+        urgentTasksHandled: 0,
+        tasksCompleted: 0,
+      });
+    }
+
+    // Update with increments
+    const [updated] = await db
+      .update(accumulatedTimeSaved)
+      .set({
+        totalMinutesSaved: existing.totalMinutesSaved + minutesToAdd,
+        emailConversions: existing.emailConversions + (breakdown.emailConversions || 0),
+        aiTasksCreated: existing.aiTasksCreated + (breakdown.aiTasksCreated || 0),
+        urgentTasksHandled: existing.urgentTasksHandled + (breakdown.urgentTasksHandled || 0),
+        tasksCompleted: existing.tasksCompleted + (breakdown.tasksCompleted || 0),
+        updatedAt: new Date(),
+      })
+      .where(eq(accumulatedTimeSaved.userId, userId))
+      .returning();
+
+    return updated;
+  }
 }
 
 // Use in-memory storage for demo/development
@@ -722,6 +786,7 @@ export class MemoryStorage implements IStorage {
   private encryptedGmailTokens = new Map<string, EncryptedGmailToken>();
   private priorityEmailsMap = new Map<string, PriorityEmail>();
   private convertedEmailsMap = new Map<string, ConvertedEmail>();
+  private accumulatedTimeSavedMap = new Map<string, AccumulatedTimeSaved>();
 
 
   constructor() {
@@ -1270,6 +1335,65 @@ export class MemoryStorage implements IStorage {
   async getConvertedEmailById(id: string): Promise<ConvertedEmail | null> {
     const convertedEmail = this.convertedEmailsMap.get(id);
     return convertedEmail || null;
+  }
+
+  // Accumulated Time Saved methods
+  async getAccumulatedTimeSaved(userId: string): Promise<AccumulatedTimeSaved | undefined> {
+    return Array.from(this.accumulatedTimeSavedMap.values())
+      .find(ats => ats.userId === userId);
+  }
+
+  async createAccumulatedTimeSaved(data: InsertAccumulatedTimeSaved): Promise<AccumulatedTimeSaved> {
+    const newRecord: AccumulatedTimeSaved = {
+      ...data,
+      id: Math.random().toString(36).substr(2, 9),
+      totalMinutesSaved: data.totalMinutesSaved || 0,
+      emailConversions: data.emailConversions || 0,
+      aiTasksCreated: data.aiTasksCreated || 0,
+      urgentTasksHandled: data.urgentTasksHandled || 0,
+      tasksCompleted: data.tasksCompleted || 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.accumulatedTimeSavedMap.set(newRecord.id, newRecord);
+    return newRecord;
+  }
+
+  async incrementTimeSaved(
+    userId: string,
+    minutesToAdd: number,
+    breakdown: {
+      emailConversions?: number;
+      aiTasksCreated?: number;
+      urgentTasksHandled?: number;
+      tasksCompleted?: number;
+    }
+  ): Promise<AccumulatedTimeSaved> {
+    let existing = await this.getAccumulatedTimeSaved(userId);
+    
+    if (!existing) {
+      existing = await this.createAccumulatedTimeSaved({
+        userId,
+        totalMinutesSaved: 0,
+        emailConversions: 0,
+        aiTasksCreated: 0,
+        urgentTasksHandled: 0,
+        tasksCompleted: 0,
+      });
+    }
+
+    const updated: AccumulatedTimeSaved = {
+      ...existing,
+      totalMinutesSaved: existing.totalMinutesSaved + minutesToAdd,
+      emailConversions: existing.emailConversions + (breakdown.emailConversions || 0),
+      aiTasksCreated: existing.aiTasksCreated + (breakdown.aiTasksCreated || 0),
+      urgentTasksHandled: existing.urgentTasksHandled + (breakdown.urgentTasksHandled || 0),
+      tasksCompleted: existing.tasksCompleted + (breakdown.tasksCompleted || 0),
+      updatedAt: new Date(),
+    };
+
+    this.accumulatedTimeSavedMap.set(existing.id, updated);
+    return updated;
   }
 }
 
