@@ -529,6 +529,8 @@ export function WorkflowRiver() {
   const [editingTimeTaskId, setEditingTimeTaskId] = useState<string | null>(null);
   const [editingDueDate, setEditingDueDate] = useState<Date | null>(null);
   const [completingTaskId, setCompletingTaskId] = useState<string | null>(null);
+  const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null); // Added for tracking deletion
+  const [visibleTasks, setVisibleTasks] = useState<Set<string>>(new Set());
 
   // State for handling potential Windows notifications (placeholder)
   const [showWindowsNotificationPrompt, setShowWindowsNotificationPrompt] = useState(false);
@@ -547,7 +549,6 @@ export function WorkflowRiver() {
 
   // Animation state for staggered section and task appearance
   const [visibleSections, setVisibleSections] = useState<Set<string>>(new Set());
-  const [visibleTasks, setVisibleTasks] = useState<Set<string>>(new Set());
   const [animationInProgress, setAnimationInProgress] = useState(false);
 
   // Staggered animation effect for sections and tasks
@@ -631,11 +632,11 @@ export function WorkflowRiver() {
       if (a.status !== 'completed' && b.status !== 'completed') {
         const aIsVIP = a.metadata?.isPriorityPerson;
         const bIsVIP = b.metadata?.isPriorityPerson;
-        
+
         // VIP tasks always come first
         if (aIsVIP && !bIsVIP) return -1;
         if (!aIsVIP && bIsVIP) return 1;
-        
+
         // If both are VIP or both are not VIP, sort by time urgency
         if (a.dueAt && b.dueAt) {
           return new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime();
@@ -700,11 +701,17 @@ export function WorkflowRiver() {
   };
 
   const handleDeleteTask = (taskId: string) => {
+    if (deletingTaskId === taskId) return; // Prevent multiple clicks
+    setDeletingTaskId(taskId);
     // Clean up stored parsed time when deleting task
     localStorage.removeItem(`task_parsed_time_${taskId}`);
     // Clean up global store
     globalParsedTimes.delete(taskId);
-    deleteTaskMutation.mutate(taskId);
+    deleteTaskMutation.mutate(taskId, {
+      onSettled: () => {
+        setDeletingTaskId(null); // Reset after mutation settles
+      }
+    });
   };
 
   // Placeholder for handling the "404 Page Not Found" error on scroll.
@@ -1262,7 +1269,7 @@ export function WorkflowRiver() {
                                   <TooltipTrigger asChild>
                                     <Button
                                       onClick={() => handleDeleteTask(task.id)}
-                                      disabled={deleteTaskMutation.isPending}
+                                      disabled={deletingTaskId === task.id || deleteTaskMutation.isPending} // Disable if already deleting this task or mutation is pending
                                       className="bg-red-50 hover:bg-red-100 text-red-600 px-1.5 py-1 rounded text-xs transition-colors h-6"
                                       size="sm"
                                       data-testid={`button-clear-task-${task.id}`}
