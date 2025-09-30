@@ -189,19 +189,19 @@ export default function Feedback() {
                 <CardContent className="space-y-3">
                   <div className="space-y-2 text-sm">
                     <div className="flex items-start space-x-2">
-                      <Badge variant="outline" className="text-xs mt-0.5">💡</Badge>
+                      <Badge variant="outline" className="text-xs mt-0.5">→</Badge>
                       <p><strong>Feature Requests:</strong> Describe what you'd like to see and how it would help you</p>
                     </div>
                     <div className="flex items-start space-x-2">
-                      <Badge variant="outline" className="text-xs mt-0.5">🐛</Badge>
+                      <Badge variant="outline" className="text-xs mt-0.5">→</Badge>
                       <p><strong>Bug Reports:</strong> Include steps to reproduce the issue and what you expected to happen</p>
                     </div>
                     <div className="flex items-start space-x-2">
-                      <Badge variant="outline" className="text-xs mt-0.5">⭐</Badge>
+                      <Badge variant="outline" className="text-xs mt-0.5">→</Badge>
                       <p><strong>General Feedback:</strong> Share your overall experience and suggestions for improvement</p>
                     </div>
                     <div className="flex items-start space-x-2">
-                      <Badge variant="outline" className="text-xs mt-0.5">🔒</Badge>
+                      <Badge variant="outline" className="text-xs mt-0.5">→</Badge>
                       <p><strong>Privacy:</strong> Your feedback is sent securely and will only be used to improve FlowHub</p>
                     </div>
                   </div>
