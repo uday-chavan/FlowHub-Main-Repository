@@ -1,4 +1,45 @@
-.floor(startValue + (target - startValue) * easeOutQuart);
+
+import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import Header from "@/components/dashboard/Header";
+import { useCurrentUser } from "@/hooks/useAuth";
+
+interface TimeSavedStats {
+  totalEmailsConverted: number;
+  totalTasksCreatedFromNaturalLanguage: number;
+  totalTimeSavedMinutes: number;
+  conversionBreakdown: {
+    emailConversions: number;
+    naturalLanguageConversions: number;
+    urgentTasksHandled: number;
+    completedTasks: number;
+  };
+}
+
+function AnimatedCounter({ 
+  target, 
+  duration = 2000, 
+  suffix = "" 
+}: { 
+  target: number; 
+  duration?: number; 
+  suffix?: string; 
+}) {
+  const [current, setCurrent] = useState(0);
+
+  useEffect(() => {
+    const startTime = Date.now();
+    const startValue = 0;
+
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Ease out quart function for smooth animation
+      const easeOutQuart = 1 - Math.pow(1 - progress, 4);
+      const value = Math.floor(startValue + (target - startValue) * easeOutQuart);
       
       setCurrent(value);
       
@@ -235,7 +276,7 @@ export default function TimeSaved() {
                       </div>
                       <div className="p-4 bg-gradient-to-r from-green-50 to-purple-50 rounded-lg">
                         <div className="text-2xl font-bold text-foreground">
-                          {stats?.totalEmailsConverted + stats?.totalTasksCreatedFromNaturalLanguage || 0}
+                          {(stats?.totalEmailsConverted || 0) + (stats?.totalTasksCreatedFromNaturalLanguage || 0)}
                         </div>
                         <div className="text-sm text-muted-foreground">Total automations</div>
                       </div>
