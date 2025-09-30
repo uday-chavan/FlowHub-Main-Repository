@@ -165,7 +165,7 @@ main {
 */
 
 /* Mobile Responsive Layout */
-@media (max-width: 768px) {
+@media (max-width: 1545px) {
   /* Hide app launcher on mobile */
   [data-testid="card-app-launcher"] {
     display: none !important;
@@ -183,6 +183,121 @@ main {
     align-items: start;
     gap: 1.5rem;
     min-height: calc(100vh - 120px);
+  }
+
+  /* Mobile task containers - fix scrolling and sizing */
+  .responsive-task-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1rem !important;
+    width: 100% !important;
+    padding: 0 0.5rem !important;
+    overflow-y: auto !important;
+    max-height: calc(100vh - 200px) !important;
+  }
+
+  .responsive-task-grid > div {
+    width: 100% !important;
+    min-height: 200px !important;
+    max-height: 300px !important;
+    margin: 0 !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* Task sections responsive layout - 1133px breakpoint */
+  @media (max-width: 1133px) {
+    /* Vertical layout for task sections */
+    .responsive-task-grid {
+      grid-template-columns: 1fr !important;
+      gap: 1rem !important;
+      height: auto !important;
+      max-height: none !important;
+    }
+
+    /* Each task section should show at least 3 tasks with proper spacing */
+    .responsive-task-grid > div {
+      min-height: 280px !important;
+      max-height: 350px !important;
+      width: calc(100% - 2rem) !important;
+      margin: 0 1rem !important;
+    }
+
+    /* Adjust scrollable task content area */
+    .responsive-task-grid > div > div:last-child {
+      max-height: 270px !important;
+      overflow-y: auto !important;
+    }
+
+    /* Ensure proper task item sizing in vertical layout */
+    .responsive-task-grid .workflow-river {
+      min-height: 80px !important;
+    }
+  }
+
+  /* Mobile task card sizing and centering */
+  @media (max-width: 768px) {
+    .responsive-task-grid {
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      width: 100% !important;
+      padding: 0 !important;
+      gap: 1rem !important;
+    }
+
+    .responsive-task-grid > div {
+      width: 95% !important;
+      max-width: 400px !important;
+      margin: 0 auto !important;
+      min-height: 200px !important;
+      max-height: 300px !important;
+    }
+
+    /* Smaller task cards on mobile */
+    .workflow-river {
+      padding: 1rem !important;
+      font-size: 0.875rem !important;
+      min-height: 60px !important;
+    }
+
+    /* Compact task content on mobile */
+    .workflow-river h3 {
+      font-size: 0.8rem !important;
+      line-height: 1.2 !important;
+    }
+
+    .workflow-river .text-xs {
+      font-size: 0.7rem !important;
+    }
+  }
+
+  /* Very small screens */
+  @media (max-width: 535px) {
+    .responsive-task-grid > div {
+      width: 98% !important;
+      min-height: 180px !important;
+      max-height: 250px !important;
+    }
+
+    .workflow-river {
+      padding: 0.75rem !important;
+      min-height: 50px !important;
+    }
+
+    .workflow-river h3 {
+      font-size: 0.75rem !important;
+    }
+
+    .workflow-river .text-xs {
+      font-size: 0.65rem !important;
+    }
+
+    /* Compact buttons on very small screens */
+    .task-action-buttons .button {
+      height: 28px !important;
+      font-size: 0.7rem !important;
+      padding: 0 6px !important;
+    }
   }
 
   /* Ensure mobile content fits properly */
@@ -361,7 +476,7 @@ main {
   }
 
   /* Compact mobile buttons */
-  @media (max-width: 640px) {
+  @media (max-width: 1545px) {
     .mobile-compact-btn {
       padding: 0.25rem !important;
       min-width: auto !important;
@@ -372,8 +487,68 @@ main {
     }
   }
 
+  /* Header navigation buttons mobile style - 1058px breakpoint */
+  @media (max-width: 1058px) {
+    /* Hide text in header navigation buttons, show only icons */
+    .hidden-mobile-text {
+      display: none !important;
+    }
+
+    /* Make header navigation buttons icon-only */
+    [data-testid="header-main"] button {
+      min-width: 36px !important;
+      padding: 0 8px !important;
+    }
+
+    /* Ensure proper spacing between icon-only buttons */
+    [data-testid="header-main"] .flex-1 {
+      gap: 0.25rem !important;
+    }
+
+    /* Hide upgrade button text on smaller screens */
+    [data-testid="header-main"] button span:not(.relative) {
+      display: none !important;
+    }
+
+    /* Fix header container overflow and positioning */
+    [data-testid="header-main"] .container {
+      max-width: 100% !important;
+      overflow-x: hidden !important;
+    }
+
+    /* Prevent header icons from going outside */
+    [data-testid="header-main"] .flex {
+      max-width: 100% !important;
+      overflow: hidden !important;
+    }
+
+    /* Fix profile section on mobile */
+    [data-testid="header-main"] .flex:first-child {
+      flex-shrink: 0 !important;
+      min-width: 0 !important;
+    }
+  }
+
+  /* Very small screens - further header adjustments */
+  @media (max-width: 535px) {
+    [data-testid="header-main"] .container {
+      padding-left: 0.5rem !important;
+      padding-right: 0.5rem !important;
+    }
+
+    [data-testid="header-main"] button {
+      min-width: 32px !important;
+      padding: 0 4px !important;
+    }
+
+    /* Compact navigation on very small screens */
+    [data-testid="header-main"] .flex-1 {
+      gap: 0.125rem !important;
+    }
+  }
+
   /* Task section button improvements for mobile */
-  @media (max-width: 768px) {
+  @media (max-width: 1545px) {
     [data-testid="button-add-ai-task"],
     [data-testid="button-add-manual-task-plus"],
     [data-testid="button-auto-reschedule"] {
@@ -386,7 +561,15 @@ main {
       border-radius: 8px !important;
     }
 
-    /* AI task button - minimal width with "AI" text and icon */
+    /* AI task button - show only AI text, hide longer text */
+    [data-testid="button-add-ai-task"] span:not(.hidden) {
+      display: none !important;
+    }
+
+    [data-testid="button-add-ai-task"] .hidden {
+      display: inline !important;
+    }
+
     [data-testid="button-add-ai-task"] {
       min-width: 50px !important;
       width: auto !important;
@@ -394,6 +577,10 @@ main {
     }
 
     /* Manual task button - minimal width with just plus icon */
+    [data-testid="button-add-manual-task-plus"] span {
+      display: none !important;
+    }
+
     [data-testid="button-add-manual-task-plus"] {
       min-width: 36px !important;
       width: 36px !important;
@@ -405,6 +592,30 @@ main {
       min-width: 36px !important;
       width: 36px !important;
       padding: 0 !important;
+    }
+  }
+
+  /* Very small screens - show only AI and star buttons */
+  @media (max-width: 535px) {
+    [data-testid="button-add-ai-task"] {
+      min-width: 40px !important;
+      width: 40px !important;
+      padding: 0 !important;
+    }
+
+    [data-testid="button-add-ai-task"] span {
+      display: none !important;
+    }
+
+    [data-testid="button-add-manual-task-plus"] {
+      min-width: 32px !important;
+      width: 32px !important;
+      padding: 0 !important;
+    }
+
+    /* Hide auto reschedule button on very small screens */
+    [data-testid="button-auto-reschedule"] {
+      display: none !important;
     }
   }
 
