@@ -89,7 +89,6 @@ export default function Feedback() {
             {/* Page Header */}
             <div className="text-center space-y-4">
               <div className="flex items-center justify-center space-x-3">
-                <MessageCircle className="w-8 h-8 text-primary" />
                 <h1 className="text-2xl md:text-3xl font-bold">Feedback</h1>
               </div>
               <p className="text-muted-foreground text-sm md:text-base max-w-2xl mx-auto">
