@@ -98,6 +98,15 @@ export default function Feedback() {
 
             {!submitted ? (
               /* Feedback Form */
+              <Card className="max-w-2xl mx-auto">
+                <CardHeader>
+                  <CardTitle>
+                    Share Your Feedback
+                  </CardTitle>
+                  <CardDescription>
+                    Your feedback helps us make FlowHub better for everyone. All feedback is sent directly to our development team.
+                  </CardDescription>
+                </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <label htmlFor="feedback" className="text-sm font-medium">
