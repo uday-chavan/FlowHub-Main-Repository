@@ -15,8 +15,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 
-function Dashboard() {
-
+export default function Dashboard() {
+  
   const isMobile = useIsMobile();
   const { user } = useAuth();
   const [showAppUpdateModal, setShowAppUpdateModal] = useState(false);
@@ -32,7 +32,7 @@ function Dashboard() {
       // Use a static build timestamp to detect deployments
       const BUILD_TIMESTAMP = '1759099640'; // This will change with each deployment
       const storedBuildVersion = localStorage.getItem('buildVersion');
-
+      
       // Check if this is a new deployment
       if (storedBuildVersion && storedBuildVersion !== BUILD_TIMESTAMP) {
         // App was updated/redeployed - show modal
@@ -40,7 +40,7 @@ function Dashboard() {
         setShowAppUpdateModal(true);
         return;
       }
-
+      
       // Store current build version
       localStorage.setItem('buildVersion', BUILD_TIMESTAMP);
     };
@@ -64,24 +64,22 @@ function Dashboard() {
   return (
     <div className="min-h-screen bg-background text-foreground dashboard-container flex flex-col">
       <Header />
-      <AppUpdateModal
-        isOpen={showAppUpdateModal}
+      <AppUpdateModal 
+        isOpen={showAppUpdateModal} 
         onSignInClick={handleSignInClick}
       />
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-none mx-0 px-4 pt-4 pb-8 h-full">
         {isMobile ? (
           /* Mobile Layout */
-          <div className="flex flex-col gap-4 h-full overflow-y-auto px-2">
+          <div className="flex flex-col gap-6 h-full overflow-y-auto">
             {/* Mobile Notifications */}
-            <div className="w-full">
-              <NotificationFeed />
-            </div>
+            <NotificationFeed />
 
             {/* Main Content - Tasks */}
-            <div className="w-full">
-              <WorkflowRiver />
-            </div>
+            <WorkflowRiver />
+
+            {/* Additional Mobile Content - Removed sidebar components */}
           </div>
         ) : (
           /* Desktop Layout */
@@ -102,5 +100,3 @@ function Dashboard() {
     </div>
   );
 }
-
-export default Dashboard;
