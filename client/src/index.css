@@ -72,6 +72,21 @@
   color: inherit !important;
 }
 
+/* Prevent profile whitening on mobile */
+.light [data-testid="header-main"] .bg-background,
+.light [data-testid="header-main"] .glass-card {
+  background: rgba(255, 255, 255, 0.95) !important;
+  color: rgba(0, 0, 0, 0.9) !important;
+}
+
+.light [data-testid="header-main"] button {
+  color: rgba(0, 0, 0, 0.8) !important;
+}
+
+.light [data-testid="header-main"] svg {
+  color: rgba(0, 0, 0, 0.8) !important;
+}
+
 /* Profile Avatar Enhancement */
 .light .premium-logo-glow {
   filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.1));
@@ -191,17 +206,21 @@ main {
     flex-direction: column !important;
     gap: 1rem !important;
     width: 100% !important;
-    padding: 0 0.5rem !important;
+    padding: 0 1rem !important;
     overflow-y: auto !important;
-    max-height: calc(100vh - 200px) !important;
+    max-height: calc(100vh - 180px) !important;
+    height: auto !important;
+    align-items: center !important;
   }
 
   .responsive-task-grid > div {
-    width: 100% !important;
-    min-height: 200px !important;
-    max-height: 300px !important;
-    margin: 0 !important;
+    width: 95% !important;
+    max-width: 400px !important;
+    min-height: 180px !important;
+    max-height: 250px !important;
+    margin: 0 auto !important;
     flex-shrink: 0 !important;
+    overflow-y: auto !important;
   }
 
   /* Task sections responsive layout - 1133px breakpoint */
@@ -241,62 +260,95 @@ main {
       flex-direction: column !important;
       align-items: center !important;
       width: 100% !important;
-      padding: 0 !important;
+      padding: 0 0.5rem !important;
       gap: 1rem !important;
+      overflow-y: auto !important;
+      max-height: calc(100vh - 200px) !important;
     }
 
     .responsive-task-grid > div {
-      width: 95% !important;
-      max-width: 400px !important;
+      width: 90% !important;
+      max-width: 380px !important;
       margin: 0 auto !important;
-      min-height: 200px !important;
-      max-height: 300px !important;
+      min-height: 160px !important;
+      max-height: 220px !important;
+      overflow-y: auto !important;
     }
 
     /* Smaller task cards on mobile */
     .workflow-river {
-      padding: 1rem !important;
-      font-size: 0.875rem !important;
-      min-height: 60px !important;
+      padding: 0.75rem !important;
+      font-size: 0.8rem !important;
+      min-height: 50px !important;
+      margin-bottom: 0.5rem !important;
     }
 
     /* Compact task content on mobile */
     .workflow-river h3 {
-      font-size: 0.8rem !important;
-      line-height: 1.2 !important;
-    }
-
-    .workflow-river .text-xs {
-      font-size: 0.7rem !important;
-    }
-  }
-
-  /* Very small screens */
-  @media (max-width: 535px) {
-    .responsive-task-grid > div {
-      width: 98% !important;
-      min-height: 180px !important;
-      max-height: 250px !important;
-    }
-
-    .workflow-river {
-      padding: 0.75rem !important;
-      min-height: 50px !important;
-    }
-
-    .workflow-river h3 {
       font-size: 0.75rem !important;
+      line-height: 1.2 !important;
     }
 
     .workflow-river .text-xs {
       font-size: 0.65rem !important;
     }
 
+    /* Task section headers */
+    .responsive-task-grid > div > div:first-child {
+      padding-bottom: 0.5rem !important;
+      margin-bottom: 0.5rem !important;
+    }
+
+    .responsive-task-grid > div > div:first-child h3 {
+      font-size: 0.7rem !important;
+    }
+  }
+
+  /* Very small screens */
+  @media (max-width: 535px) {
+    .responsive-task-grid {
+      padding: 0 0.25rem !important;
+      gap: 0.75rem !important;
+    }
+
+    .responsive-task-grid > div {
+      width: 95% !important;
+      max-width: 320px !important;
+      min-height: 140px !important;
+      max-height: 200px !important;
+      margin: 0 auto !important;
+    }
+
+    .workflow-river {
+      padding: 0.5rem !important;
+      min-height: 40px !important;
+      margin-bottom: 0.25rem !important;
+    }
+
+    .workflow-river h3 {
+      font-size: 0.7rem !important;
+      line-height: 1.1 !important;
+    }
+
+    .workflow-river .text-xs {
+      font-size: 0.6rem !important;
+    }
+
     /* Compact buttons on very small screens */
     .task-action-buttons .button {
-      height: 28px !important;
-      font-size: 0.7rem !important;
-      padding: 0 6px !important;
+      height: 24px !important;
+      font-size: 0.65rem !important;
+      padding: 0 4px !important;
+    }
+
+    /* Section headers on small screens */
+    .responsive-task-grid > div > div:first-child h3 {
+      font-size: 0.65rem !important;
+    }
+
+    .responsive-task-grid > div > div:first-child {
+      padding: 0.5rem !important;
+      margin-bottom: 0.25rem !important;
     }
   }
 
@@ -514,17 +566,35 @@ main {
     [data-testid="header-main"] .container {
       max-width: 100% !important;
       overflow-x: hidden !important;
+      padding-left: 0.5rem !important;
+      padding-right: 0.5rem !important;
     }
 
     /* Prevent header icons from going outside */
     [data-testid="header-main"] .flex {
       max-width: 100% !important;
       overflow: hidden !important;
+      flex-wrap: nowrap !important;
     }
 
     /* Fix profile section on mobile */
     [data-testid="header-main"] .flex:first-child {
       flex-shrink: 0 !important;
+      min-width: 0 !important;
+      max-width: 120px !important;
+    }
+
+    /* Fix right side controls */
+    [data-testid="header-main"] .flex:last-child {
+      flex-shrink: 0 !important;
+      max-width: 200px !important;
+      gap: 0.25rem !important;
+    }
+
+    /* Center navigation properly */
+    [data-testid="header-main"] .justify-center {
+      flex: 1 !important;
+      justify-content: center !important;
       min-width: 0 !important;
     }
   }
@@ -598,8 +668,8 @@ main {
   /* Very small screens - show only AI and star buttons */
   @media (max-width: 535px) {
     [data-testid="button-add-ai-task"] {
-      min-width: 40px !important;
-      width: 40px !important;
+      min-width: 36px !important;
+      width: 36px !important;
       padding: 0 !important;
     }
 
@@ -608,9 +678,13 @@ main {
     }
 
     [data-testid="button-add-manual-task-plus"] {
-      min-width: 32px !important;
-      width: 32px !important;
+      min-width: 36px !important;
+      width: 36px !important;
       padding: 0 !important;
+    }
+
+    [data-testid="button-add-manual-task-plus"] span {
+      display: none !important;
     }
 
     /* Hide auto reschedule button on very small screens */
@@ -647,6 +721,29 @@ main {
 
 
 @tailwind utilities;
+
+/* Mobile-specific responsive task grid */
+@media (max-width: 768px) {
+  .responsive-task-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    grid-template-columns: none !important;
+    gap: 1rem !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    padding: 0 1rem !important;
+    overflow-y: auto !important;
+    height: auto !important;
+    max-height: calc(100vh - 200px) !important;
+  }
+
+  .responsive-task-grid > div {
+    width: 90% !important;
+    max-width: 380px !important;
+    margin: 0 auto !important;
+    flex-shrink: 0 !important;
+  }
+}
 
 @keyframes shimmer {
   0% {
