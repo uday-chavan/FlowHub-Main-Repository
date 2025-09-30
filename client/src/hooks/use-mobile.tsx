@@ -17,3 +17,20 @@ export function useIsMobile() {
 
   return !!isMobile
 }
+
+// Additional hook for intermediate breakpoints
+export function useIsCompactView() {
+  const [isCompact, setIsCompact] = React.useState<boolean | undefined>(undefined)
+
+  React.useEffect(() => {
+    const mql = window.matchMedia("(max-width: 1133px)")
+    const onChange = () => {
+      setIsCompact(window.innerWidth <= 1133)
+    }
+    mql.addEventListener("change", onChange)
+    setIsCompact(window.innerWidth <= 1133)
+    return () => mql.removeEventListener("change", onChange)
+  }, [])
+
+  return !!isCompact
+}
