@@ -72,14 +72,16 @@ function Dashboard() {
         <div className="max-w-none mx-0 px-4 pt-4 pb-8 h-full">
         {isMobile ? (
           /* Mobile Layout */
-          <div className="flex flex-col gap-6 h-full overflow-y-auto">
+          <div className="flex flex-col gap-4 h-full overflow-y-auto px-2">
             {/* Mobile Notifications */}
-            <NotificationFeed />
+            <div className="w-full">
+              <NotificationFeed />
+            </div>
 
             {/* Main Content - Tasks */}
-            <WorkflowRiver />
-
-            {/* Additional Mobile Content - Removed sidebar components */}
+            <div className="w-full">
+              <WorkflowRiver />
+            </div>
           </div>
         ) : (
           /* Desktop Layout */
