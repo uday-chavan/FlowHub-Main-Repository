@@ -67,15 +67,12 @@ function StatCard({
 }) {
   return (
     <Card className={`${color} border-l-4 border-l-blue-500 transition-all hover:shadow-lg`}>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            {title}
-          </CardTitle>
-          <span className="text-2xl">{icon}</span>
-        </div>
+      <CardHeader className="pb-3 text-center">
+        <CardTitle className="text-sm font-medium text-muted-foreground">
+          {title}
+        </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="text-center">
         <div className="text-3xl font-bold mb-2">
           {animated ? (
             <AnimatedCounter target={value} />
@@ -175,7 +172,7 @@ export default function TimeSaved() {
                 title="Email Conversions"
                 value={stats?.totalEmailsConverted || 0}
                 description="Emails converted to tasks"
-                icon="📧"
+                icon=""
                 color="bg-blue-50 border-l-blue-500"
                 animated={true}
               />
@@ -184,7 +181,7 @@ export default function TimeSaved() {
                 title="Tasks Created"
                 value={stats?.totalTasksCreatedFromNaturalLanguage || 0}
                 description="AI-generated tasks from text"
-                icon="✨"
+                icon=""
                 color="bg-green-50 border-l-green-500"
                 animated={true}
               />
@@ -193,7 +190,7 @@ export default function TimeSaved() {
                 title="Urgent Tasks Handled"
                 value={stats?.conversionBreakdown?.urgentTasksHandled || 0}
                 description="High-priority tasks processed"
-                icon="🚨"
+                icon=""
                 color="bg-red-50 border-l-red-500"
                 animated={true}
               />
@@ -202,7 +199,7 @@ export default function TimeSaved() {
                 title="Tasks Completed"
                 value={stats?.conversionBreakdown?.completedTasks || 0}
                 description="Tasks marked as finished"
-                icon="✅"
+                icon=""
                 color="bg-purple-50 border-l-purple-500"
                 animated={true}
               />
