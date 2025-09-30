@@ -15,7 +15,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 
-export default function Dashboard() {
+function Dashboard() {
   
   const isMobile = useIsMobile();
   const { user } = useAuth();
@@ -72,26 +72,28 @@ export default function Dashboard() {
         <div className="max-w-none mx-0 px-4 pt-4 pb-8 h-full">
         {isMobile ? (
           /* Mobile Layout */
-          <div className="flex flex-col gap-6 h-full overflow-y-auto">
+          <div className="flex flex-col gap-4 h-full overflow-y-auto px-2">
             {/* Mobile Notifications */}
-            <NotificationFeed />
+            <div className="w-full">
+              <NotificationFeed />
+            </div>
 
             {/* Main Content - Tasks */}
-            <WorkflowRiver />
-
-            {/* Additional Mobile Content - Removed sidebar components */}
+            <div className="w-full">
+              <WorkflowRiver />
+            </div>
           </div>
         ) : (
           /* Desktop Layout */
           <div className="flex gap-6 h-[calc(100vh-120px)]">
-            {/* Left Column - Notifications with Fixed Width */}
-            <div className="w-80 flex-shrink-0 px-2 h-full">
-              <NotificationFeed />
-            </div>
-
             {/* Main Column - Tasks with Full Remaining Width */}
             <div className="flex-1 px-2 h-full">
               <WorkflowRiver />
+            </div>
+
+            {/* Right Column - Notifications with Fixed Width */}
+            <div className="w-80 flex-shrink-0 px-2 h-full">
+              <NotificationFeed />
             </div>
           </div>
         )}
@@ -100,3 +102,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
+export default Dashboard;
