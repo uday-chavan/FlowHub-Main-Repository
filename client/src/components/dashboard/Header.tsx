@@ -69,16 +69,16 @@ export function Header() {
             <UserProfile />
           </div>
 
-          {/* Navigation Menu - Center Left */}
-          <div className="hidden md:flex items-center space-x-2 flex-1 justify-start ml-6">
+          {/* Navigation Menu - Always visible, responsive based on useIsMobile */}
+          <div className="flex items-center space-x-1 flex-1 justify-center">
             <Link href="/dashboard">
               <Button
                 variant={location === '/dashboard' ? 'default' : 'ghost'}
                 size="sm"
-                className="flex items-center space-x-2"
+                className="flex items-center space-x-2 px-2"
               >
                 <Home className="w-4 h-4" />
-                <span>Dashboard</span>
+                <span className="hidden-mobile-text">Dashboard</span>
               </Button>
             </Link>
 
@@ -86,10 +86,10 @@ export function Header() {
               <Button
                 variant={location === '/emails-converted' ? 'default' : 'ghost'}
                 size="sm"
-                className="flex items-center space-x-2"
+                className="flex items-center space-x-2 px-2"
               >
                 <Mail className="w-4 h-4" />
-                <span>Converted Emails</span>
+                <span className="hidden-mobile-text">Converted Emails</span>
               </Button>
             </Link>
 
@@ -97,10 +97,10 @@ export function Header() {
               <Button
                 variant={location === '/priority-emails' ? 'default' : 'ghost'}
                 size="sm"
-                className="flex items-center space-x-2"
+                className="flex items-center space-x-2 px-2"
               >
                 <Star className="w-4 h-4" />
-                <span>Priority Person</span>
+                <span className="hidden-mobile-text">Priority Person</span>
               </Button>
             </Link>
 
@@ -108,10 +108,10 @@ export function Header() {
               <Button
                 variant={location === '/time-saved' ? 'default' : 'ghost'}
                 size="sm"
-                className="flex items-center space-x-2"
+                className="flex items-center space-x-2 px-2"
               >
                 <Clock className="w-4 h-4" />
-                <span>Time Saved</span>
+                <span className="hidden-mobile-text">Time Saved</span>
               </Button>
             </Link>
 
@@ -119,59 +119,10 @@ export function Header() {
               <Button
                 variant={location === '/feedback' ? 'default' : 'ghost'}
                 size="sm"
-                className="flex items-center space-x-2"
+                className="flex items-center space-x-2 px-2"
               >
                 <MessageCircle className="w-4 h-4" />
-                <span>Feedback</span>
-              </Button>
-            </Link>
-          </div>
-
-          {/* Mobile Navigation */}
-          <div className="md:hidden flex items-center space-x-1 flex-1 justify-center">
-            <Link href="/dashboard">
-              <Button
-                variant={location === '/dashboard' ? 'default' : 'ghost'}
-                size="sm"
-                className="px-2"
-              >
-                <Home className="w-4 h-4" />
-              </Button>
-            </Link>
-            <Link href="/emails-converted">
-              <Button
-                variant={location === '/emails-converted' ? 'default' : 'ghost'}
-                size="sm"
-                className="px-2"
-              >
-                <Mail className="w-4 h-4" />
-              </Button>
-            </Link>
-            <Link href="/priority-emails">
-              <Button
-                variant={location === '/priority-emails' ? 'default' : 'ghost'}
-                size="sm"
-                className="px-2"
-              >
-                <Star className="w-4 h-4" />
-              </Button>
-            </Link>
-            <Link href="/time-saved">
-              <Button
-                variant={location === '/time-saved' ? 'default' : 'ghost'}
-                size="sm"
-                className="px-2"
-              >
-                <Clock className="w-4 h-4" />
-              </Button>
-            </Link>
-            <Link href="/feedback">
-              <Button
-                variant={location === '/feedback' ? 'default' : 'ghost'}
-                size="sm"
-                className="px-2"
-              >
-                <MessageCircle className="w-4 h-4" />
+                <span className="hidden-mobile-text">Feedback</span>
               </Button>
             </Link>
           </div>
