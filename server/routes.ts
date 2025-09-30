@@ -676,9 +676,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Increment accumulated time saved if task was just completed
       if (validatedUpdates.status === "completed" && existingTask.status !== "completed") {
         try {
-          const minutesToAdd = 3; // 3 minutes saved per completed task
+          const minutesToAdd = 1; // 1 minute saved per completed task
           await storage.incrementTimeSaved(userId, minutesToAdd, { tasksCompleted: 1 });
-          console.log(`[TimeSaved] Incremented time saved for completed task: ${updatedTask.title}`);
+          console.log(`[TimeSaved] Incremented ${minutesToAdd} minutes and 1 task completion for: ${updatedTask.title}`);
         } catch (error) {
           console.error("Error incrementing time saved:", error);
           // Don't fail the task update if time tracking fails
@@ -776,6 +776,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         actualMinutes,
       });
 
+      // Increment accumulated time saved for task completion
+      try {
+        const minutesToAdd = 1; // 1 minute saved per completed task
+        await storage.incrementTimeSaved(userId, minutesToAdd, { tasksCompleted: 1 });
+        console.log(`[TimeSaved] Incremented ${minutesToAdd} minutes and 1 task completion for: ${task.title}`);
+      } catch (error) {
+        console.error("Error incrementing time saved:", error);
+        // Don't fail the task completion if time tracking fails
+      }
+
       // Remove reminders for completed task
       taskNotificationScheduler.removeTaskReminders(req.params.id);
 
@@ -791,7 +801,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.error("[TaskComplete] Failed to delete calendar event:", calendarError);
         }
       }
-
 
       res.json(completedTask);
     } catch (error) {
