@@ -684,30 +684,11 @@ export function WorkflowRiver() {
   const handleCompleteTask = async (taskId: string) => {
     setCompletingTaskId(taskId);
     try {
-      // Optimistic update - immediately update UI before API call
-      const currentTasks = queryClient.getQueryData<Task[]>(["/api/tasks", user?.id]);
-      if (currentTasks) {
-        const optimisticTasks = currentTasks.map(task => 
-          task.id === taskId 
-            ? { ...task, status: "completed" as const, completedAt: new Date() }
-            : task
-        );
-        queryClient.setQueryData(["/api/tasks", user?.id], optimisticTasks);
-      }
-
-      // Immediately clear completing state for instant UI feedback
-      setCompletingTaskId(null);
-
-      // API call in background (don't await for instant response)
-      stopTaskMutation.mutateAsync(taskId).catch(error => {
-        console.error("Failed to complete task:", error);
-        // Revert optimistic update on error
-        if (currentTasks) {
-          queryClient.setQueryData(["/api/tasks", user?.id], currentTasks);
-        }
-      });
+      await stopTaskMutation.mutateAsync(taskId);
+      console.log(`[TaskComplete] Successfully completed task: ${taskId}`);
     } catch (error) {
       console.error("Failed to complete task:", error);
+    } finally {
       setCompletingTaskId(null);
     }
   };
