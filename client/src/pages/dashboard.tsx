@@ -16,7 +16,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 
 function Dashboard() {
-  
+
   const isMobile = useIsMobile();
   const { user } = useAuth();
   const [showAppUpdateModal, setShowAppUpdateModal] = useState(false);
@@ -32,7 +32,7 @@ function Dashboard() {
       // Use a static build timestamp to detect deployments
       const BUILD_TIMESTAMP = '1759099640'; // This will change with each deployment
       const storedBuildVersion = localStorage.getItem('buildVersion');
-      
+
       // Check if this is a new deployment
       if (storedBuildVersion && storedBuildVersion !== BUILD_TIMESTAMP) {
         // App was updated/redeployed - show modal
@@ -40,7 +40,7 @@ function Dashboard() {
         setShowAppUpdateModal(true);
         return;
       }
-      
+
       // Store current build version
       localStorage.setItem('buildVersion', BUILD_TIMESTAMP);
     };
@@ -64,8 +64,8 @@ function Dashboard() {
   return (
     <div className="min-h-screen bg-background text-foreground dashboard-container flex flex-col">
       <Header />
-      <AppUpdateModal 
-        isOpen={showAppUpdateModal} 
+      <AppUpdateModal
+        isOpen={showAppUpdateModal}
         onSignInClick={handleSignInClick}
       />
       <main className="flex-1 overflow-y-auto">
@@ -86,14 +86,24 @@ function Dashboard() {
         ) : (
           /* Desktop Layout */
           <div className="flex gap-6 h-[calc(100vh-120px)]">
-            {/* Main Column - Tasks with Full Remaining Width */}
-            <div className="flex-1 px-2 h-full">
-              <WorkflowRiver />
-            </div>
-
-            {/* Right Column - Notifications with Fixed Width */}
+            {/* Left Column - Notifications with Fixed Width */}
             <div className="w-80 flex-shrink-0 px-2 h-full">
               <NotificationFeed />
+            </div>
+
+            {/* Right and Center Columns - Tasks */}
+            <div className="flex-1 flex gap-6 min-w-0 h-full overflow-hidden">
+              <div className="responsive-task-grid grid grid-cols-3 gap-6 w-full h-full">
+                <div className="h-full">
+                  <WorkflowRiver title="Up Next" status="up_next" />
+                </div>
+                <div className="h-full">
+                  <WorkflowRiver title="In Progress" status="in_progress" />
+                </div>
+                <div className="h-full">
+                  <WorkflowRiver title="Completed" status="completed" />
+                </div>
+              </div>
             </div>
           </div>
         )}
