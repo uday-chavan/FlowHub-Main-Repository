@@ -1055,7 +1055,7 @@ export function WorkflowRiver() {
             <p className="text-sm mt-2">Your task pipeline is clear and ready for action!</p>
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-6 h-full min-h-[400px]">
+          <div className="grid grid-cols-3 gap-6 h-full min-h-[400px] responsive-task-grid md:grid-cols-3 sm:grid-cols-1">
             {priorityOrder.map((priority) => {
               const priorityTasks = tasksByPriority[priority];
               const config = priorityConfig[priority];
