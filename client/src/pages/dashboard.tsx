@@ -1,9 +1,6 @@
-
 import { Header } from "@/components/dashboard/Header";
-
 import { WorkflowRiver } from "@/components/dashboard/WorkflowRiver";
 import { NotificationFeed } from "@/components/dashboard/NotificationFeed";
-
 import { AppUpdateModal } from "@/components/AppUpdateModal";
 
 
@@ -16,8 +13,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 
-export default function Dashboard() {
-  
+function Dashboard() {
+
   const isMobile = useIsMobile();
   const { user } = useAuth();
   const [showAppUpdateModal, setShowAppUpdateModal] = useState(false);
@@ -33,7 +30,7 @@ export default function Dashboard() {
       // Use a static build timestamp to detect deployments
       const BUILD_TIMESTAMP = '1759099640'; // This will change with each deployment
       const storedBuildVersion = localStorage.getItem('buildVersion');
-      
+
       // Check if this is a new deployment
       if (storedBuildVersion && storedBuildVersion !== BUILD_TIMESTAMP) {
         // App was updated/redeployed - show modal
@@ -41,7 +38,7 @@ export default function Dashboard() {
         setShowAppUpdateModal(true);
         return;
       }
-      
+
       // Store current build version
       localStorage.setItem('buildVersion', BUILD_TIMESTAMP);
     };
@@ -65,22 +62,24 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-background text-foreground dashboard-container flex flex-col">
       <Header />
-      <AppUpdateModal 
-        isOpen={showAppUpdateModal} 
+      <AppUpdateModal
+        isOpen={showAppUpdateModal}
         onSignInClick={handleSignInClick}
       />
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-none mx-0 px-4 pt-4 pb-8 h-full">
         {isMobile ? (
           /* Mobile Layout */
-          <div className="flex flex-col gap-6 h-full overflow-y-auto">
+          <div className="flex flex-col gap-4 h-full overflow-y-auto px-2">
             {/* Mobile Notifications */}
-            <NotificationFeed />
+            <div className="w-full">
+              <NotificationFeed />
+            </div>
 
             {/* Main Content - Tasks */}
-            <WorkflowRiver />
-
-            {/* Additional Mobile Content - Removed sidebar components */}
+            <div className="w-full">
+              <WorkflowRiver />
+            </div>
           </div>
         ) : (
           /* Desktop Layout */
@@ -101,3 +100,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
+export default Dashboard;
