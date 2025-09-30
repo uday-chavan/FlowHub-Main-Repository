@@ -375,30 +375,19 @@ main {
   /* Header navigation buttons mobile style */
   @media (max-width: 1545px) {
     /* Hide text in header navigation buttons, show only icons */
-    .hidden.md\\:flex button span,
-    .md\\:hidden.flex button span {
+    .hidden-mobile-text {
       display: none !important;
     }
 
     /* Make header navigation buttons icon-only */
-    .hidden.md\\:flex button,
-    .md\\:hidden.flex button {
+    [data-testid="header-main"] button {
       min-width: 36px !important;
-      width: 36px !important;
-      padding: 0 !important;
-    }
-
-    /* Target header navigation specifically */
-    [data-testid="header-main"] .hidden.md\\:flex .space-x-2 button span,
-    [data-testid="header-main"] .md\\:hidden .space-x-1 button span {
-      display: none !important;
-    }
-
-    [data-testid="header-main"] .hidden.md\\:flex .space-x-2 button,
-    [data-testid="header-main"] .md\\:hidden .space-x-1 button {
-      min-width: 36px !important;
-      width: 36px !important;
       padding: 0 8px !important;
+    }
+
+    /* Ensure proper spacing between icon-only buttons */
+    [data-testid="header-main"] .flex-1 {
+      gap: 0.25rem !important;
     }
   }
 
