@@ -23,23 +23,23 @@ function AnimatedCounter({ target, duration = 2000, suffix = "" }: { target: num
   useEffect(() => {
     const startTime = Date.now();
     const startValue = 0;
-    
+
     const animate = () => {
       const now = Date.now();
       const elapsed = now - startTime;
       const progress = Math.min(elapsed / duration, 1);
-      
+
       // Easing function for smooth animation
       const easeOutQuart = 1 - Math.pow(1 - progress, 4);
       const value = Math.floor(startValue + (target - startValue) * easeOutQuart);
-      
+
       setCurrent(value);
-      
+
       if (progress < 1) {
         requestAnimationFrame(animate);
       }
     };
-    
+
     requestAnimationFrame(animate);
   }, [target, duration]);
 
@@ -88,7 +88,7 @@ function StatCard({
 
 export default function TimeSaved() {
   const { user } = useCurrentUser();
-  
+
   // Fetch time saved statistics
   const { data: stats, isLoading } = useQuery<TimeSavedStats>({
     queryKey: ['timeSavedStats', user?.id],
@@ -108,7 +108,7 @@ export default function TimeSaved() {
   const formatTimeDisplay = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
     const remainingMinutes = minutes % 60;
-    
+
     if (hours === 0) {
       return `${remainingMinutes} minutes`;
     } else if (remainingMinutes === 0) {
@@ -171,34 +171,34 @@ export default function TimeSaved() {
               <StatCard
                 title="Email Conversions"
                 value={stats?.totalEmailsConverted || 0}
-                description="Emails converted to tasks"
+                description=""
                 icon=""
                 color="bg-blue-50 border-l-blue-500"
                 animated={true}
               />
-              
+
               <StatCard
                 title="Tasks Created"
                 value={stats?.totalTasksCreatedFromNaturalLanguage || 0}
-                description="AI-generated tasks from text"
+                description=""
                 icon=""
                 color="bg-green-50 border-l-green-500"
                 animated={true}
               />
-              
+
               <StatCard
                 title="Urgent Tasks Handled"
                 value={stats?.conversionBreakdown?.urgentTasksHandled || 0}
-                description="High-priority tasks processed"
+                description=""
                 icon=""
                 color="bg-red-50 border-l-red-500"
                 animated={true}
               />
-              
+
               <StatCard
                 title="Tasks Completed"
                 value={stats?.conversionBreakdown?.completedTasks || 0}
-                description="Tasks marked as finished"
+                description=""
                 icon=""
                 color="bg-purple-50 border-l-purple-500"
                 animated={true}
@@ -256,7 +256,7 @@ export default function TimeSaved() {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-4">
                     <h3 className="font-semibold text-lg">Productivity Insights</h3>
                     <div className="space-y-3">
@@ -277,7 +277,7 @@ export default function TimeSaved() {
                 </div>
               </CardContent>
             </Card>
-            
+
           </div>
         </div>
       </main>
