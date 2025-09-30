@@ -107,15 +107,7 @@ export const userMetrics = pgTable("user_metrics", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// User App Links table
-export const userAppLinks = pgTable("user_app_links", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id),
-  name: text("name").notNull(),
-  url: text("url").notNull(),
-  logo: text("logo"),
-  createdAt: timestamp("created_at").defaultNow(),
-});
+
 
 // AI Insights table
 export const aiInsights = pgTable("ai_insights", {
@@ -343,10 +335,7 @@ export const insertUserMetricsSchema = createInsertSchema(userMetrics).omit({
   createdAt: true,
 });
 
-export const insertUserAppLinkSchema = createInsertSchema(userAppLinks).omit({
-  id: true,
-  createdAt: true,
-});
+
 
 export const insertAiInsightSchema = createInsertSchema(aiInsights).omit({
   id: true,
@@ -423,8 +412,7 @@ export type InsertConnectedApp = z.infer<typeof insertConnectedAppSchema>;
 export type UserMetrics = typeof userMetrics.$inferSelect;
 export type InsertUserMetrics = z.infer<typeof insertUserMetricsSchema>;
 
-export type UserAppLink = typeof userAppLinks.$inferSelect;
-export type InsertUserAppLink = z.infer<typeof insertUserAppLinkSchema>;
+
 
 export type AiInsight = typeof aiInsights.$inferSelect;
 export type InsertAiInsight = z.infer<typeof insertAiInsightSchema>;
