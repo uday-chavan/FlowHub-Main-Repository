@@ -7,7 +7,6 @@ import {
   insertNotificationSchema,
   insertUserMetricsSchema,
   insertAiInsightSchema,
-  insertUserAppLinkSchema,
   InsertTask,
   UpdateTask,
 } from "../shared/schema";
@@ -2226,80 +2225,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // User App Links routes
-  app.get("/api/user-app-links", authenticateToken, async (req: AuthenticatedRequest, res) => {
-    try {
-      const userId = req.query.userId as string || req.user?.id;
-      if (!userId) {
-        return res.status(401).json({ message: "Authentication required" });
-      }
-
-      let links = await storage.getUserAppLinks(userId);
-
-      // If no links exist for any user, create default ones
-      if (links.length === 0) {
-        const defaultAppLinks = [
-          { userId: userId, name: 'GitHub', url: 'https://github.com', logo: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/github.svg' },
-          { userId: userId, name: 'Zoom', url: 'https://zoom.us', logo: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/zoom.svg' },
-          { userId: userId, name: 'Google', url: 'https://google.com', logo: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/google.svg' },
-          { userId: userId, name: 'Slack', url: 'https://slack.com', logo: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/slack.svg' },
-          { userId: userId, name: 'Jira', url: 'https://atlassian.com/software/jira', logo: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/jira.svg' },
-          { userId: userId, name: 'Trello', url: 'https://trello.com', logo: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/trello.svg' },
-          { userId: userId, name: 'LinkedIn', url: 'https://linkedin.com', logo: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/linkedin.svg' },
-        ];
-
-        // Create all default app links
-        for (const linkData of defaultAppLinks) {
-          await storage.createUserAppLink(linkData);
-        }
-
-        // Fetch the newly created links
-        links = await storage.getUserAppLinks(userId);
-      }
-
-      res.json(links);
-    } catch (error) {
-      console.error("Error fetching user app links:", error);
-      res.status(500).json({ message: "Failed to fetch user app links", error: error instanceof Error ? error.message : 'Unknown error' });
-    }
-  });
-
-  app.post("/api/user-app-links", authenticateToken, async (req: AuthenticatedRequest, res) => {
-    try {
-      const userId = req.user?.id;
-      if (!userId) {
-        return res.status(401).json({ message: "Authentication required" });
-      }
-      const linkData = insertUserAppLinkSchema.parse({ ...req.body, userId });
-      const link = await storage.createUserAppLink(linkData);
-      res.json(link);
-    } catch (error) {
-      console.error("Error creating user app link:", error);
-      res.status(500).json({ message: "Failed to create user app link", error: error instanceof Error ? error.message : 'Unknown error' });
-    }
-  });
-
-  app.delete("/api/user-app-links/:id", authenticateToken, async (req: AuthenticatedRequest, res) => {
-    try {
-      const userId = req.user?.id;
-      if (!userId) {
-        return res.status(401).json({ message: "Authentication required" });
-      }
-      const linkId = req.params.id;
-
-      // Check ownership before deleting
-      const link = await storage.getUserAppLink(linkId);
-      if (!link || link.userId !== userId) {
-        return res.status(403).json({ message: "Access denied: cannot delete app links that do not belong to you" });
-      }
-
-      await storage.deleteUserAppLink(linkId);
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Error deleting user app link:", error);
-      res.status(500).json({ message: "Failed to delete user app link", error: error instanceof Error ? error.message : 'Unknown error' });
-    }
-  });
+  
 
   // Gmail OAuth configuration
   const oauth2Client = new OAuth2Client(
