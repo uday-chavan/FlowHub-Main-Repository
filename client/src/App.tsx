@@ -7,7 +7,7 @@ import Dashboard from "@/pages/dashboard";
 import NotFound from "@/pages/not-found";
 import EmailsConverted from "@/pages/EmailsConverted";
 import TimeSaved from "@/pages/TimeSaved";
-import AppLinks from "@/pages/app-links";
+
 import PriorityEmails from "@/pages/PriorityEmails";
 import Feedback from "@/pages/Feedback";
 import { useCurrentUser } from "@/hooks/useAuth";
@@ -150,9 +150,7 @@ function AppRouter() {
       <Route path="/time-saved">
         {isAuthenticated ? <TimeSaved /> : <Landing />}
       </Route>
-      <Route path="/app-links">
-        {isAuthenticated ? <AppLinks /> : <Landing />}
-      </Route>
+      
       <Route path="/priority-emails">
         {isAuthenticated ? <PriorityEmails /> : <Landing />}
       </Route>
