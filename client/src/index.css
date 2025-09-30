@@ -165,7 +165,7 @@ main {
 */
 
 /* Mobile Responsive Layout */
-@media (max-width: 768px) {
+@media (max-width: 1545px) {
   /* Hide app launcher on mobile */
   [data-testid="card-app-launcher"] {
     display: none !important;
@@ -361,7 +361,7 @@ main {
   }
 
   /* Compact mobile buttons */
-  @media (max-width: 640px) {
+  @media (max-width: 1545px) {
     .mobile-compact-btn {
       padding: 0.25rem !important;
       min-width: auto !important;
@@ -373,7 +373,7 @@ main {
   }
 
   /* Task section button improvements for mobile */
-  @media (max-width: 768px) {
+  @media (max-width: 1545px) {
     [data-testid="button-add-ai-task"],
     [data-testid="button-add-manual-task-plus"],
     [data-testid="button-auto-reschedule"] {
