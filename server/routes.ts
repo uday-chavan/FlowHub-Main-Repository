@@ -55,12 +55,12 @@ const getGoogleRedirectUri = () => {
   if (process.env.GOOGLE_REDIRECT_URI) {
     return process.env.GOOGLE_REDIRECT_URI;
   }
-  
+
   // Railway environment - use the static URL provided by Railway
   if (process.env.RAILWAY_STATIC_URL) {
     return `https://${process.env.RAILWAY_STATIC_URL}/auth/gmail/callback`;
   }
-  
+
   // Fallback for development or other environments
   const host = process.env.HOST || '0.0.0.0';
   const port = process.env.PORT || '5000';
@@ -792,7 +792,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      
+
 
       res.json(completedTask);
     } catch (error) {
@@ -940,7 +940,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const minutesToAdd = 5; // 5 minutes saved per AI-generated task
         const isUrgent = task.priority === "urgent" ? 1 : 0;
         const urgentMinutes = isUrgent * 12; // 12 minutes for urgent tasks
-        await storage.incrementTimeSaved(currentUserId, minutesToAdd + urgentMinutes, { 
+        await storage.incrementTimeSaved(currentUserId, minutesToAdd + urgentMinutes, {
           aiTasksCreated: 1,
           urgentTasksHandled: isUrgent
         });
@@ -1110,15 +1110,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           });
           console.log(`[ConversionTracking] Created convertedEmail record for notification: ${notification.id}`);
-          
+
           // Increment accumulated time saved for email conversion
           try {
-            const emailTimeSaved = 8; // 8 minutes per email conversion
-            const aiTaskTime = createdTasks.length * 5; // 5 minutes per AI task
+            const emailTimeSaved = 2; // 2 minutes per email conversion (reduced from 8)
+            const aiTaskTime = createdTasks.length * 1; // 1 minute per AI task (reduced from 5)
             const urgentTasks = createdTasks.filter(t => t.priority === "urgent").length;
-            const urgentTimeSaved = urgentTasks * 12; // 12 minutes per urgent task
+            const urgentTimeSaved = urgentTasks * 3; // 3 minutes per urgent task (reduced from 12)
             const totalMinutes = emailTimeSaved + aiTaskTime + urgentTimeSaved;
-            
+
             await storage.incrementTimeSaved(userId, totalMinutes, {
               emailConversions: 1,
               aiTasksCreated: createdTasks.length,
@@ -1600,7 +1600,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const retrievedEmails = [];
-      
+
       // Get user's converted emails to verify ownership
       const userConvertedEmails = await storage.getUserConvertedEmails(userId);
       const userConvertedEmailIds = new Set(userConvertedEmails.map(e => e.id));
@@ -1620,14 +1620,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Determine priority based on email content and sender
         let originalPriority: "urgent" | "important" | "normal" = "normal";
-        
+
         // Check if it was from a priority person (VIP) - check metadata first
         if (convertedEmail.metadata?.isPriorityPerson) {
           originalPriority = "urgent";
         } else {
           // Analyze content for priority keywords
           const emailContent = (convertedEmail.subject + ' ' + (convertedEmail.rawSnippet || '')).toLowerCase();
-          
+
           if (emailContent.includes('urgent') || emailContent.includes('asap') || emailContent.includes('emergency') || emailContent.includes('immediate')) {
             originalPriority = "urgent";
           } else if (emailContent.includes('important') || emailContent.includes('meeting') || emailContent.includes('deadline') || emailContent.includes('reminder')) {
@@ -1637,7 +1637,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Get the full email content from metadata or use rawSnippet as fallback
         const fullEmailContent = convertedEmail.metadata?.originalContent || convertedEmail.rawSnippet || 'Email content not available';
-        
+
         // Create a new notification in the notification feed with complete email data
         const originalNotification = await storage.createNotification({
           userId: userId,
@@ -1704,14 +1704,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Determine original priority based on email content and sender
         let originalPriority: "urgent" | "important" | "normal" = "normal";
-        
+
         // Check if it was from a priority person (VIP)
         if (convertedEmail.metadata?.isPriorityPerson) {
           originalPriority = "urgent";
         } else {
           // Analyze content for priority keywords
           const emailContent = (convertedEmail.metadata?.subject + ' ' + convertedEmail.metadata?.originalContent || '').toLowerCase();
-          
+
           if (emailContent.includes('urgent') || emailContent.includes('asap') || emailContent.includes('emergency')) {
             originalPriority = "urgent";
           } else if (emailContent.includes('important') || emailContent.includes('meeting') || emailContent.includes('deadline')) {
@@ -1814,7 +1814,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get accumulated time saved from persistent storage
       let accumulated = await storage.getAccumulatedTimeSaved(userId);
-      
+
       // If no record exists, create one with zeros
       if (!accumulated) {
         accumulated = await storage.createAccumulatedTimeSaved({
@@ -2648,7 +2648,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const msg = messageData.data;
             const headers = msg.payload?.headers || [];
             const from = headers.find(h => h.name === 'From')?.value || 'Unknown Sender';
-            
+
             // Extract sender email for smart deduplication
             let fromEmail = from.toLowerCase().trim();
             const emailMatch = from.match(/<([^>]+)>/);
@@ -2784,7 +2784,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const urgentKeywords = ['urgent', 'asap', 'emergency', 'critical', 'immediately', 'rush', 'crisis'];
               const importantKeywords = ['important', 'meeting', 'deadline', 'review', 'approval', 'schedule', 'conference', 'action required', 'follow up'];
               const fullText = (subject + ' ' + body).toLowerCase();
-              
+
               if (urgentKeywords.some(keyword => fullText.includes(keyword))) {
                 priority = "urgent";
               } else if (importantKeywords.some(keyword => fullText.includes(keyword))) {
@@ -3044,7 +3044,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     const urgentKeywords = ['urgent', 'asap', 'emergency', 'critical', 'immediately'];
                     const importantKeywords = ['important', 'meeting', 'deadline', 'review', 'approval', 'schedule', 'conference'];
                     const fullText = (subject + ' ' + body).toLowerCase();
-                    
+
                     if (urgentKeywords.some(keyword => fullText.includes(keyword))) {
                       priority = "urgent";
                     } else if (importantKeywords.some(keyword => fullText.includes(keyword))) {
@@ -3130,7 +3130,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   async function recoverGmailConnections() {
     try {
       console.log('[Gmail Recovery] Starting Gmail connection recovery...');
-      
+
       // Get all users who have stored Gmail tokens
       const allUsers = await storage.getAllUsers();
       let recoveredConnections = 0;
@@ -3148,7 +3148,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Retrieve stored encrypted tokens
           const tokenStorage = new SecureTokenStorage();
           const storedData = await tokenStorage.retrieveGmailTokens(user.id);
-          
+
           if (!storedData) {
             console.log(`[Gmail Recovery] No valid tokens found for user: ${user.id}`);
             continue;
@@ -3195,7 +3195,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log(`[Gmail Recovery] Recovery complete. Recovered ${recoveredConnections} Gmail connections.`);
-      
+
     } catch (error) {
       console.error('[Gmail Recovery] Gmail recovery failed:', error);
     }
