@@ -1,9 +1,8 @@
-
-import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Header } from "@/components/dashboard/Header";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import Header from "@/components/dashboard/Header";
 import { useCurrentUser } from "@/hooks/useAuth";
 
 interface TimeSavedStats {
@@ -18,26 +17,19 @@ interface TimeSavedStats {
   };
 }
 
-function AnimatedCounter({ 
-  target, 
-  duration = 2000, 
-  suffix = "" 
-}: { 
-  target: number; 
-  duration?: number; 
-  suffix?: string; 
-}) {
+function AnimatedCounter({ target, duration = 2000, suffix = "" }: { target: number; duration?: number; suffix?: string }) {
   const [current, setCurrent] = useState(0);
 
   useEffect(() => {
     const startTime = Date.now();
     const startValue = 0;
-
+    
     const animate = () => {
-      const elapsed = Date.now() - startTime;
+      const now = Date.now();
+      const elapsed = now - startTime;
       const progress = Math.min(elapsed / duration, 1);
       
-      // Ease out quart function for smooth animation
+      // Easing function for smooth animation
       const easeOutQuart = 1 - Math.pow(1 - progress, 4);
       const value = Math.floor(startValue + (target - startValue) * easeOutQuart);
       
@@ -179,7 +171,7 @@ export default function TimeSaved() {
               <StatCard
                 title="Email Conversions"
                 value={stats?.totalEmailsConverted || 0}
-                description=""
+                description="Emails converted to tasks"
                 icon=""
                 color="bg-blue-50 border-l-blue-500"
                 animated={true}
@@ -188,7 +180,7 @@ export default function TimeSaved() {
               <StatCard
                 title="Tasks Created"
                 value={stats?.totalTasksCreatedFromNaturalLanguage || 0}
-                description=""
+                description="AI-generated tasks from text"
                 icon=""
                 color="bg-green-50 border-l-green-500"
                 animated={true}
@@ -197,7 +189,7 @@ export default function TimeSaved() {
               <StatCard
                 title="Urgent Tasks Handled"
                 value={stats?.conversionBreakdown?.urgentTasksHandled || 0}
-                description=""
+                description="High-priority tasks processed"
                 icon=""
                 color="bg-red-50 border-l-red-500"
                 animated={true}
@@ -206,7 +198,7 @@ export default function TimeSaved() {
               <StatCard
                 title="Tasks Completed"
                 value={stats?.conversionBreakdown?.completedTasks || 0}
-                description=""
+                description="Tasks marked as finished"
                 icon=""
                 color="bg-purple-50 border-l-purple-500"
                 animated={true}
@@ -276,7 +268,7 @@ export default function TimeSaved() {
                       </div>
                       <div className="p-4 bg-gradient-to-r from-green-50 to-purple-50 rounded-lg">
                         <div className="text-2xl font-bold text-foreground">
-                          {(stats?.totalEmailsConverted || 0) + (stats?.totalTasksCreatedFromNaturalLanguage || 0)}
+                          {stats?.totalEmailsConverted + stats?.totalTasksCreatedFromNaturalLanguage || 0}
                         </div>
                         <div className="text-sm text-muted-foreground">Total automations</div>
                       </div>
