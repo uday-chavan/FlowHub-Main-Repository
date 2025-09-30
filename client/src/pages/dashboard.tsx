@@ -91,19 +91,9 @@ function Dashboard() {
               <NotificationFeed />
             </div>
 
-            {/* Right and Center Columns - Tasks */}
-            <div className="flex-1 flex gap-6 min-w-0 h-full overflow-hidden">
-              <div className="responsive-task-grid grid grid-cols-3 gap-6 w-full h-full">
-                <div className="h-full">
-                  <WorkflowRiver title="Up Next" status="up_next" />
-                </div>
-                <div className="h-full">
-                  <WorkflowRiver title="In Progress" status="in_progress" />
-                </div>
-                <div className="h-full">
-                  <WorkflowRiver title="Completed" status="completed" />
-                </div>
-              </div>
+            {/* Main Column - Tasks with Full Remaining Width */}
+            <div className="flex-1 px-2 h-full">
+              <WorkflowRiver />
             </div>
           </div>
         )}
