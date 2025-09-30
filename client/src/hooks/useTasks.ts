@@ -127,16 +127,11 @@ export function useStopTask() {
       return await apiRequest("POST", `/api/tasks/${taskId}/stop`);
     },
     onSuccess: (data, taskId) => {
-      // Update specific task in cache instead of invalidating entire query
-      const queryKey = ["/api/tasks", userId];
-      queryClient.setQueryData<Task[]>(queryKey, (old) => {
-        if (!old) return old;
-        return old.map(task => 
-          task.id === taskId 
-            ? { ...task, status: "completed" as const, completedAt: new Date() }
-            : task
-        );
-      });
+      // Invalidate and refetch tasks to get updated data from server
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks", userId] });
+      
+      // Also invalidate time saved stats to reflect the new completion
+      queryClient.invalidateQueries({ queryKey: ['timeSavedStats', userId] });
     },
   });
 }
