@@ -162,10 +162,104 @@ export default function TimeSaved() {
                     />
                     <span className="text-2xl md:text-3xl text-muted-foreground ml-2">minutes</span>
                   </div>
+                  <div className="text-sm md:text-base text-muted-foreground">
+                    {formatTimeDisplay(stats?.totalTimeSavedMinutes || 0)}
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
+            {/* Detailed Breakdown */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+              <StatCard
+                title="Email Conversions"
+                value={stats?.totalEmailsConverted || 0}
+                description="Emails converted to tasks"
+                icon="📧"
+                color="bg-blue-50 border-l-blue-500"
+                animated={true}
+              />
+              
+              <StatCard
+                title="Tasks Created"
+                value={stats?.totalTasksCreatedFromNaturalLanguage || 0}
+                description="AI-generated tasks from text"
+                icon="✨"
+                color="bg-green-50 border-l-green-500"
+                animated={true}
+              />
+              
+              <StatCard
+                title="Urgent Tasks Handled"
+                value={stats?.conversionBreakdown?.urgentTasksHandled || 0}
+                description="High-priority tasks processed"
+                icon="🚨"
+                color="bg-red-50 border-l-red-500"
+                animated={true}
+              />
+              
+              <StatCard
+                title="Tasks Completed"
+                value={stats?.conversionBreakdown?.completedTasks || 0}
+                description="Tasks marked as finished"
+                icon="✅"
+                color="bg-purple-50 border-l-purple-500"
+                animated={true}
+              />
+            </div>
+
+            {/* Time Saving Breakdown */}
+            <Card className="border">
+              <CardHeader>
+                <CardTitle className="text-xl md:text-2xl">How You're Saving Time</CardTitle>
+                <CardDescription>
+                  Breakdown of productivity improvements and time savings
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <h3 className="font-semibold text-lg">Automation Benefits</h3>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                        <span className="text-sm font-medium">Email → Task Conversion</span>
+                        <Badge variant="secondary">2 min/email</Badge>
+                      </div>
+                      <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                        <span className="text-sm font-medium">AI Task Creation</span>
+                        <Badge variant="secondary">1 min/task</Badge>
+                      </div>
+                      <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
+                        <span className="text-sm font-medium">Urgent Task Processing</span>
+                        <Badge variant="secondary">+3 min bonus</Badge>
+                      </div>
+                      <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
+                        <span className="text-sm font-medium">Task Completion</span>
+                        <Badge variant="secondary">1 min/task</Badge>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <h3 className="font-semibold text-lg">Productivity Insights</h3>
+                    <div className="space-y-3">
+                      <div className="p-4 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg">
+                        <div className="text-2xl font-bold text-foreground">
+                          {((stats?.totalTimeSavedMinutes || 0) / 60).toFixed(1)}
+                        </div>
+                        <div className="text-sm text-muted-foreground">Hours saved total</div>
+                      </div>
+                      <div className="p-4 bg-gradient-to-r from-green-50 to-purple-50 rounded-lg">
+                        <div className="text-2xl font-bold text-foreground">
+                          {stats?.totalEmailsConverted + stats?.totalTasksCreatedFromNaturalLanguage || 0}
+                        </div>
+                        <div className="text-sm text-muted-foreground">Total automations</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
             
           </div>
         </div>
