@@ -185,6 +185,36 @@ main {
     min-height: calc(100vh - 120px);
   }
 
+  /* Task sections responsive layout - 1133px breakpoint */
+  @media (max-width: 1133px) {
+    /* Vertical layout for task sections */
+    .responsive-task-grid {
+      grid-template-columns: 1fr !important;
+      gap: 1rem !important;
+      height: auto !important;
+      max-height: none !important;
+    }
+
+    /* Each task section should show at least 3 tasks with proper spacing */
+    .responsive-task-grid > div {
+      min-height: 280px !important;
+      max-height: 350px !important;
+      width: calc(100% - 2rem) !important;
+      margin: 0 1rem !important;
+    }
+
+    /* Adjust scrollable task content area */
+    .responsive-task-grid > div > div:last-child {
+      max-height: 270px !important;
+      overflow-y: auto !important;
+    }
+
+    /* Ensure proper task item sizing in vertical layout */
+    .responsive-task-grid .workflow-river {
+      min-height: 80px !important;
+    }
+  }
+
   /* Ensure mobile content fits properly */
   main {
     min-height: auto;
@@ -372,8 +402,8 @@ main {
     }
   }
 
-  /* Header navigation buttons mobile style */
-  @media (max-width: 1545px) {
+  /* Header navigation buttons mobile style - 1058px breakpoint */
+  @media (max-width: 1058px) {
     /* Hide text in header navigation buttons, show only icons */
     .hidden-mobile-text {
       display: none !important;
@@ -388,6 +418,11 @@ main {
     /* Ensure proper spacing between icon-only buttons */
     [data-testid="header-main"] .flex-1 {
       gap: 0.25rem !important;
+    }
+
+    /* Hide upgrade button text on smaller screens */
+    [data-testid="header-main"] button span:not(.relative) {
+      display: none !important;
     }
   }
 
