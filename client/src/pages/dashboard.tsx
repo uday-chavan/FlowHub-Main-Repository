@@ -3,7 +3,6 @@ import { Header } from "@/components/dashboard/Header";
 import { WorkflowRiver } from "@/components/dashboard/WorkflowRiver";
 import { NotificationFeed } from "@/components/dashboard/NotificationFeed";
 
-import { WindowsNotificationManager } from "@/components/WindowsNotificationManager";
 import { AppUpdateModal } from "@/components/AppUpdateModal";
 
 
@@ -98,11 +97,6 @@ export default function Dashboard() {
         )}
         </div>
       </main>
-
-      {/* Windows Notification Manager */}
-      {user && <WindowsNotificationManager userId={user.id} />}
-
-
     </div>
   );
 }
