@@ -5,7 +5,6 @@ import {
   connectedApps,
   userMetrics,
   aiInsights,
-  userAppLinks,
   credentials,
   plans,
   payments,
@@ -27,8 +26,6 @@ import {
   type InsertUserMetrics,
   type AiInsight,
   type InsertAiInsight,
-  type UserAppLink,
-  type InsertUserAppLink,
   type Credential,
   type InsertCredential,
   type Plan,
@@ -101,10 +98,7 @@ export interface IStorage {
   dismissAiInsight(id: string): Promise<void>;
   applyAiInsight(id: string): Promise<void>;
 
-  // User App Links operations
-  getUserAppLinks(userId: string): Promise<UserAppLink[]>;
-  createUserAppLink(link: InsertUserAppLink): Promise<UserAppLink>;
-  deleteUserAppLink(id: string): Promise<void>;
+  
 
   // User Usage operations for plan limits
   getUserUsage(userId: string, month: string): Promise<UserUsage | undefined>;
@@ -378,23 +372,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(aiInsights.id, id));
   }
 
-  // User App Links operations
-  async getUserAppLinks(userId: string): Promise<UserAppLink[]> {
-    return await requireDb()
-      .select()
-      .from(userAppLinks)
-      .where(eq(userAppLinks.userId, userId))
-      .orderBy(desc(userAppLinks.createdAt));
-  }
-
-  async createUserAppLink(insertLink: InsertUserAppLink): Promise<UserAppLink> {
-    const [link] = await requireDb().insert(userAppLinks).values(insertLink).returning();
-    return link;
-  }
-
-  async deleteUserAppLink(id: string): Promise<void> {
-    await requireDb().delete(userAppLinks).where(eq(userAppLinks.id, id));
-  }
+  
 
   // User Usage operations for plan limits
   async getUserUsage(userId: string, month: string): Promise<UserUsage | undefined> {
@@ -781,7 +759,7 @@ export class MemoryStorage implements IStorage {
   private connectedApps = new Map<string, ConnectedApp>();
   private userMetrics = new Map<string, UserMetrics>();
   private aiInsights = new Map<string, AiInsight>();
-  private userAppLinks = new Map<string, UserAppLink>();
+  
   private userUsageMap = new Map<string, UserUsage>();
   private encryptedGmailTokens = new Map<string, EncryptedGmailToken>();
   private priorityEmailsMap = new Map<string, PriorityEmail>();
@@ -849,27 +827,7 @@ export class MemoryStorage implements IStorage {
     };
     this.users.set(user.id, user);
 
-    // Create default app links for new users
-    const defaultAppLinks = [
-      { userId: user.id, name: 'GitHub', url: 'https://github.com', logo: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/github.svg' },
-      { userId: user.id, name: 'Zoom', url: 'https://zoom.us', logo: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/zoom.svg' },
-      { userId: user.id, name: 'Google', url: 'https://google.com', logo: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/google.svg' },
-      { userId: user.id, name: 'Slack', url: 'https://slack.com', logo: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/slack.svg' },
-      { userId: user.id, name: 'Jira', url: 'https://atlassian.com/software/jira', logo: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/jira.svg' },
-      { userId: user.id, name: 'Trello', url: 'https://trello.com', logo: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/trello.svg' },
-      { userId: user.id, name: 'LinkedIn', url: 'https://linkedin.com', logo: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/linkedin.svg' },
-    ];
-
-    // Add default app links using memory storage
-    defaultAppLinks.forEach(link => {
-      const appLink: UserAppLink = {
-        ...link,
-        id: Math.random().toString(36).substr(2, 9),
-        createdAt: new Date(),
-        logo: link.logo || null
-      };
-      this.userAppLinks.set(appLink.id, appLink);
-    });
+    
 
     return user;
   }
@@ -1089,26 +1047,7 @@ export class MemoryStorage implements IStorage {
     }
   }
 
-  async getUserAppLinks(userId: string): Promise<UserAppLink[]> {
-    return Array.from(this.userAppLinks.values())
-      .filter(link => link.userId === userId)
-      .sort((a, b) => new Date(b.createdAt || new Date()).getTime() - new Date(a.createdAt || new Date()).getTime());
-  }
-
-  async createUserAppLink(link: InsertUserAppLink): Promise<UserAppLink> {
-    const newLink: UserAppLink = {
-      ...link,
-      id: Math.random().toString(36).substr(2, 9),
-      createdAt: new Date(),
-      logo: link.logo || null
-    };
-    this.userAppLinks.set(newLink.id, newLink);
-    return newLink;
-  }
-
-  async deleteUserAppLink(id: string): Promise<void> {
-    this.userAppLinks.delete(id);
-  }
+  
 
   // User Usage operations for plan limits
   async getUserUsage(userId: string, month: string): Promise<UserUsage | undefined> {
