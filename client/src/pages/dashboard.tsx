@@ -3,9 +3,7 @@ import { Header } from "@/components/dashboard/Header";
 import { WorkflowRiver } from "@/components/dashboard/WorkflowRiver";
 import { NotificationFeed } from "@/components/dashboard/NotificationFeed";
 
-import { GmailConnect } from "@/components/dashboard/GmailConnect";
 import { WindowsNotificationManager } from "@/components/WindowsNotificationManager";
-import { CalendarSync } from "@/components/dashboard/CalendarSync"; // Import CalendarSync component
 import { AppUpdateModal } from "@/components/AppUpdateModal";
 
 
@@ -13,16 +11,15 @@ import { useNotifications } from "@/hooks/useNotifications";
 
 // TaskList functionality is handled by WorkflowRiver component
 
-import { useIsMobile } from "@/hooks/use-mobile"; // Added useIsMobile hook
-import { useAuth } from "@/hooks/useAuth"; // Added useAuth import
-import { useState, useEffect } from "react"; // Import useState for isGmailConnected
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuth } from "@/hooks/useAuth";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 
 export default function Dashboard() {
   
   const isMobile = useIsMobile();
-  const { user } = useAuth(); // Get actual authenticated user
-  const [isGmailConnected, setIsGmailConnected] = useState(false); // State to track Gmail connection
+  const { user } = useAuth();
   const [showAppUpdateModal, setShowAppUpdateModal] = useState(false);
   const [, setLocation] = useLocation();
   // const { data: notifications } = useNotifications();
@@ -79,12 +76,6 @@ export default function Dashboard() {
           <div className="flex flex-col gap-6 h-full overflow-y-auto">
             {/* Mobile Notifications */}
             <NotificationFeed />
-
-            {/* Gmail and Calendar Integration */}
-            <div className="space-y-4">
-              <GmailConnect onConnectionChange={setIsGmailConnected} />
-              <CalendarSync isGmailConnected={isGmailConnected} />
-            </div>
 
             {/* Main Content - Tasks */}
             <WorkflowRiver />
