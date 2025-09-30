@@ -1,37 +1,4 @@
-import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Header } from "@/components/dashboard/Header";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { useCurrentUser } from "@/hooks/useAuth";
-
-interface TimeSavedStats {
-  totalEmailsConverted: number;
-  totalTasksCreatedFromNaturalLanguage: number;
-  totalTimeSavedMinutes: number;
-  conversionBreakdown: {
-    emailConversions: number;
-    naturalLanguageConversions: number;
-    urgentTasksHandled: number;
-    completedTasks: number;
-  };
-}
-
-function AnimatedCounter({ target, duration = 2000, suffix = "" }: { target: number; duration?: number; suffix?: string }) {
-  const [current, setCurrent] = useState(0);
-
-  useEffect(() => {
-    const startTime = Date.now();
-    const startValue = 0;
-    
-    const animate = () => {
-      const now = Date.now();
-      const elapsed = now - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      
-      // Easing function for smooth animation
-      const easeOutQuart = 1 - Math.pow(1 - progress, 4);
-      const value = Math.floor(startValue + (target - startValue) * easeOutQuart);
+.floor(startValue + (target - startValue) * easeOutQuart);
       
       setCurrent(value);
       
@@ -171,7 +138,7 @@ export default function TimeSaved() {
               <StatCard
                 title="Email Conversions"
                 value={stats?.totalEmailsConverted || 0}
-                description="Emails converted to tasks"
+                description=""
                 icon=""
                 color="bg-blue-50 border-l-blue-500"
                 animated={true}
@@ -180,7 +147,7 @@ export default function TimeSaved() {
               <StatCard
                 title="Tasks Created"
                 value={stats?.totalTasksCreatedFromNaturalLanguage || 0}
-                description="AI-generated tasks from text"
+                description=""
                 icon=""
                 color="bg-green-50 border-l-green-500"
                 animated={true}
@@ -189,7 +156,7 @@ export default function TimeSaved() {
               <StatCard
                 title="Urgent Tasks Handled"
                 value={stats?.conversionBreakdown?.urgentTasksHandled || 0}
-                description="High-priority tasks processed"
+                description=""
                 icon=""
                 color="bg-red-50 border-l-red-500"
                 animated={true}
@@ -198,7 +165,7 @@ export default function TimeSaved() {
               <StatCard
                 title="Tasks Completed"
                 value={stats?.conversionBreakdown?.completedTasks || 0}
-                description="Tasks marked as finished"
+                description=""
                 icon=""
                 color="bg-purple-50 border-l-purple-500"
                 animated={true}
