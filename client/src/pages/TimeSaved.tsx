@@ -221,21 +221,41 @@ export default function TimeSaved() {
                   <div className="space-y-4">
                     <h3 className="font-semibold text-lg">Automation Benefits</h3>
                     <div className="space-y-3">
-                      <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                        <span className="text-sm font-medium">Email → Task Conversion</span>
-                        <Badge variant="secondary">2 min/email</Badge>
+                      <div className="p-3 bg-blue-50 rounded-lg">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-sm font-medium">Email → Task Conversion</span>
+                          <Badge variant="secondary">2 min/email</Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Eliminates manual reading, prioritizing, and converting email content into actionable tasks
+                        </p>
                       </div>
-                      <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                        <span className="text-sm font-medium">AI Task Creation</span>
-                        <Badge variant="secondary">1 min/task</Badge>
+                      <div className="p-3 bg-green-50 rounded-lg">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-sm font-medium">AI Task Creation</span>
+                          <Badge variant="secondary">1 min/task</Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Removes time spent manually writing task descriptions, setting priorities, and estimating durations
+                        </p>
                       </div>
-                      <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
-                        <span className="text-sm font-medium">Urgent Task Processing</span>
-                        <Badge variant="secondary">+3 min bonus</Badge>
+                      <div className="p-3 bg-red-50 rounded-lg">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-sm font-medium">Urgent Task Processing</span>
+                          <Badge variant="secondary">+3 min bonus</Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Prevents escalation delays by auto-detecting urgency and immediate priority escalation vs manual triage
+                        </p>
                       </div>
-                      <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
-                        <span className="text-sm font-medium">Task Completion</span>
-                        <Badge variant="secondary">1 min/task</Badge>
+                      <div className="p-3 bg-purple-50 rounded-lg">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-sm font-medium">Task Completion</span>
+                          <Badge variant="secondary">1 min/task</Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Saves time on manual progress tracking, status updates, and completion workflows
+                        </p>
                       </div>
                     </div>
                   </div>
