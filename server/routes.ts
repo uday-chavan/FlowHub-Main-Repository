@@ -793,7 +793,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
 
-
       res.json(completedTask);
     } catch (error) {
       console.error("Error stopping task:", error);
