@@ -1,4 +1,3 @@
-
 import { Zap, Clock, Play, Square, Info, Trash2, RotateCcw, Plus, Pencil, Sparkles, Calendar, CheckSquare } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -567,10 +566,9 @@ export function WorkflowRiver() {
 
     // If most tasks are already visible, don't restart animations (likely a deletion)
     if (currentVisibleTaskIds.size > 0 && currentVisibleTaskIds.size >= Math.floor(tasks.length * 0.7)) {
-      // Just add any new tasks without full animation restart
+      // Just add new tasks gradually
       const newTaskIds = tasks.filter(t => !visibleTasks.has(t.id)).map(t => t.id);
       if (newTaskIds.length > 0) {
-        // Add new tasks gradually
         newTaskIds.forEach((taskId, index) => {
           setTimeout(() => {
             setVisibleTasks(prev => new Set([...prev, taskId]));
@@ -712,59 +710,79 @@ export function WorkflowRiver() {
     if (!user?.id) return;
 
     // Get current tasks for potential rollback
-    const currentTasks = queryClient.getQueryData<Task[]>(["/api/tasks", user.id]);
-
-    // Set deleting state for visual feedback
-    setDeletingTaskId(taskId);
+    const currentTasks = queryClient.getQueryData(["/api/tasks", user.id]) as Task[];
 
     try {
-      // Optimistic update - remove only the specific task
-      if (currentTasks) {
-        const updatedTasks = currentTasks.filter(task => task.id !== taskId);
-        queryClient.setQueryData<Task[]>(["/api/tasks", user.id], updatedTasks);
-      }
-
-      // Immediately remove the task from visible tasks to prevent animation restart
+      // Immediately remove the task from visible tasks to prevent any visual glitches
       setVisibleTasks(prev => {
         const newSet = new Set(prev);
         newSet.delete(taskId);
         return newSet;
       });
 
-      // Show immediate toast feedback
-      toast({
-        title: "Task Removed! 🗑️",
-        description: "Task has been successfully deleted.",
-        duration: 2000,
+      // Optimistically remove the task from cache
+      queryClient.setQueryData(["/api/tasks", user.id], (oldTasks: Task[] | undefined) => {
+        if (!oldTasks) return [];
+        return oldTasks.filter(task => task.id !== taskId);
       });
 
-      // Call API to delete the task
-      await deleteTaskMutation.mutateAsync(taskId);
+      // Call API to delete the task (don't await to prevent blocking UI)
+      deleteTaskMutation.mutate(taskId, {
+        onSuccess: () => {
+          // Show success toast only after API confirms deletion
+          toast({
+            title: "Task Removed! 🗑️",
+            description: "Task has been successfully deleted.",
+            duration: 2000,
+          });
+
+          // Invalidate queries to ensure fresh data without refetching immediately
+          queryClient.invalidateQueries({ 
+            queryKey: ["/api/tasks", user.id],
+            refetchType: 'none' // Prevent immediate refetch that could cause flickering
+          });
+        },
+        onError: (error) => {
+          console.error("Failed to delete task:", error);
+
+          // Revert optimistic update on error
+          if (currentTasks) {
+            queryClient.setQueryData(["/api/tasks", user.id], currentTasks);
+            // Re-add the task to visible tasks if deletion failed
+            setVisibleTasks(prev => {
+              const newSet = new Set(prev);
+              newSet.add(taskId);
+              return newSet;
+            });
+          }
+
+          // Show error toast
+          toast({
+            title: "Delete Failed",
+            description: "Failed to delete task. Please try again.",
+            variant: "destructive",
+            duration: 3000,
+          });
+        },
+        onSettled: () => {
+          // Clear deleting state
+          setDeletingTaskId(null);
+        }
+      });
 
     } catch (error) {
-      console.error("Failed to delete task:", error);
+      console.error("Failed to initiate task deletion:", error);
+      setDeletingTaskId(null);
 
-      // Revert optimistic update on error
+      // Revert changes if something went wrong during setup
       if (currentTasks) {
         queryClient.setQueryData(["/api/tasks", user.id], currentTasks);
-        // Re-add the task to visible tasks if deletion failed
         setVisibleTasks(prev => {
           const newSet = new Set(prev);
           newSet.add(taskId);
           return newSet;
         });
       }
-
-      // Show error toast
-      toast({
-        title: "Delete Failed",
-        description: "Failed to delete task. Please try again.",
-        variant: "destructive",
-        duration: 3000,
-      });
-    } finally {
-      // Clear deleting state
-      setDeletingTaskId(null);
     }
   };
 
