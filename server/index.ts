@@ -57,6 +57,19 @@ app.use((req, res, next) => {
     res.status(200).send("OK");
   });
 
+  // Serve static policy pages for Google verification
+  app.get("/privacy-policy.html", (req, res) => {
+    res.sendFile(path.join(process.cwd(), "public", "privacy-policy.html"));
+  });
+
+  app.get("/terms-of-service.html", (req, res) => {
+    res.sendFile(path.join(process.cwd(), "public", "terms-of-service.html"));
+  });
+
+  app.get("/index-homepage.html", (req, res) => {
+    res.sendFile(path.join(process.cwd(), "public", "index-homepage.html"));
+  });
+
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
