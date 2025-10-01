@@ -28,8 +28,9 @@ export function useTasks() {
       return response.json();
     },
     enabled: !!userId && !!user,
-    refetchInterval: 2000, // Poll every 2 seconds for real-time updates
+    refetchInterval: 5000, // Reduced frequency to 5 seconds to prevent aggressive polling during operations
     refetchIntervalInBackground: true,
+    staleTime: 2000, // Consider data stale after 2 seconds
   });
 }
 
@@ -203,11 +204,22 @@ export function useDeleteTask() {
 
   return useMutation({
     mutationFn: async (taskId: string) => {
-      // Assuming apiRequest handles user context or the endpoint infers it
       return await apiRequest("DELETE", `/api/tasks/${taskId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/tasks", userId] });
+      // Use a more controlled invalidation to prevent immediate refetch
+      queryClient.invalidateQueries({ 
+        queryKey: ["/api/tasks", userId],
+        refetchType: 'none' // Prevent automatic refetch that causes flickering
+      });
+      
+      // Manually set stale after a brief delay to allow for controlled refetch later
+      setTimeout(() => {
+        queryClient.invalidateQueries({ 
+          queryKey: ["/api/tasks", userId],
+          refetchType: 'active'
+        });
+      }, 1000);
     },
   });
 }
