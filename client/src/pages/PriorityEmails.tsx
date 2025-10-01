@@ -123,14 +123,6 @@ export default function PriorityEmails() {
     deleteEmailMutation.mutate(id);
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background text-foreground">
@@ -224,9 +216,7 @@ export default function PriorityEmails() {
                             <p className="font-medium text-sm md:text-base truncate">
                               {priorityEmail.email}
                             </p>
-                            <p className="text-xs text-muted-foreground">
-                              Added on {formatDate(priorityEmail.addedAt)}
-                            </p>
+                            {/* Date display removed */}
                           </div>
                         </div>
 
