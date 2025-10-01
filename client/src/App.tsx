@@ -11,6 +11,56 @@ import TimeSaved from "@/pages/TimeSaved";
 import PriorityEmails from "@/pages/PriorityEmails";
 import Feedback from "@/pages/Feedback";
 import { useCurrentUser } from "@/hooks/useAuth";
+import { Monitor } from "lucide-react";
+
+function ScreenRatioGuard({ children }: { children: React.ReactNode }) {
+  const [isValidRatio, setIsValidRatio] = useState(true);
+
+  useEffect(() => {
+    const checkRatio = () => {
+      const aspectRatio = window.innerWidth / window.innerHeight;
+      const minWidth = 1024;
+      
+      const isDesktopWidth = window.innerWidth >= minWidth;
+      const isLandscapeOrWide = aspectRatio >= 1.3;
+      
+      setIsValidRatio(isDesktopWidth && isLandscapeOrWide);
+    };
+
+    checkRatio();
+    
+    window.addEventListener('resize', checkRatio);
+    return () => window.removeEventListener('resize', checkRatio);
+  }, []);
+
+  if (!isValidRatio) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-8">
+        <div className="max-w-2xl w-full text-center space-y-6">
+          <div className="flex justify-center mb-8">
+            <Monitor className="w-24 h-24 text-blue-400" data-testid="icon-monitor" />
+          </div>
+          <h1 className="text-3xl font-bold text-white mb-4" data-testid="text-title">
+            Desktop Optimized
+          </h1>
+          <div className="space-y-4 text-lg text-slate-300">
+            <p data-testid="text-message-1">
+              This application is currently optimized for desktop devices with a 16:9 or 16:10 screen ratio.
+            </p>
+            <p data-testid="text-message-2">
+              Mobile and other screen formats are not yet supported.
+            </p>
+            <p className="text-blue-400" data-testid="text-message-3">
+              We're working on bringing full support to mobile soon — stay tuned!
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+}
 
 // Create a single queryClient instance
 const queryClient = new QueryClient({
@@ -167,11 +217,13 @@ function AppRouter() {
 
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <div className="min-h-screen max-h-screen overflow-hidden">
-        <Toaster />
-        <AppRouter />
-      </div>
-    </QueryClientProvider>
+    <ScreenRatioGuard>
+      <QueryClientProvider client={queryClient}>
+        <div className="min-h-screen max-h-screen overflow-hidden">
+          <Toaster />
+          <AppRouter />
+        </div>
+      </QueryClientProvider>
+    </ScreenRatioGuard>
   );
 }
