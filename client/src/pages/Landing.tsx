@@ -343,6 +343,33 @@ export function Landing() {
           </motion.div>
         </div>
       </div>
+
+      {/* Footer with Policy Links */}
+      <footer className="relative z-10 py-8 px-6 border-t border-white/10">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex flex-col md:flex-row items-center justify-center gap-6 text-white/60 text-sm">
+            <span>© 2025 FlowHub. All rights reserved.</span>
+            <div className="flex items-center gap-6">
+              <a 
+                href="/privacy-policy.html" 
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-white transition-colors"
+              >
+                Privacy Policy
+              </a>
+              <a 
+                href="/terms-of-service.html" 
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-white transition-colors"
+              >
+                Terms of Service
+              </a>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
