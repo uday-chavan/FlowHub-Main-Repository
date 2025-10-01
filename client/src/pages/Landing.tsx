@@ -132,32 +132,32 @@ export function Landing() {
       </div>
 
       {/* Hero Section - Full Screen */}
-      <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-6 text-center">
+      <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-6 text-center pt-16">
         <div className={`transition-all duration-1000 transform ${
           isVisible ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'
         }`}>
 
           {/* Optional subtle wordmark */}
-          <div className="mb-6">
-            <h1 className="text-2xl md:text-3xl font-light text-white/60 tracking-[0.3em] uppercase mb-3">
+          <div className="mb-8">
+            <h1 className="text-2xl md:text-3xl font-light text-white/60 tracking-[0.3em] uppercase mb-4">
               FlowHub
             </h1>
-            <div className="w-16 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent mx-auto" />
+            <div className="w-20 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent mx-auto" />
           </div>
 
           {/* Hero Animated Benefits */}
-          <div className="mb-12">
+          <div className="mb-20">
             <TextLoop
               messages={benefits}
               duration={2800}
-              className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-extralight text-white leading-tight tracking-tight flex items-center justify-center"
+              className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extralight text-white leading-tight tracking-tight flex items-center justify-center"
             />
           </div>
 
           {/* Primary CTA */}
           <button
             onClick={handleSignInWithGoogle}
-            className="bg-white/95 hover:bg-white text-slate-900 hover:text-slate-950 px-4 py-2 text-base font-medium rounded-full transition-all duration-500 group hover:scale-105 hover:shadow-2xl hover:shadow-white/20 border-0 backdrop-blur-sm flex items-center justify-center gap-2 mx-auto mb-8"
+            className="bg-white/95 hover:bg-white text-slate-900 hover:text-slate-950 px-10 py-5 text-lg font-medium rounded-full transition-all duration-500 group hover:scale-105 hover:shadow-2xl hover:shadow-white/20 border-0 backdrop-blur-sm flex items-center justify-center gap-3 mx-auto mb-24"
             data-testid="button-sign-in-google"
           >
             <svg className="w-6 h-6" viewBox="0 0 24 24">
@@ -167,11 +167,11 @@ export function Landing() {
               <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
             </svg>
             <span className="relative z-10">Sign in with Google</span>
-            <ArrowRight className="ml-3 w-6 h-6 transition-transform group-hover:translate-x-1" />
+            <ArrowRight className="ml-1 w-6 h-6 transition-transform group-hover:translate-x-1" />
           </button>
 
           {/* How It Works Title */}
-          <h2 className="text-xl md:text-2xl font-light text-white/90 tracking-wide mb-3" data-testid="text-workflow-title">
+          <h2 className="text-2xl md:text-3xl font-light text-white/90 tracking-wide mb-8" data-testid="text-workflow-title">
             How It Works?
           </h2>
 
