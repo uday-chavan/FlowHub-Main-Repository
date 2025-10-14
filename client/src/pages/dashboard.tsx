@@ -13,7 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 
-function Dashboard() {
+export default function Dashboard() {
 
   const isMobile = useIsMobile();
   const { user } = useAuth();
@@ -100,5 +100,3 @@ function Dashboard() {
     </div>
   );
 }
-
-export default Dashboard;
